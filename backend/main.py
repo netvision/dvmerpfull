@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,14 +8,24 @@ import models  # noqa: F401 — import models so they register with Base metadat
 
 from routers import public, portal, users
 
-app = FastAPI(title="Lesson Plan Platform API")
 
 # ---------------------------------------------------------------------------
-# CORS — allow all origins for local development
+# Lifespan — create all DB tables on startup
+# ---------------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title="Lesson Plan Platform API", lifespan=lifespan)
+
+# ---------------------------------------------------------------------------
+# CORS — allow local Vite dev server
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,14 +37,6 @@ app.add_middleware(
 app.include_router(public.router, prefix="/api/public", tags=["public"])
 app.include_router(portal.router, prefix="/api/portal", tags=["portal"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
-
-
-# ---------------------------------------------------------------------------
-# Startup event — create all DB tables
-# ---------------------------------------------------------------------------
-@app.on_event("startup")
-def on_startup():
-    Base.metadata.create_all(bind=engine)
 
 
 @app.get("/")

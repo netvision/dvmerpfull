@@ -1,8 +1,13 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import os
+from pathlib import Path
 
-DATABASE_URL = "sqlite:///D:/dvm/lessons/backend/lesson_plans.db"
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"sqlite:///{Path(__file__).parent / 'lesson_plans.db'}"
+)
 
 engine = create_engine(
     DATABASE_URL,
@@ -11,7 +16,9 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 def get_db():
