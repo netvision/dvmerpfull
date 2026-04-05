@@ -1,14 +1,18 @@
 import tempfile
 import os
+import uuid
+import shutil
+from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from auth import create_access_token, get_current_user, require_admin, verify_password
+from config import UPLOADS_DIR
 from database import get_db
-from models import User, UserRole, TeacherSubject, Subject, Chapter, Concept, Exhibit
+from models import User, UserRole, TeacherSubject, Subject, Chapter, Concept, Exhibit, ConceptImage
 from schemas import (
     TokenOut,
     UserOut,
@@ -16,6 +20,7 @@ from schemas import (
     SubjectNestedOut,
     ClassNestedOut,
     ConceptOut,
+    ConceptImageOut,
     ExhibitOut,
     ChapterPortalSummaryOut,
     ChapterUpdateIn,
@@ -78,6 +83,13 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
             )
             for ex in ordered_exhibits
         ]
+        ordered_images = (
+            db.query(ConceptImage)
+            .filter(ConceptImage.concept_id == concept.id)
+            .order_by(ConceptImage.sort_order)
+            .all()
+        )
+        images_out = [_build_image_out(img) for img in ordered_images]
         concepts_out.append(
             ConceptOut(
                 id=concept.id,
@@ -92,6 +104,7 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
                 remarks=concept.remarks,
                 exhibit_ref=concept.exhibit_ref,
                 exhibits=exhibits_out,
+                images=images_out,
             )
         )
 
@@ -390,6 +403,17 @@ async def upload_xlsx(
 # Concept CRUD routes
 # ---------------------------------------------------------------------------
 
+def _build_image_out(img: ConceptImage) -> ConceptImageOut:
+    """Build a ConceptImageOut from a ConceptImage ORM object."""
+    return ConceptImageOut.model_validate({
+        "id": img.id,
+        "filename": img.filename,
+        "original_name": img.original_name,
+        "sort_order": img.sort_order,
+        "url": f"/uploads/{img.filename}",
+    })
+
+
 def _build_concept_out(db: Session, concept: Concept) -> ConceptOut:
     """Build a ConceptOut from a Concept ORM object."""
     ordered_exhibits = (
@@ -407,6 +431,13 @@ def _build_concept_out(db: Session, concept: Concept) -> ConceptOut:
         )
         for ex in ordered_exhibits
     ]
+    ordered_images = (
+        db.query(ConceptImage)
+        .filter(ConceptImage.concept_id == concept.id)
+        .order_by(ConceptImage.sort_order)
+        .all()
+    )
+    images_out = [_build_image_out(img) for img in ordered_images]
     return ConceptOut(
         id=concept.id,
         s_no=concept.s_no,
@@ -420,6 +451,7 @@ def _build_concept_out(db: Session, concept: Concept) -> ConceptOut:
         remarks=concept.remarks,
         exhibit_ref=concept.exhibit_ref,
         exhibits=exhibits_out,
+        images=images_out,
     )
 
 
@@ -607,3 +639,103 @@ def create_exhibit(
         field_value=exhibit.field_value,
         sort_order=exhibit.sort_order,
     )
+
+
+# ---------------------------------------------------------------------------
+# Concept Image routes
+# ---------------------------------------------------------------------------
+
+@router.post("/concepts/{concept_id}/images", response_model=List[ConceptImageOut], status_code=201)
+async def upload_concept_images(
+    concept_id: int,
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Upload one or more images for a concept. Teacher must own the subject."""
+    concept = db.query(Concept).filter(Concept.id == concept_id).first()
+    if concept is None:
+        raise HTTPException(status_code=404, detail="Concept not found")
+
+    subject_id = _get_concept_subject_id(db, concept_id)
+    _check_subject_access(db, current_user, subject_id)
+
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+    # Determine starting sort_order (append after existing images)
+    existing_count = db.query(ConceptImage).filter(ConceptImage.concept_id == concept_id).count()
+
+    created: List[ConceptImageOut] = []
+    for idx, upload in enumerate(files):
+        if not (upload.content_type or "").startswith("image/"):
+            raise HTTPException(
+                status_code=422,
+                detail=f"File '{upload.filename}' is not an image (content_type: {upload.content_type})",
+            )
+
+        original_name = upload.filename or "image"
+        ext = Path(original_name).suffix
+        stored_filename = f"{uuid.uuid4().hex}{ext}"
+        dest_path = os.path.join(UPLOADS_DIR, stored_filename)
+
+        contents = await upload.read()
+        with open(dest_path, "wb") as f:
+            f.write(contents)
+
+        img = ConceptImage(
+            concept_id=concept_id,
+            filename=stored_filename,
+            original_name=original_name,
+            sort_order=existing_count + idx,
+        )
+        db.add(img)
+        db.flush()
+        created.append(_build_image_out(img))
+
+    db.commit()
+    return created
+
+
+@router.delete("/images/{image_id}")
+def delete_concept_image(
+    image_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a concept image (disk + DB row). Teacher must own the subject."""
+    img = db.query(ConceptImage).filter(ConceptImage.id == image_id).first()
+    if img is None:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    subject_id = _get_concept_subject_id(db, img.concept_id)
+    _check_subject_access(db, current_user, subject_id)
+
+    # Remove file from disk (ignore if already missing)
+    file_path = os.path.join(UPLOADS_DIR, img.filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    db.delete(img)
+    db.commit()
+    return {"ok": True}
+
+
+@router.put("/images/{image_id}", response_model=ConceptImageOut)
+def update_concept_image(
+    image_id: int,
+    sort_order: int = Body(..., embed=True),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update sort_order of a concept image. Teacher must own the subject."""
+    img = db.query(ConceptImage).filter(ConceptImage.id == image_id).first()
+    if img is None:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    subject_id = _get_concept_subject_id(db, img.concept_id)
+    _check_subject_access(db, current_user, subject_id)
+
+    img.sort_order = sort_order
+    db.commit()
+    db.refresh(img)
+    return _build_image_out(img)

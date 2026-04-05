@@ -97,6 +97,12 @@ class Concept(Base):
 
     chapter = relationship("Chapter", back_populates="concepts")
     exhibits = relationship("Exhibit", back_populates="concept")
+    images = relationship(
+        "ConceptImage",
+        back_populates="concept",
+        order_by="ConceptImage.sort_order",
+        cascade="all, delete-orphan",
+    )
 
 
 class Exhibit(Base):
@@ -109,3 +115,15 @@ class Exhibit(Base):
     sort_order = Column(Integer, default=0)
 
     concept = relationship("Concept", back_populates="exhibits")
+
+
+class ConceptImage(Base):
+    __tablename__ = "concept_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    concept_id = Column(Integer, ForeignKey("concepts.id"), nullable=False)
+    filename = Column(String, nullable=False)       # stored filename (uuid-based)
+    original_name = Column(String, nullable=False)  # original upload name
+    sort_order = Column(Integer, default=0)
+
+    concept = relationship("Concept", back_populates="images")

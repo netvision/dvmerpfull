@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Class, Subject, Chapter, Concept, Exhibit
+from models import Class, Subject, Chapter, Concept, Exhibit, ConceptImage
 from schemas import (
     ClassOut,
     SubjectOut,
@@ -13,6 +13,7 @@ from schemas import (
     SubjectNestedOut,
     ClassNestedOut,
     ConceptOut,
+    ConceptImageOut,
     ExhibitOut,
 )
 
@@ -114,6 +115,22 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
             )
             for ex in ordered_exhibits
         ]
+        ordered_images = (
+            db.query(ConceptImage)
+            .filter(ConceptImage.concept_id == concept.id)
+            .order_by(ConceptImage.sort_order)
+            .all()
+        )
+        images_out = [
+            ConceptImageOut.model_validate({
+                "id": img.id,
+                "filename": img.filename,
+                "original_name": img.original_name,
+                "sort_order": img.sort_order,
+                "url": f"/uploads/{img.filename}",
+            })
+            for img in ordered_images
+        ]
         concepts_out.append(
             ConceptOut(
                 id=concept.id,
@@ -128,6 +145,7 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
                 remarks=concept.remarks,
                 exhibit_ref=concept.exhibit_ref,
                 exhibits=exhibits_out,
+                images=images_out,
             )
         )
 

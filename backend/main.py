@@ -1,10 +1,13 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from database import engine, Base
 import models  # noqa: F401 — import models so they register with Base metadata
+from config import UPLOADS_DIR
 
 from routers import public, portal, users
 
@@ -30,6 +33,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Static files — uploads directory
+# ---------------------------------------------------------------------------
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 # ---------------------------------------------------------------------------
 # Routers

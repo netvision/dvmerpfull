@@ -39,6 +39,15 @@ class ExhibitOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ConceptImageOut(BaseModel):
+    id: int
+    filename: str
+    original_name: str
+    sort_order: int
+    url: str  # computed: "/uploads/{filename}"
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ConceptOut(BaseModel):
     id: int
     s_no: Optional[str]
@@ -52,6 +61,7 @@ class ConceptOut(BaseModel):
     remarks: Optional[str]
     exhibit_ref: Optional[str]
     exhibits: List[ExhibitOut]
+    images: List[ConceptImageOut] = []
     model_config = ConfigDict(from_attributes=True)
 
 

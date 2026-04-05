@@ -47,7 +47,11 @@
       "Bash(rm:*)",
       "Bash(tasklist /FI \"IMAGENAME eq python.exe\" /FI \"IMAGENAME eq uvicorn.exe\")",
       "Bash(powershell -Command \"Get-Process python,uvicorn -ErrorAction SilentlyContinue | Stop-Process -Force\")",
-      "Bash(\"venv/Scripts/uvicorn.exe\" main:app --port 8001)"
+      "Bash(\"venv/Scripts/uvicorn.exe\" main:app --port 8001)",
+      "Bash(powershell -NoProfile -Command \"Get-Process python* | Stop-Process -Force; Get-Process python* | Format-Table Id,Name -AutoSize\")",
+      "Bash(D:/dvm/lessons/backend/venv/Scripts/python -c \"import os; os.remove\\('lesson_plans.db'\\); print\\('Deleted'\\)\")",
+      "Bash(D:/dvm/lessons/backend/venv/Scripts/python seed.py)",
+      "Bash(powershell -NoProfile -Command \"Get-Process python* | Stop-Process -Force\")"
     ]
   }
 }
