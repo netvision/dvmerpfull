@@ -104,6 +104,18 @@
               </div>
             </div>
 
+            <!-- Images -->
+            <div v-if="selectedConcept.images?.length" class="concept-images detail-section">
+              <h3 class="detail-section-label">Images</h3>
+              <div class="images-row">
+                <a v-for="img in selectedConcept.images" :key="img.id"
+                   :href="`http://localhost:8000${img.url}`" target="_blank">
+                  <img :src="`http://localhost:8000${img.url}`" :alt="img.original_name"
+                       style="height:100px;width:auto;border-radius:6px;object-fit:cover;cursor:pointer" />
+                </a>
+              </div>
+            </div>
+
             <!-- Extra fields -->
             <div class="detail-extras">
               <div v-if="selectedConcept.integration_other_sub" class="extra-section">
@@ -498,6 +510,14 @@ onMounted(fetchChapter)
   margin: 0;
   word-break: break-word;
   line-height: 1.55;
+}
+
+.images-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
 }
 
 .detail-extras {
