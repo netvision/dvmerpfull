@@ -115,3 +115,30 @@ class UploadResultOut(BaseModel):
     chapter_title: str
     concepts_count: int
     exhibits_count: int
+
+
+class UserCreateIn(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str  # "admin" or "teacher"
+
+
+class UserUpdateIn(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class SubjectAssignIn(BaseModel):
+    subject_ids: List[int]
+
+
+class UserFullOut(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
