@@ -85,3 +85,33 @@ class ChapterDetailOut(BaseModel):
     class_: ClassNestedOut = Field(alias="class")
     concepts: List[ConceptOut]
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class ChapterPortalSummaryOut(BaseModel):
+    id: int
+    title: str
+    aim: Optional[str]
+    sessions_total: int
+    concept_count: int
+    subject_name: str
+    class_name: str
+
+
+class ChapterUpdateIn(BaseModel):
+    title: Optional[str] = None
+    aim: Optional[str] = None
+    order_index: Optional[int] = None
+
+
+class ChapterCreateIn(BaseModel):
+    title: str
+    aim: Optional[str] = None
+    subject_id: int
+    order_index: Optional[int] = None
+
+
+class UploadResultOut(BaseModel):
+    ok: bool
+    chapter_title: str
+    concepts_count: int
+    exhibits_count: int
