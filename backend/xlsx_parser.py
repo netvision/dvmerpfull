@@ -178,13 +178,14 @@ def _merge_split_rows(rows: list) -> list:
                 merged.append(tuple(pending))
             pending = row[:]
         elif not has_title:
-            # Continuation row (no s_no, no title) — merge into pending
+            # Continuation row (no s_no, no title) — merge into pending if one
+            # exists.  After an empty-row flush (pending is None) we skip these
+            # orphan rows rather than letting them become a corrupt new pending.
             if pending is not None:
                 for i in range(len(pending)):
                     if pending[i] is None and i < len(row) and row[i] is not None:
                         pending[i] = row[i]
-            else:
-                pending = row[:]
+            # else: pending was just flushed — discard this orphan continuation row
         else:
             # No s_no, has title
             if pending is not None and pending[3] is None:
@@ -227,7 +228,7 @@ def _parse_exhibit_sheet(ws) -> dict:
     # Detect subject type from headers
     # Headers can be in row 1 (index 1) for Science/SST/Maths
     # or row 0 (index 0) for English/Hindi-style exhibits
-    subject_type, header_row_idx, col_map = _detect_and_map_columns(rows)
+    subject_type, header_row_idx, col_map = _detect_and_map_columns(rows, ws)
 
     fields = {}
     if col_map:
@@ -292,10 +293,11 @@ def _extract_exhibit_title(first_row: tuple) -> str:
     return ""
 
 
-def _detect_and_map_columns(rows: list) -> tuple:
+def _detect_and_map_columns(rows: list, ws=None) -> tuple:
     """
     Detect subject type and return (subject_type, header_row_idx, col_map).
     col_map maps field_key -> column index.
+    ws is the openpyxl worksheet, used only for the warning message.
     """
     # Try row index 0 first (English-style exhibits where row 1 IS the header)
     # then row index 1 (Science/SST/Maths where row 2 is the header)
@@ -311,6 +313,8 @@ def _detect_and_map_columns(rows: list) -> tuple:
             return subject_type, header_row_idx, col_map
 
     # No recognized pattern — return unknown with empty col_map
+    sheet_name = ws.title if ws is not None else "<unknown sheet>"
+    print(f"Warning: unknown exhibit type in {sheet_name}, storing as raw content")
     return "unknown", 1, {}
 
 
@@ -318,6 +322,18 @@ def _detect_subject_type(headers: list) -> str:
     """
     Detect subject type from a list of cleaned lowercase header strings.
     Returns one of: 'english', 'grammar', 'assessment', 'science', 'unknown'.
+
+    Priority order is intentional:
+      1. assessment — checked first because "very short answer" headers are
+         unambiguous and assessment sheets can appear inside English files
+         (e.g. exhibit_3 of a poem file).
+      2. grammar — checked before english because grammar exhibits also live
+         inside English files and share some vocabulary; the grammar keywords
+         are more specific and must win when present.
+      3. english — broad "about the chapter / overview" keywords that would
+         not appear in grammar or assessment sheets.
+      4. science — catch-all for Science / SST / Maths exhibits that use
+         "introductory / explanation / discussion" style headers.
     """
     # Assessment: "very short answer" type headers
     if any("very short" in h for h in headers):
@@ -370,16 +386,39 @@ def _build_col_map(subject_type: str, headers: list) -> dict:
                 col_map["link"] = i
 
     elif subject_type == "grammar":
-        # Headers like: [num_or_none, grammar_topic, tongue_twisters, word_meanings, exercises]
-        # Find non-empty, non-numeric header columns
-        assigned = 0
-        field_names = ["grammar_topic", "tongue_twisters", "word_meanings", "grammar_exercises"]
+        # Match headers by keyword — same approach as english/assessment/science.
+        # This is more robust than relying solely on column position, which
+        # breaks when columns are reordered or a leading numeric/empty column
+        # is absent.
+        #
+        # The grammar_topic column holds the name of the current grammar unit
+        # (e.g. "Conjunction", "Adjective") and is NOT identified by a fixed
+        # keyword.  Instead we assign it by position: the first non-numeric,
+        # non-empty header that isn't matched by a more-specific keyword wins
+        # as grammar_topic.  All other recognised columns (tongue twisters,
+        # word meanings, exercises) are keyword-matched and take priority.
         for i, h in enumerate(headers):
             if not h or h.replace(".", "").strip().isdigit():
                 continue
-            if assigned < len(field_names):
-                col_map[field_names[assigned]] = i
-                assigned += 1
+            if "tongue twister" in h or "tongue twist" in h:
+                col_map["tongue_twisters"] = i
+            elif "word meaning" in h or "word-meaning" in h:
+                col_map["word_meanings"] = i
+            elif "homophone" in h:
+                # Homophones often share a column with word meanings; only
+                # assign if word_meanings hasn't already been mapped.
+                col_map.setdefault("word_meanings", i)
+            elif "exercise" in h:
+                col_map["grammar_exercises"] = i
+            else:
+                # Unrecognised text column — could be a grammar unit name
+                # (e.g. "Conjunction") or a combined exercises column.
+                # The first such column becomes grammar_topic; subsequent
+                # ones become grammar_exercises if not yet assigned.
+                if "grammar_topic" not in col_map:
+                    col_map["grammar_topic"] = i
+                else:
+                    col_map.setdefault("grammar_exercises", i)
 
     elif subject_type == "assessment":
         for i, h in enumerate(headers):
@@ -418,17 +457,27 @@ def _normalize_exhibit_ref(ref: str) -> str:
     """
     Normalize exhibit ref strings to 'exhibit_N' format.
     Examples:
-      'Exhibit 1'        -> 'exhibit_1'
-      'exhibit 1'        -> 'exhibit_1'
-      "'Exhibits 2'!B1"  -> 'exhibit_2'
-      'Exhibit1'         -> 'exhibit_1'
-      'exhibit 2'        -> 'exhibit_2'
-      'Exhibit 3 ...'    -> 'exhibit_3'
+      'Exhibit 1'              -> 'exhibit_1'
+      'exhibit 1'              -> 'exhibit_1'
+      "'Exhibits 2'!B1"        -> 'exhibit_2'
+      'Exhibit1'               -> 'exhibit_1'
+      'exhibit 2'              -> 'exhibit_2'
+      'Exhibit 3 ...'          -> 'exhibit_3'
+      'See page 12, Exhibit 3' -> 'exhibit_3'  (not exhibit_12)
     Returns '' if no number found.
+
+    Strategy: try to match the number that immediately follows the word
+    "exhibit" (case-insensitive) first; fall back to the first digit sequence
+    only when no "exhibit" keyword is present in the string.
     """
     if not ref:
         return ""
     ref_str = str(ref).strip()
+    # Primary: anchor on the "exhibit" keyword to avoid false matches
+    match = re.search(r'exhibi?ts?\s*(\d+)', ref_str, re.IGNORECASE)
+    if match:
+        return f"exhibit_{match.group(1)}"
+    # Fallback: no "exhibit" keyword — grab first digit sequence
     match = re.search(r'\d+', ref_str)
     if match:
         return f"exhibit_{match.group()}"
