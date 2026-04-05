@@ -294,7 +294,7 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-const chapterId = computed(() => route.params.chapterId)
+const chapterId = computed(() => route.params.id)
 
 // ---- Data ----
 const chapter = ref(null)
