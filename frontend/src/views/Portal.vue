@@ -637,9 +637,10 @@ async function createChapter() {
   background: #4338ca;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .navbar { padding: 0 1rem; }
   .user-name { display: none; }
+  .content { padding: 1rem 16px; }
   .data-table th, .data-table td { padding: 0.6rem 0.7rem; }
 }
 </style>

@@ -8,13 +8,10 @@
       <h1 class="page-title">{{ pageTitle }}</h1>
     </header>
 
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>Loading subjects…</p>
-    </div>
+    <LoadingSpinner v-if="loading" message="Loading subjects…" />
 
     <div v-else-if="error" class="error-box">
-      <p>{{ error }}</p>
+      <ErrorBanner :message="error" />
       <button @click="fetchSubjects">Retry</button>
     </div>
 
@@ -38,6 +35,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../api.js'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import ErrorBanner from '../components/ErrorBanner.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -99,7 +98,7 @@ onMounted(fetchSubjects)
 .page {
   min-height: 100vh;
   background: #f8f9fc;
-  padding: 1.5rem;
+  padding: 1.5rem 32px;
   font-family: system-ui, -apple-system, sans-serif;
 }
 
@@ -137,7 +136,7 @@ onMounted(fetchSubjects)
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1.5rem;
   max-width: 1000px;
   margin: 0 auto;
@@ -187,33 +186,9 @@ onMounted(fetchSubjects)
   margin-top: 0.3rem;
 }
 
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  color: #6b7280;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #4f46e5;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .error-box {
   text-align: center;
   padding: 2rem;
-  color: #dc2626;
 }
 
 .error-box button {
@@ -227,7 +202,8 @@ onMounted(fetchSubjects)
   font-size: 1rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .page { padding: 1.5rem 16px; }
   .page-title { font-size: 1.5rem; }
   .grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 }

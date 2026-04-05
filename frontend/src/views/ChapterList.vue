@@ -8,13 +8,10 @@
       <h1 class="page-title">{{ subjectName || 'Chapters' }}</h1>
     </header>
 
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>Loading chapters…</p>
-    </div>
+    <LoadingSpinner v-if="loading" message="Loading chapters…" />
 
     <div v-else-if="error" class="error-box">
-      <p>{{ error }}</p>
+      <ErrorBanner :message="error" />
       <button @click="fetchChapters">Retry</button>
     </div>
 
@@ -50,6 +47,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../api.js'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import ErrorBanner from '../components/ErrorBanner.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -93,7 +92,7 @@ onMounted(fetchChapters)
 .page {
   min-height: 100vh;
   background: #f8f9fc;
-  padding: 1.5rem;
+  padding: 1.5rem 32px;
   font-family: system-ui, -apple-system, sans-serif;
 }
 
@@ -129,7 +128,7 @@ onMounted(fetchChapters)
 }
 
 .chapter-list {
-  max-width: 760px;
+  max-width: 800px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -201,33 +200,9 @@ onMounted(fetchChapters)
   font-size: 0.8rem;
 }
 
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  color: #6b7280;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #4f46e5;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .error-box {
   text-align: center;
   padding: 2rem;
-  color: #dc2626;
 }
 
 .error-box button {
@@ -248,7 +223,8 @@ onMounted(fetchChapters)
   font-size: 1.1rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .page { padding: 1.5rem 16px; }
   .page-title { font-size: 1.5rem; }
 }
 </style>

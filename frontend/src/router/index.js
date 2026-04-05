@@ -6,26 +6,26 @@ const routes = [
   { path: '/class/:classId', component: () => import('../views/SubjectDashboard.vue') },
   { path: '/class/:classId/:subjectId', component: () => import('../views/ChapterList.vue') },
   { path: '/chapter/:chapterId', component: () => import('../views/ChapterDetail.vue') },
-  { path: '/login', component: () => import('../views/Login.vue') },
+  { path: '/login', component: () => import('../views/Login.vue'), meta: { hideNav: true } },
   {
     path: '/portal',
     component: () => import('../views/Portal.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, hideNav: true }
   },
   {
     path: '/portal/chapter/:id/edit',
     component: () => import('../views/ChapterEdit.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, hideNav: true }
   },
   {
     path: '/portal/upload',
     component: () => import('../views/Upload.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, hideNav: true }
   },
   {
     path: '/portal/users',
     component: () => import('../views/UserManagement.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }
   },
 ]
 

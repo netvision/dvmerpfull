@@ -4,13 +4,10 @@
       <button class="back-btn" @click="goBack">&#8592; Back</button>
     </div>
 
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>Loading chapter…</p>
-    </div>
+    <LoadingSpinner v-if="loading" message="Loading chapter…" />
 
     <div v-else-if="error" class="error-box">
-      <p>{{ error }}</p>
+      <ErrorBanner :message="error" />
       <button @click="fetchChapter">Retry</button>
     </div>
 
@@ -121,6 +118,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../api.js'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import ErrorBanner from '../components/ErrorBanner.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -486,33 +485,9 @@ onMounted(fetchChapter)
 }
 
 /* Loading / Error */
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  color: #6b7280;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #4f46e5;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .error-box {
   text-align: center;
   padding: 2rem;
-  color: #dc2626;
 }
 
 .error-box button {
@@ -526,7 +501,13 @@ onMounted(fetchChapter)
   font-size: 1rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .page { padding-left: 0; padding-right: 0; }
+  .top-bar { padding: 1rem 16px 0; }
+  .hero { padding: 2rem 16px 1.5rem; }
+  .aim-section { padding: 0 16px; }
+  .concepts-scroll-area { padding: 0 16px; }
+  .concept-detail { padding: 0 16px; }
   .hero-title { font-size: 1.5rem; }
   .concept-chip { min-width: 110px; }
   .detail-card { padding: 1.2rem; }
