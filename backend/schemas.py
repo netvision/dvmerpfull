@@ -3,6 +3,19 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class UserOut(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str  # "admin" or "teacher"
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ClassOut(BaseModel):
     id: int
     name: str
