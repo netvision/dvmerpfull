@@ -21,6 +21,10 @@ from schemas import (
     ChapterUpdateIn,
     ChapterCreateIn,
     UploadResultOut,
+    ConceptUpdateIn,
+    ConceptCreateIn,
+    ExhibitUpdateIn,
+    ExhibitCreateIn,
 )
 from xlsx_parser import parse_xlsx
 
@@ -59,13 +63,20 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
 
     concepts_out = []
     for concept in chapter.concepts:
+        ordered_exhibits = (
+            db.query(Exhibit)
+            .filter(Exhibit.concept_id == concept.id)
+            .order_by(Exhibit.sort_order)
+            .all()
+        )
         exhibits_out = [
             ExhibitOut(
                 id=ex.id,
                 field_key=ex.field_key,
                 field_value=ex.field_value,
+                sort_order=ex.sort_order,
             )
-            for ex in concept.exhibits
+            for ex in ordered_exhibits
         ]
         concepts_out.append(
             ConceptOut(
@@ -356,11 +367,12 @@ async def upload_xlsx(
 
         exhibit_ref = concept_data.get("exhibit_ref", "")
         if exhibit_ref and exhibit_ref in exhibits_map:
-            for field_key, field_value in exhibits_map[exhibit_ref].get("fields", {}).items():
+            for idx, (field_key, field_value) in enumerate(exhibits_map[exhibit_ref].get("fields", {}).items()):
                 db.add(Exhibit(
                     concept_id=concept.id,
                     field_key=field_key,
-                    field_value=str(field_value) if field_value else None,
+                    field_value=str(field_value) if field_value is not None else None,
+                    sort_order=idx,
                 ))
                 exhibits_count += 1
 
@@ -371,4 +383,227 @@ async def upload_xlsx(
         chapter_title=data["title"],
         concepts_count=concepts_count,
         exhibits_count=exhibits_count,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Concept CRUD routes
+# ---------------------------------------------------------------------------
+
+def _build_concept_out(db: Session, concept: Concept) -> ConceptOut:
+    """Build a ConceptOut from a Concept ORM object."""
+    ordered_exhibits = (
+        db.query(Exhibit)
+        .filter(Exhibit.concept_id == concept.id)
+        .order_by(Exhibit.sort_order)
+        .all()
+    )
+    exhibits_out = [
+        ExhibitOut(
+            id=ex.id,
+            field_key=ex.field_key,
+            field_value=ex.field_value,
+            sort_order=ex.sort_order,
+        )
+        for ex in ordered_exhibits
+    ]
+    return ConceptOut(
+        id=concept.id,
+        s_no=concept.s_no,
+        title=concept.title,
+        sessions=concept.sessions,
+        learning_outcomes=concept.learning_outcomes,
+        integration_other_sub=concept.integration_other_sub,
+        library=concept.library,
+        activity=concept.activity,
+        life_lesson=concept.life_lesson,
+        remarks=concept.remarks,
+        exhibit_ref=concept.exhibit_ref,
+        exhibits=exhibits_out,
+    )
+
+
+def _get_concept_subject_id(db: Session, concept_id: int) -> int:
+    """Return subject_id for a concept's chapter, or raise 404."""
+    concept = db.query(Concept).filter(Concept.id == concept_id).first()
+    if concept is None:
+        raise HTTPException(status_code=404, detail="Concept not found")
+    chapter = db.query(Chapter).filter(Chapter.id == concept.chapter_id).first()
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    return chapter.subject_id
+
+
+@router.put("/concepts/{concept_id}", response_model=ConceptOut)
+def update_concept(
+    concept_id: int,
+    body: ConceptUpdateIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update concept fields. Teacher must own the subject; admin can edit all."""
+    concept = db.query(Concept).filter(Concept.id == concept_id).first()
+    if concept is None:
+        raise HTTPException(status_code=404, detail="Concept not found")
+
+    subject_id = _get_concept_subject_id(db, concept_id)
+    _check_subject_access(db, current_user, subject_id)
+
+    if body.s_no is not None:
+        concept.s_no = body.s_no
+    if body.title is not None:
+        concept.title = body.title
+    if body.sessions is not None:
+        concept.sessions = body.sessions
+    if body.learning_outcomes is not None:
+        concept.learning_outcomes = body.learning_outcomes
+    if body.integration_other_sub is not None:
+        concept.integration_other_sub = body.integration_other_sub
+    if body.library is not None:
+        concept.library = body.library
+    if body.activity is not None:
+        concept.activity = body.activity
+    if body.life_lesson is not None:
+        concept.life_lesson = body.life_lesson
+    if body.remarks is not None:
+        concept.remarks = body.remarks
+    if body.exhibit_ref is not None:
+        concept.exhibit_ref = body.exhibit_ref
+
+    db.commit()
+    db.refresh(concept)
+    return _build_concept_out(db, concept)
+
+
+@router.delete("/concepts/{concept_id}")
+def delete_concept(
+    concept_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Delete a concept and its exhibits. Admin only."""
+    concept = db.query(Concept).filter(Concept.id == concept_id).first()
+    if concept is None:
+        raise HTTPException(status_code=404, detail="Concept not found")
+
+    db.query(Exhibit).filter(Exhibit.concept_id == concept.id).delete()
+    db.delete(concept)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/concepts", response_model=ConceptOut, status_code=201)
+def create_concept(
+    body: ConceptCreateIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new concept inside a chapter. Teacher must own the subject."""
+    chapter = db.query(Chapter).filter(Chapter.id == body.chapter_id).first()
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    _check_subject_access(db, current_user, chapter.subject_id)
+
+    concept = Concept(
+        chapter_id=body.chapter_id,
+        s_no=body.s_no,
+        title=body.title,
+        sessions=body.sessions,
+        learning_outcomes=body.learning_outcomes,
+        integration_other_sub=body.integration_other_sub,
+        library=body.library,
+        activity=body.activity,
+        life_lesson=body.life_lesson,
+        remarks=body.remarks,
+        exhibit_ref=body.exhibit_ref,
+    )
+    db.add(concept)
+    db.commit()
+    db.refresh(concept)
+    return _build_concept_out(db, concept)
+
+
+# ---------------------------------------------------------------------------
+# Exhibit CRUD routes
+# ---------------------------------------------------------------------------
+
+@router.put("/exhibits/{exhibit_id}", response_model=ExhibitOut)
+def update_exhibit(
+    exhibit_id: int,
+    body: ExhibitUpdateIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update an exhibit. Teacher must own the subject via concept->chapter->subject."""
+    exhibit = db.query(Exhibit).filter(Exhibit.id == exhibit_id).first()
+    if exhibit is None:
+        raise HTTPException(status_code=404, detail="Exhibit not found")
+
+    subject_id = _get_concept_subject_id(db, exhibit.concept_id)
+    _check_subject_access(db, current_user, subject_id)
+
+    if body.field_key is not None:
+        exhibit.field_key = body.field_key
+    if body.field_value is not None:
+        exhibit.field_value = body.field_value
+
+    db.commit()
+    db.refresh(exhibit)
+    return ExhibitOut(
+        id=exhibit.id,
+        field_key=exhibit.field_key,
+        field_value=exhibit.field_value,
+        sort_order=exhibit.sort_order,
+    )
+
+
+@router.delete("/exhibits/{exhibit_id}")
+def delete_exhibit(
+    exhibit_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete an exhibit. Teacher must own the subject."""
+    exhibit = db.query(Exhibit).filter(Exhibit.id == exhibit_id).first()
+    if exhibit is None:
+        raise HTTPException(status_code=404, detail="Exhibit not found")
+
+    subject_id = _get_concept_subject_id(db, exhibit.concept_id)
+    _check_subject_access(db, current_user, subject_id)
+
+    db.delete(exhibit)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/concepts/{concept_id}/exhibits", response_model=ExhibitOut, status_code=201)
+def create_exhibit(
+    concept_id: int,
+    body: ExhibitCreateIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new exhibit for a concept. Teacher must own the subject."""
+    concept = db.query(Concept).filter(Concept.id == concept_id).first()
+    if concept is None:
+        raise HTTPException(status_code=404, detail="Concept not found")
+
+    subject_id = _get_concept_subject_id(db, concept_id)
+    _check_subject_access(db, current_user, subject_id)
+
+    exhibit = Exhibit(
+        concept_id=concept_id,
+        field_key=body.field_key,
+        field_value=body.field_value,
+        sort_order=body.sort_order if body.sort_order is not None else 0,
+    )
+    db.add(exhibit)
+    db.commit()
+    db.refresh(exhibit)
+    return ExhibitOut(
+        id=exhibit.id,
+        field_key=exhibit.field_key,
+        field_value=exhibit.field_value,
+        sort_order=exhibit.sort_order,
     )

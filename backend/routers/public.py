@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Class, Subject, Chapter, Concept
+from models import Class, Subject, Chapter, Concept, Exhibit
 from schemas import (
     ClassOut,
     SubjectOut,
@@ -99,13 +99,20 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
 
     concepts_out = []
     for concept in chapter.concepts:
+        ordered_exhibits = (
+            db.query(Exhibit)
+            .filter(Exhibit.concept_id == concept.id)
+            .order_by(Exhibit.sort_order)
+            .all()
+        )
         exhibits_out = [
             ExhibitOut(
                 id=ex.id,
                 field_key=ex.field_key,
                 field_value=ex.field_value,
+                sort_order=ex.sort_order,
             )
-            for ex in concept.exhibits
+            for ex in ordered_exhibits
         ]
         concepts_out.append(
             ConceptOut(

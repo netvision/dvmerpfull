@@ -43,7 +43,11 @@
       "Bash(npm create:*)",
       "Bash(npm install:*)",
       "Bash(timeout 15 npm run dev)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(rm:*)",
+      "Bash(tasklist /FI \"IMAGENAME eq python.exe\" /FI \"IMAGENAME eq uvicorn.exe\")",
+      "Bash(powershell -Command \"Get-Process python,uvicorn -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(\"venv/Scripts/uvicorn.exe\" main:app --port 8001)"
     ]
   }
 }

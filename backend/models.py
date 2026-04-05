@@ -106,5 +106,6 @@ class Exhibit(Base):
     concept_id = Column(Integer, ForeignKey("concepts.id"), nullable=False)
     field_key = Column(String, nullable=False)
     field_value = Column(Text, nullable=True)
+    sort_order = Column(Integer, default=0)
 
     concept = relationship("Concept", back_populates="exhibits")

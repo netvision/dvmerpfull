@@ -35,6 +35,7 @@ class ExhibitOut(BaseModel):
     id: int
     field_key: str
     field_value: Optional[str]
+    sort_order: int = 0
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -142,3 +143,41 @@ class UserFullOut(BaseModel):
     role: str
     is_active: bool
     model_config = ConfigDict(from_attributes=True)
+
+
+class ConceptUpdateIn(BaseModel):
+    s_no: Optional[str] = None
+    title: Optional[str] = None
+    sessions: Optional[str] = None
+    learning_outcomes: Optional[str] = None
+    integration_other_sub: Optional[str] = None
+    library: Optional[str] = None
+    activity: Optional[str] = None
+    life_lesson: Optional[str] = None
+    remarks: Optional[str] = None
+    exhibit_ref: Optional[str] = None
+
+
+class ConceptCreateIn(BaseModel):
+    chapter_id: int
+    s_no: Optional[str] = None
+    title: str
+    sessions: Optional[str] = None
+    learning_outcomes: Optional[str] = None
+    integration_other_sub: Optional[str] = None
+    library: Optional[str] = None
+    activity: Optional[str] = None
+    life_lesson: Optional[str] = None
+    remarks: Optional[str] = None
+    exhibit_ref: Optional[str] = None
+
+
+class ExhibitUpdateIn(BaseModel):
+    field_key: Optional[str] = None
+    field_value: Optional[str] = None
+
+
+class ExhibitCreateIn(BaseModel):
+    field_key: str
+    field_value: Optional[str] = None
+    sort_order: Optional[int] = 0

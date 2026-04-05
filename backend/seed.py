@@ -189,13 +189,14 @@ def seed():
                 if exhibit_ref and exhibit_ref in exhibits_map:
                     exhibit_data = exhibits_map[exhibit_ref]
                     fields: dict = exhibit_data.get("fields", {})
-                    for field_key, field_value in fields.items():
+                    for idx, (field_key, field_value) in enumerate(fields.items()):
                         if not field_key:
                             continue
                         exhibit = Exhibit(
                             concept_id=concept.id,
                             field_key=field_key,
                             field_value=str(field_value) if field_value is not None else None,
+                            sort_order=idx,
                         )
                         db.add(exhibit)
                         exhibit_count += 1
