@@ -79,7 +79,27 @@
                   class="exhibit-item"
                 >
                   <span class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</span>
-                  <p class="exhibit-value preformatted">{{ exhibit.field_value }}</p>
+                  <div class="exhibit-value">
+                    <template v-for="(part, pi) in splitLines(exhibit.field_value)" :key="pi">
+                      <!-- YouTube embed -->
+                      <template v-if="getYoutubeId(part)">
+                        <iframe
+                          :src="`https://www.youtube.com/embed/${getYoutubeId(part)}`"
+                          width="100%"
+                          style="max-width:480px;aspect-ratio:16/9;border:none;border-radius:8px;display:block;margin:4px 0"
+                          allowfullscreen
+                        ></iframe>
+                      </template>
+                      <!-- Other URL -->
+                      <template v-else-if="isUrl(part)">
+                        <a :href="part.trim()" target="_blank" rel="noopener" style="display:block;word-break:break-all">{{ part.trim() }}</a>
+                      </template>
+                      <!-- Plain text (preserve newlines within part) -->
+                      <template v-else>
+                        <span style="white-space:pre-wrap;display:block">{{ part }}</span>
+                      </template>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
@@ -153,6 +173,26 @@ function formatFieldKey(key) {
   return key
     .replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function getYoutubeId(text) {
+  if (!text) return null
+  const m = text.trim().match(/(?:youtu\.be\/|watch\?v=|embed\/)([A-Za-z0-9_-]{11})/)
+  return m ? m[1] : null
+}
+
+function isUrl(text) {
+  if (!text) return false
+  return /^https?:\/\//.test(text.trim())
+}
+
+/**
+ * Split a field_value by newlines so each line can be rendered
+ * individually (URL detection per line).
+ */
+function splitLines(value) {
+  if (!value) return ['']
+  return value.split('\n')
 }
 
 function goBack() {
@@ -456,7 +496,6 @@ onMounted(fetchChapter)
   font-size: 0.93rem;
   color: #1f2937;
   margin: 0;
-  white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.55;
 }
