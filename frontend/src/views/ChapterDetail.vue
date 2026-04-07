@@ -201,7 +201,7 @@ const heroGradient = computed(() => {
 
 const totalSessions = computed(() => {
   if (!chapter.value?.concepts) return 0
-  return chapter.value.concepts.reduce((sum, c) => sum + (c.sessions || 0), 0)
+  return chapter.value.concepts.reduce((sum, c) => sum + (parseInt(c.sessions) || 0), 0)
 })
 
 function shiftColor(hex) {
