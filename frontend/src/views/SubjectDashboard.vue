@@ -1,31 +1,44 @@
 <template>
   <div class="page">
-    <div class="top-bar">
-      <button class="back-btn" @click="router.push('/')">&#8592; Back</button>
+    <!-- Top Banner -->
+    <div class="banner" :style="{ background: bannerGradient }">
+      <div class="banner-inner">
+        <nav class="breadcrumb">
+          <span class="crumb crumb-link" @click="router.push('/')">Home</span>
+          <span class="crumb-sep">›</span>
+          <span class="crumb">{{ className || `Class ${classId}` }}</span>
+        </nav>
+        <h1 class="banner-title">{{ className || `Class ${classId}` }}</h1>
+        <p class="banner-subtitle">Choose a subject to explore</p>
+      </div>
     </div>
 
-    <header class="page-header">
-      <h1 class="page-title">{{ pageTitle }}</h1>
-    </header>
+    <!-- Content -->
+    <div class="content">
+      <LoadingSpinner v-if="loading" message="Loading subjects…" />
 
-    <LoadingSpinner v-if="loading" message="Loading subjects…" />
+      <div v-else-if="error" class="error-box">
+        <ErrorBanner :message="error" />
+        <button class="retry-btn" @click="fetchSubjects">Retry</button>
+      </div>
 
-    <div v-else-if="error" class="error-box">
-      <ErrorBanner :message="error" />
-      <button @click="fetchSubjects">Retry</button>
-    </div>
-
-    <div v-else class="grid">
-      <div
-        v-for="subject in subjects"
-        :key="subject.id"
-        class="card subject-card"
-        :style="{ background: subjectGradient(subject.color) }"
-        @click="router.push(`/class/${classId}/${subject.id}`)"
-      >
-        <span class="subject-icon">{{ subject.icon || '📖' }}</span>
-        <span class="subject-name">{{ subject.name }}</span>
-        <span class="subject-meta">{{ subject.chapter_count }} chapter{{ subject.chapter_count !== 1 ? 's' : '' }}</span>
+      <div v-else class="grid">
+        <div
+          v-for="subject in subjects"
+          :key="subject.id"
+          class="subject-card"
+          :style="{ '--top-border-color': subject.color || '#4f46e5' }"
+          @click="router.push(`/class/${classId}/${subject.id}`)"
+        >
+          <div class="subject-icon-wrap">
+            <span class="subject-icon">{{ subject.icon || '📖' }}</span>
+          </div>
+          <span class="subject-name">{{ subject.name }}</span>
+          <span class="subject-badge">
+            {{ subject.chapter_count }} chapter{{ subject.chapter_count !== 1 ? 's' : '' }}
+          </span>
+          <span class="subject-explore">Explore →</span>
+        </div>
       </div>
     </div>
   </div>
@@ -47,24 +60,9 @@ const loading = ref(true)
 const error = ref(null)
 const className = ref('')
 
-const pageTitle = computed(() =>
-  className.value ? `${className.value} — Subjects` : 'Subjects'
-)
-
-function subjectGradient(color) {
-  if (!color) return 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
-  // color is a hex like #e74c3c — build a shifted gradient
-  return `linear-gradient(135deg, ${color} 0%, ${shiftColor(color)} 100%)`
-}
-
-function shiftColor(hex) {
-  // Darken the hex color slightly for the gradient end
-  const num = parseInt(hex.replace('#', ''), 16)
-  const r = Math.max(0, (num >> 16) - 40)
-  const g = Math.max(0, ((num >> 8) & 0xff) - 40)
-  const b = Math.max(0, (num & 0xff) - 40)
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
-}
+const bannerGradient = computed(() => {
+  return 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+})
 
 async function fetchSubjects() {
   loading.value = true
@@ -72,7 +70,6 @@ async function fetchSubjects() {
   try {
     const res = await api.get(`/api/public/classes/${classId.value}/subjects`)
     subjects.value = res.data
-    // Try to infer className from the URL or fetch it
     await fetchClassName()
   } catch (e) {
     error.value = e.response?.data?.detail || e.message || 'Failed to load subjects'
@@ -97,101 +94,145 @@ onMounted(fetchSubjects)
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f8f9fc;
-  padding: 1.5rem 32px;
+  background: #f0f4ff;
   font-family: system-ui, -apple-system, sans-serif;
 }
 
-.top-bar {
-  margin-bottom: 1rem;
+/* Banner */
+.banner {
+  padding: 3rem 2rem 2.5rem;
+  color: white;
 }
 
-.back-btn {
-  background: white;
-  border: 1px solid #e5e7eb;
-  padding: 0.5rem 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  color: #374151;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  transition: background 0.15s;
-}
-
-.back-btn:hover {
-  background: #f3f4f6;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #1e1b4b;
-  margin: 0;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.5rem;
-  max-width: 1000px;
+.banner-inner {
+  max-width: 860px;
   margin: 0 auto;
 }
 
-.card {
-  border-radius: 16px;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.9rem;
+  opacity: 0.85;
+  font-weight: 500;
 }
 
-.card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+.crumb-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.crumb-link:hover {
+  opacity: 1;
+}
+
+.crumb-sep {
+  opacity: 0.6;
+}
+
+.banner-title {
+  font-size: 2.4rem;
+  font-weight: 900;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+
+.banner-subtitle {
+  font-size: 1rem;
+  margin: 0;
+  opacity: 0.88;
+}
+
+/* Content */
+.content {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.25rem;
 }
 
 .subject-card {
+  background: white;
+  border-radius: 16px;
+  border-top: 4px solid var(--top-border-color, #4f46e5);
+  padding: 1.75rem 1.25rem 1.25rem;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 2rem 1rem;
-  color: white;
   text-align: center;
   gap: 0.4rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.subject-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.subject-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f0f4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.3rem;
 }
 
 .subject-icon {
-  font-size: 2.8rem;
+  font-size: 2rem;
   line-height: 1;
 }
 
 .subject-name {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  margin-top: 0.4rem;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  color: #1e1b4b;
+  line-height: 1.3;
 }
 
-.subject-meta {
-  font-size: 0.85rem;
-  opacity: 0.88;
-  background: rgba(255,255,255,0.2);
-  padding: 0.15rem 0.7rem;
+.subject-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #eef2ff;
+  color: #4f46e5;
+  padding: 0.2rem 0.65rem;
   border-radius: 20px;
-  margin-top: 0.3rem;
+  margin-top: 0.15rem;
 }
 
+.subject-explore {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-top: 0.4rem;
+  transition: color 0.2s ease;
+}
+
+.subject-card:hover .subject-explore {
+  color: #4f46e5;
+}
+
+/* Error */
 .error-box {
   text-align: center;
   padding: 2rem;
 }
 
-.error-box button {
+.retry-btn {
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
   background: #4f46e5;
@@ -200,11 +241,18 @@ onMounted(fetchSubjects)
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
+  font-family: inherit;
+  transition: background 0.2s ease;
 }
 
-@media (max-width: 768px) {
-  .page { padding: 1.5rem 16px; }
-  .page-title { font-size: 1.5rem; }
+.retry-btn:hover {
+  background: #4338ca;
+}
+
+@media (max-width: 640px) {
+  .banner { padding: 2rem 1rem 2rem; }
+  .banner-title { font-size: 1.8rem; }
+  .content { padding: 2rem 1rem 3rem; }
   .grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 }
 </style>

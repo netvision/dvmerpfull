@@ -1,146 +1,176 @@
 <template>
   <div class="page">
-    <div class="top-bar">
-      <button class="back-btn" @click="goBack">&#8592; Back</button>
-    </div>
-
     <LoadingSpinner v-if="loading" message="Loading chapter…" />
 
     <div v-else-if="error" class="error-box">
       <ErrorBanner :message="error" />
-      <button @click="fetchChapter">Retry</button>
+      <button class="retry-btn" @click="fetchChapter">Retry</button>
     </div>
 
     <template v-else-if="chapter">
-      <!-- Hero Section -->
+      <!-- A) Hero Section -->
       <div class="hero" :style="{ background: heroGradient }">
         <div class="hero-inner">
-          <div class="breadcrumb">
-            {{ chapter.class?.name }} &rsaquo; {{ chapter.subject?.name }}
-          </div>
+          <nav class="breadcrumb">
+            <span class="crumb crumb-link" @click="router.push('/')">Home</span>
+            <span class="crumb-sep">›</span>
+            <span class="crumb crumb-link" @click="router.push(`/class/${chapter.class?.id}`)">
+              {{ chapter.class?.name }}
+            </span>
+            <span class="crumb-sep">›</span>
+            <span class="crumb crumb-link"
+              @click="router.push(`/class/${chapter.class?.id}/${chapter.subject?.id}`)">
+              {{ chapter.subject?.name }}
+            </span>
+          </nav>
           <h1 class="hero-title">{{ chapter.title }}</h1>
-          <div class="hero-meta">
-            <span class="hero-badge">
-              <span>⏱</span> {{ totalSessions }} sessions
-            </span>
-            <span class="hero-badge">
-              <span>💡</span> {{ chapter.concepts?.length || 0 }} concepts
-            </span>
+          <div v-if="chapter.aim" class="hero-aim ql-content" v-html="chapter.aim"></div>
+          <div class="hero-stats">
+            <span class="stat-badge">⏱ {{ totalSessions }} sessions</span>
+            <span class="stat-badge">💡 {{ chapter.concepts?.length || 0 }} concepts</span>
           </div>
         </div>
       </div>
 
-      <!-- Aim -->
-      <div v-if="chapter.aim" class="aim-section">
-        <h2 class="section-label">Aim</h2>
-        <p class="aim-text">{{ chapter.aim }}</p>
-      </div>
+      <!-- B) Concepts Section -->
+      <div class="concepts-section" v-if="chapter.concepts?.length">
+        <div class="concepts-inner">
+          <p class="section-eyebrow">In this chapter</p>
+          <h2 class="section-heading">Concepts</h2>
 
-      <!-- Concept Cards Row -->
-      <div class="concepts-scroll-area" v-if="chapter.concepts?.length">
-        <h2 class="section-label padded">Concepts</h2>
-        <div class="concept-cards-row">
-          <div
-            v-for="concept in chapter.concepts"
-            :key="concept.id"
-            class="concept-chip"
-            :class="{ 'concept-chip--active': selectedConcept?.id === concept.id }"
-            @click="selectedConcept = concept"
-          >
-            <span class="chip-sno">{{ concept.s_no }}</span>
-            <span class="chip-title">{{ concept.title }}</span>
-            <span class="chip-sessions">{{ concept.sessions }} sess.</span>
-          </div>
-        </div>
-      </div>
+          <div class="concept-list">
+            <div
+              v-for="concept in chapter.concepts"
+              :key="concept.id"
+              class="concept-card"
+            >
+              <!-- Card Header -->
+              <div class="concept-header">
+                <span class="concept-badge">{{ concept.s_no }}</span>
+                <span class="concept-title">{{ concept.title }}</span>
+                <span class="sessions-pill">{{ concept.sessions }} sess.</span>
+              </div>
 
-      <!-- Selected Concept Detail -->
-      <transition name="fade">
-        <div v-if="selectedConcept" class="concept-detail">
-          <div class="detail-card">
-            <h2 class="detail-title">
-              <span class="detail-sno">{{ selectedConcept.s_no }}</span>
-              {{ selectedConcept.title }}
-            </h2>
+              <!-- Card Body -->
+              <div class="concept-body">
+                <!-- Learning Outcomes -->
+                <div v-if="concept.learning_outcomes" class="concept-section">
+                  <p class="field-label">Learning Outcomes</p>
+                  <div class="ql-content field-content" v-html="concept.learning_outcomes"></div>
+                </div>
 
-            <!-- Learning Outcomes -->
-            <div v-if="selectedConcept.learning_outcomes" class="detail-section">
-              <h3 class="detail-section-label">Learning Outcomes</h3>
-              <div class="detail-text ql-content" v-html="selectedConcept.learning_outcomes"></div>
-            </div>
-
-            <!-- Exhibit Fields -->
-            <div v-if="selectedConcept.exhibits?.length" class="detail-section">
-              <h3 class="detail-section-label">Exhibits</h3>
-              <div class="exhibits-grid">
-                <div
-                  v-for="exhibit in selectedConcept.exhibits"
-                  :key="exhibit.field_key"
-                  class="exhibit-item"
-                >
-                  <span class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</span>
-                  <div class="exhibit-value">
-                    <!-- YouTube embed (check raw value for URL) -->
-                    <template v-if="getYoutubeId(exhibit.field_value)">
-                      <iframe
-                        :src="`https://www.youtube.com/embed/${getYoutubeId(exhibit.field_value)}`"
-                        width="100%"
-                        style="max-width:480px;aspect-ratio:16/9;border:none;border-radius:8px;display:block;margin:4px 0"
-                        allowfullscreen
-                      ></iframe>
-                    </template>
-                    <!-- Plain URL (not youtube) -->
-                    <template v-else-if="isUrl(stripHtml(exhibit.field_value))">
-                      <a :href="stripHtml(exhibit.field_value).trim()" target="_blank" rel="noopener">{{ stripHtml(exhibit.field_value).trim() }}</a>
-                    </template>
-                    <!-- Rich text / HTML -->
-                    <template v-else>
-                      <div class="ql-content" v-html="exhibit.field_value"></div>
-                    </template>
+                <!-- Extra Fields -->
+                <div class="extra-fields">
+                  <div v-if="concept.integration_other_sub" class="extra-field">
+                    <p class="field-label">Integration with Other Subjects</p>
+                    <div class="ql-content field-content" v-html="concept.integration_other_sub"></div>
                   </div>
+                  <div v-if="concept.library" class="extra-field">
+                    <p class="field-label">Library</p>
+                    <div class="ql-content field-content" v-html="concept.library"></div>
+                  </div>
+                  <div v-if="concept.activity" class="extra-field">
+                    <p class="field-label">Activity</p>
+                    <div class="ql-content field-content" v-html="concept.activity"></div>
+                  </div>
+                  <div v-if="concept.life_lesson" class="extra-field">
+                    <p class="field-label">Life Lesson</p>
+                    <div class="ql-content field-content" v-html="concept.life_lesson"></div>
+                  </div>
+                  <div v-if="concept.remarks" class="extra-field">
+                    <p class="field-label">Remarks</p>
+                    <div class="ql-content field-content" v-html="concept.remarks"></div>
+                  </div>
+                </div>
+
+                <!-- Images -->
+                <div v-if="concept.images?.length" class="images-row">
+                  <a
+                    v-for="img in concept.images"
+                    :key="img.id"
+                    :href="`http://localhost:8000${img.url}`"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    <img
+                      :src="`http://localhost:8000${img.url}`"
+                      :alt="img.original_name"
+                      class="concept-thumbnail"
+                    />
+                  </a>
+                </div>
+
+                <!-- View Exhibit Button -->
+                <div class="concept-card-footer">
+                  <button
+                    class="exhibit-btn"
+                    @click="openModal(concept)"
+                  >
+                    View Exhibit →
+                  </button>
                 </div>
               </div>
             </div>
-
-            <!-- Images -->
-            <div v-if="selectedConcept.images?.length" class="concept-images detail-section">
-              <h3 class="detail-section-label">Images</h3>
-              <div class="images-row">
-                <a v-for="img in selectedConcept.images" :key="img.id"
-                   :href="`http://localhost:8000${img.url}`" target="_blank">
-                  <img :src="`http://localhost:8000${img.url}`" :alt="img.original_name"
-                       style="height:100px;width:auto;border-radius:6px;object-fit:cover;cursor:pointer" />
-                </a>
-              </div>
-            </div>
-
-            <!-- Extra fields -->
-            <div class="detail-extras">
-              <div v-if="selectedConcept.integration_other_sub" class="extra-section">
-                <h3 class="detail-section-label">Integration with Other Subjects</h3>
-                <div class="detail-text ql-content" v-html="selectedConcept.integration_other_sub"></div>
-              </div>
-              <div v-if="selectedConcept.library" class="extra-section">
-                <h3 class="detail-section-label">Library</h3>
-                <div class="detail-text ql-content" v-html="selectedConcept.library"></div>
-              </div>
-              <div v-if="selectedConcept.activity" class="extra-section">
-                <h3 class="detail-section-label">Activity</h3>
-                <div class="detail-text ql-content" v-html="selectedConcept.activity"></div>
-              </div>
-              <div v-if="selectedConcept.life_lesson" class="extra-section">
-                <h3 class="detail-section-label">Life Lesson</h3>
-                <div class="detail-text ql-content" v-html="selectedConcept.life_lesson"></div>
-              </div>
-              <div v-if="selectedConcept.remarks" class="extra-section">
-                <h3 class="detail-section-label">Remarks</h3>
-                <div class="detail-text ql-content" v-html="selectedConcept.remarks"></div>
-              </div>
-            </div>
           </div>
         </div>
-      </transition>
+      </div>
     </template>
+
+    <!-- C) Exhibit Modal -->
+    <transition name="modal-fade">
+      <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
+        <div class="modal-card" role="dialog" aria-modal="true">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <div class="modal-header-text">
+              <h3 class="modal-title">{{ modalConcept?.title }}</h3>
+              <p class="modal-subtitle">Exhibit Details</p>
+            </div>
+            <button class="modal-close" @click="closeModal" aria-label="Close">✕</button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body">
+            <template v-if="modalConcept?.exhibits?.length">
+              <div
+                v-for="(exhibit, idx) in modalConcept.exhibits"
+                :key="exhibit.id || exhibit.field_key"
+                class="exhibit-entry"
+              >
+                <p class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</p>
+                <div class="exhibit-value">
+                  <!-- YouTube embed -->
+                  <template v-if="getYoutubeId(exhibit.field_value)">
+                    <div class="video-wrap">
+                      <iframe
+                        :src="`https://www.youtube.com/embed/${getYoutubeId(exhibit.field_value)}`"
+                        allowfullscreen
+                        class="yt-iframe"
+                      ></iframe>
+                    </div>
+                  </template>
+                  <!-- Plain URL (not youtube) -->
+                  <template v-else-if="isUrl(stripHtml(exhibit.field_value))">
+                    <a
+                      :href="stripHtml(exhibit.field_value).trim()"
+                      target="_blank"
+                      rel="noopener"
+                      class="exhibit-link"
+                    >{{ stripHtml(exhibit.field_value).trim() }}</a>
+                  </template>
+                  <!-- Rich text / HTML -->
+                  <template v-else>
+                    <div class="ql-content" v-html="exhibit.field_value"></div>
+                  </template>
+                </div>
+                <hr v-if="idx < modalConcept.exhibits.length - 1" class="exhibit-divider" />
+              </div>
+            </template>
+            <p v-else class="no-exhibit">No exhibit data available.</p>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -158,7 +188,10 @@ const chapterId = computed(() => route.params.chapterId)
 const chapter = ref(null)
 const loading = ref(true)
 const error = ref(null)
-const selectedConcept = ref(null)
+
+// Modal state
+const showModal = ref(false)
+const modalConcept = ref(null)
 
 const heroGradient = computed(() => {
   const color = chapter.value?.subject?.color
@@ -180,9 +213,8 @@ function shiftColor(hex) {
 }
 
 function formatFieldKey(key) {
-  return key
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase())
+  if (!key) return ''
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 function getYoutubeId(text) {
@@ -196,20 +228,21 @@ function isUrl(text) {
   return /^https?:\/\//.test(text.trim())
 }
 
-/** Strip HTML tags to get plain text (for URL detection) */
 function stripHtml(value) {
   if (!value) return ''
   return value.replace(/<[^>]*>/g, '').trim()
 }
 
-function goBack() {
-  if (window.history.length > 2) {
-    router.back()
-  } else if (chapter.value?.subject?.id && chapter.value?.class?.id) {
-    router.push(`/class/${chapter.value.class.id}/${chapter.value.subject.id}`)
-  } else {
-    router.push('/')
-  }
+function openModal(concept) {
+  modalConcept.value = concept
+  showModal.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+function closeModal() {
+  showModal.value = false
+  modalConcept.value = null
+  document.body.style.overflow = ''
 }
 
 async function fetchChapter() {
@@ -218,10 +251,6 @@ async function fetchChapter() {
   try {
     const res = await api.get(`/api/public/chapters/${chapterId.value}`)
     chapter.value = res.data
-    // Auto-select first concept
-    if (res.data.concepts?.length) {
-      selectedConcept.value = res.data.concepts[0]
-    }
   } catch (e) {
     error.value = e.response?.data?.detail || e.message || 'Failed to load chapter'
   } finally {
@@ -235,67 +264,75 @@ onMounted(fetchChapter)
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f8f9fc;
+  background: #f0f4ff;
   font-family: system-ui, -apple-system, sans-serif;
-  padding-bottom: 3rem;
-}
-
-.top-bar {
-  padding: 1rem 1.5rem 0;
-}
-
-.back-btn {
-  background: white;
-  border: 1px solid #e5e7eb;
-  padding: 0.5rem 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  color: #374151;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  transition: background 0.15s;
-}
-
-.back-btn:hover {
-  background: #f3f4f6;
+  padding-bottom: 4rem;
 }
 
 /* Hero */
 .hero {
-  margin-top: 1rem;
-  padding: 2.5rem 1.5rem 2rem;
+  padding: 3rem 1.5rem 2.5rem;
   color: white;
 }
 
 .hero-inner {
-  max-width: 800px;
+  max-width: 860px;
   margin: 0 auto;
 }
 
 .breadcrumb {
-  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   opacity: 0.82;
-  margin-bottom: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
+  margin-bottom: 1rem;
+}
+
+.crumb-link {
+  cursor: pointer;
+}
+
+.crumb-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.crumb-sep {
+  opacity: 0.5;
 }
 
 .hero-title {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 2.2rem;
+  font-weight: 900;
   margin: 0 0 1rem;
-  line-height: 1.25;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  line-height: 1.2;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  letter-spacing: -0.02em;
 }
 
-.hero-meta {
+.hero-aim {
+  font-size: 1rem;
+  line-height: 1.65;
+  opacity: 0.92;
+  margin-bottom: 1.25rem;
+}
+
+.hero-aim :deep(p) { margin: 0 0 4px; }
+.hero-aim :deep(p:last-child) { margin: 0; }
+
+.hero-stats {
   display: flex;
-  gap: 0.8rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-.hero-badge {
-  background: rgba(255,255,255,0.22);
+.stat-badge {
+  background: rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(4px);
   padding: 0.3rem 0.9rem;
   border-radius: 20px;
@@ -306,176 +343,181 @@ onMounted(fetchChapter)
   gap: 0.35rem;
 }
 
-/* Aim */
-.aim-section {
-  max-width: 800px;
-  margin: 1.8rem auto 0;
+/* Concepts Section */
+.concepts-section {
   padding: 0 1.5rem;
 }
 
-.section-label {
-  font-size: 0.78rem;
+.concepts-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding-top: 2.5rem;
+}
+
+.section-eyebrow {
+  font-size: 0.75rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #4f46e5;
-  margin: 0 0 0.5rem;
-}
-
-.aim-text {
-  font-size: 1rem;
-  color: #374151;
-  line-height: 1.65;
-  margin: 0;
-}
-
-/* Concept chips row */
-.concepts-scroll-area {
-  max-width: 800px;
-  margin: 2rem auto 0;
-  padding: 0 1.5rem;
-}
-
-.padded {
-  margin-bottom: 0.8rem;
-}
-
-.concept-cards-row {
-  display: flex;
-  gap: 0.75rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
-  scrollbar-width: thin;
-  scrollbar-color: #c4b5fd transparent;
-}
-
-.concept-cards-row::-webkit-scrollbar {
-  height: 4px;
-}
-
-.concept-cards-row::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.concept-cards-row::-webkit-scrollbar-thumb {
-  background: #c4b5fd;
-  border-radius: 4px;
-}
-
-.concept-chip {
-  flex-shrink: 0;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 130px;
-  max-width: 180px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-}
-
-.concept-chip:hover {
-  border-color: #a5b4fc;
-  box-shadow: 0 3px 12px rgba(79,70,229,0.15);
-  transform: translateY(-1px);
-}
-
-.concept-chip--active {
-  border-color: #4f46e5;
-  background: #eef2ff;
-  box-shadow: 0 3px 14px rgba(79,70,229,0.2);
-}
-
-.chip-sno {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #4f46e5;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  color: #6b7280;
+  margin: 0 0 0.3rem;
 }
 
-.chip-title {
-  font-size: 0.88rem;
-  font-weight: 600;
+.section-heading {
+  font-size: 1.5rem;
+  font-weight: 800;
   color: #1e1b4b;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  margin: 0 0 1.5rem;
+}
+
+/* Concept List */
+.concept-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.concept-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   overflow: hidden;
 }
 
-.chip-sessions {
-  font-size: 0.76rem;
-  color: #6b7280;
-  margin-top: 0.1rem;
-}
-
-/* Concept Detail */
-.concept-detail {
-  max-width: 800px;
-  margin: 1.5rem auto 0;
-  padding: 0 1.5rem;
-}
-
-.detail-card {
-  background: white;
-  border-radius: 14px;
-  padding: 1.8rem;
-  box-shadow: 0 3px 16px rgba(0,0,0,0.09);
-}
-
-.detail-title {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: #1e1b4b;
-  margin: 0 0 1.4rem;
+/* Concept Card Header */
+.concept-header {
   display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  line-height: 1.3;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fafafa;
 }
 
-.detail-sno {
-  font-size: 0.78rem;
-  font-weight: 700;
+.concept-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: white;
   background: #4f46e5;
-  padding: 0.2rem 0.6rem;
+  padding: 0.22rem 0.65rem;
   border-radius: 20px;
   flex-shrink: 0;
 }
 
-.detail-section {
-  margin-bottom: 1.4rem;
+.concept-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e1b4b;
+  flex: 1;
+  line-height: 1.3;
 }
 
-.detail-section-label {
-  font-size: 0.75rem;
+.sessions-pill {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5b21b6;
+  background: #ede9fe;
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+/* Concept Card Body */
+.concept-body {
+  padding: 1.4rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.concept-section {
+  /* wrapper for learning outcomes */
+}
+
+.extra-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.extra-field {
+  /* wrapper for each extra field */
+}
+
+.field-label {
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #4f46e5;
-  margin: 0 0 0.5rem;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin: 0 0 0.35rem;
 }
 
-.detail-text {
-  font-size: 0.95rem;
+.field-content {
+  font-size: 0.93rem;
   color: #374151;
   line-height: 1.65;
-  margin: 0;
 }
 
-.preformatted {
-  white-space: pre-wrap;
-  word-break: break-word;
+/* Images Row */
+.images-row {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #c4b5fd transparent;
 }
 
-/* Render Quill HTML output */
+.images-row::-webkit-scrollbar {
+  height: 4px;
+}
+
+.images-row::-webkit-scrollbar-thumb {
+  background: #c4b5fd;
+  border-radius: 4px;
+}
+
+.concept-thumbnail {
+  height: 90px;
+  width: auto;
+  border-radius: 8px;
+  object-fit: cover;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.concept-thumbnail:hover {
+  transform: scale(1.03);
+}
+
+/* Exhibit Button */
+.concept-card-footer {
+  padding-top: 0.25rem;
+}
+
+.exhibit-btn {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.exhibit-btn:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+/* Quill content styles */
 .ql-content :deep(p) { margin: 0 0 6px; }
 .ql-content :deep(ul), .ql-content :deep(ol) { padding-left: 20px; margin: 4px 0; }
 .ql-content :deep(strong) { font-weight: 600; }
@@ -483,76 +525,188 @@ onMounted(fetchChapter)
 .ql-content :deep(a) { color: #4f46e5; }
 .ql-content :deep(p:last-child) { margin-bottom: 0; }
 
-/* Exhibits */
-.exhibits-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
 }
 
-.exhibit-item {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 0.9rem 1rem;
+.modal-card {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.4rem 1.5rem 1.2rem;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  z-index: 1;
+}
+
+.modal-header-text {
+  flex: 1;
+}
+
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin: 0 0 0.2rem;
+  line-height: 1.3;
+}
+
+.modal-subtitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin: 0;
+}
+
+.modal-close {
+  background: #f3f4f6;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #374151;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  font-family: inherit;
+}
+
+.modal-close:hover {
+  background: #e5e7eb;
+}
+
+.modal-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exhibit-entry {
+  padding: 1rem 0;
+}
+
+.exhibit-entry:first-child {
+  padding-top: 0;
 }
 
 .exhibit-label {
-  display: block;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #6b7280;
-  margin-bottom: 0.35rem;
+  margin: 0 0 0.4rem;
 }
 
 .exhibit-value {
   font-size: 0.93rem;
   color: #1f2937;
-  margin: 0;
+  line-height: 1.6;
   word-break: break-word;
-  line-height: 1.55;
 }
 
-.images-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
+.exhibit-divider {
+  border: none;
+  border-top: 1px solid #f3f4f6;
+  margin: 0;
 }
 
-.detail-extras {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
+.exhibit-link {
+  color: #4f46e5;
+  word-break: break-all;
 }
 
-.extra-section {}
-
-/* Fade transition */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+.exhibit-link:hover {
+  color: #4338ca;
 }
 
-.fade-enter-from {
+/* YouTube embed */
+.video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.yt-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+}
+
+.no-exhibit {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  padding: 2rem 0;
+  margin: 0;
+}
+
+/* Modal transition */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-fade-enter-active .modal-card,
+.modal-fade-leave-active .modal-card {
+  transition: transform 0.2s ease;
+}
+
+.modal-fade-enter-from {
   opacity: 0;
-  transform: translateY(8px);
 }
 
-.fade-leave-to {
+.modal-fade-enter-from .modal-card {
+  transform: translateY(16px) scale(0.97);
+}
+
+.modal-fade-leave-to {
   opacity: 0;
 }
 
-/* Loading / Error */
+/* Error */
 .error-box {
   text-align: center;
   padding: 2rem;
 }
 
-.error-box button {
+.retry-btn {
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
   background: #4f46e5;
@@ -561,18 +715,22 @@ onMounted(fetchChapter)
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
+  font-family: inherit;
+  transition: background 0.2s ease;
 }
 
-@media (max-width: 768px) {
-  .page { padding-left: 0; padding-right: 0; }
-  .top-bar { padding: 1rem 16px 0; }
-  .hero { padding: 2rem 16px 1.5rem; }
-  .aim-section { padding: 0 16px; }
-  .concepts-scroll-area { padding: 0 16px; }
-  .concept-detail { padding: 0 16px; }
-  .hero-title { font-size: 1.5rem; }
-  .concept-chip { min-width: 110px; }
-  .detail-card { padding: 1.2rem; }
-  .exhibits-grid { grid-template-columns: 1fr; }
+.retry-btn:hover {
+  background: #4338ca;
+}
+
+@media (max-width: 640px) {
+  .hero { padding: 2rem 1rem 2rem; }
+  .hero-title { font-size: 1.6rem; }
+  .concepts-section { padding: 0 1rem; }
+  .concept-header { padding: 1rem 1.1rem; }
+  .concept-body { padding: 1.1rem; }
+  .modal-card { max-height: 90vh; }
+  .modal-header { padding: 1.1rem 1.1rem 1rem; }
+  .modal-body { padding: 1rem 1.1rem 1.25rem; }
 }
 </style>
