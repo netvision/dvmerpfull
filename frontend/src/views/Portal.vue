@@ -98,7 +98,7 @@
           </div>
           <div class="field">
             <label>Class *</label>
-            <select v-model="newChapter.class_id" required @change="loadModalSubjects">
+            <select v-model="newChapter.class_id" required>
               <option value="">Select class</option>
               <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
@@ -124,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api.js'
@@ -145,6 +145,18 @@ const modalSubjects = ref([])
 const newChapter = ref({ title: '', aim: '', class_id: '', subject_id: '' })
 const creating = ref(false)
 const createError = ref('')
+
+// Auto-load subjects when class is selected in Add Chapter modal
+watch(() => newChapter.value.class_id, async (classId) => {
+  modalSubjects.value = []
+  newChapter.value.subject_id = ''
+  if (classId) {
+    try {
+      const res = await api.get(`/api/public/classes/${classId}/subjects`)
+      modalSubjects.value = res.data
+    } catch (_) {}
+  }
+})
 
 onMounted(async () => {
   await ensureUser()
