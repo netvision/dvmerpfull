@@ -66,7 +66,7 @@
             <!-- Learning Outcomes -->
             <div v-if="selectedConcept.learning_outcomes" class="detail-section">
               <h3 class="detail-section-label">Learning Outcomes</h3>
-              <p class="detail-text preformatted">{{ selectedConcept.learning_outcomes }}</p>
+              <div class="detail-text ql-content" v-html="selectedConcept.learning_outcomes"></div>
             </div>
 
             <!-- Exhibit Fields -->
@@ -80,24 +80,22 @@
                 >
                   <span class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</span>
                   <div class="exhibit-value">
-                    <template v-for="(part, pi) in splitLines(exhibit.field_value)" :key="pi">
-                      <!-- YouTube embed -->
-                      <template v-if="getYoutubeId(part)">
-                        <iframe
-                          :src="`https://www.youtube.com/embed/${getYoutubeId(part)}`"
-                          width="100%"
-                          style="max-width:480px;aspect-ratio:16/9;border:none;border-radius:8px;display:block;margin:4px 0"
-                          allowfullscreen
-                        ></iframe>
-                      </template>
-                      <!-- Other URL -->
-                      <template v-else-if="isUrl(part)">
-                        <a :href="part.trim()" target="_blank" rel="noopener" style="display:block;word-break:break-all">{{ part.trim() }}</a>
-                      </template>
-                      <!-- Plain text (preserve newlines within part) -->
-                      <template v-else>
-                        <span style="white-space:pre-wrap;display:block">{{ part }}</span>
-                      </template>
+                    <!-- YouTube embed (check raw value for URL) -->
+                    <template v-if="getYoutubeId(exhibit.field_value)">
+                      <iframe
+                        :src="`https://www.youtube.com/embed/${getYoutubeId(exhibit.field_value)}`"
+                        width="100%"
+                        style="max-width:480px;aspect-ratio:16/9;border:none;border-radius:8px;display:block;margin:4px 0"
+                        allowfullscreen
+                      ></iframe>
+                    </template>
+                    <!-- Plain URL (not youtube) -->
+                    <template v-else-if="isUrl(stripHtml(exhibit.field_value))">
+                      <a :href="stripHtml(exhibit.field_value).trim()" target="_blank" rel="noopener">{{ stripHtml(exhibit.field_value).trim() }}</a>
+                    </template>
+                    <!-- Rich text / HTML -->
+                    <template v-else>
+                      <div class="ql-content" v-html="exhibit.field_value"></div>
                     </template>
                   </div>
                 </div>
@@ -120,23 +118,23 @@
             <div class="detail-extras">
               <div v-if="selectedConcept.integration_other_sub" class="extra-section">
                 <h3 class="detail-section-label">Integration with Other Subjects</h3>
-                <p class="detail-text preformatted">{{ selectedConcept.integration_other_sub }}</p>
+                <div class="detail-text ql-content" v-html="selectedConcept.integration_other_sub"></div>
               </div>
               <div v-if="selectedConcept.library" class="extra-section">
                 <h3 class="detail-section-label">Library</h3>
-                <p class="detail-text preformatted">{{ selectedConcept.library }}</p>
+                <div class="detail-text ql-content" v-html="selectedConcept.library"></div>
               </div>
               <div v-if="selectedConcept.activity" class="extra-section">
                 <h3 class="detail-section-label">Activity</h3>
-                <p class="detail-text preformatted">{{ selectedConcept.activity }}</p>
+                <div class="detail-text ql-content" v-html="selectedConcept.activity"></div>
               </div>
               <div v-if="selectedConcept.life_lesson" class="extra-section">
                 <h3 class="detail-section-label">Life Lesson</h3>
-                <p class="detail-text preformatted">{{ selectedConcept.life_lesson }}</p>
+                <div class="detail-text ql-content" v-html="selectedConcept.life_lesson"></div>
               </div>
               <div v-if="selectedConcept.remarks" class="extra-section">
                 <h3 class="detail-section-label">Remarks</h3>
-                <p class="detail-text preformatted">{{ selectedConcept.remarks }}</p>
+                <div class="detail-text ql-content" v-html="selectedConcept.remarks"></div>
               </div>
             </div>
           </div>
@@ -198,13 +196,10 @@ function isUrl(text) {
   return /^https?:\/\//.test(text.trim())
 }
 
-/**
- * Split a field_value by newlines so each line can be rendered
- * individually (URL detection per line).
- */
-function splitLines(value) {
-  if (!value) return ['']
-  return value.split('\n')
+/** Strip HTML tags to get plain text (for URL detection) */
+function stripHtml(value) {
+  if (!value) return ''
+  return value.replace(/<[^>]*>/g, '').trim()
 }
 
 function goBack() {
@@ -479,6 +474,14 @@ onMounted(fetchChapter)
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Render Quill HTML output */
+.ql-content :deep(p) { margin: 0 0 6px; }
+.ql-content :deep(ul), .ql-content :deep(ol) { padding-left: 20px; margin: 4px 0; }
+.ql-content :deep(strong) { font-weight: 600; }
+.ql-content :deep(em) { font-style: italic; }
+.ql-content :deep(a) { color: #4f46e5; }
+.ql-content :deep(p:last-child) { margin-bottom: 0; }
 
 /* Exhibits */
 .exhibits-grid {
