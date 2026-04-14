@@ -4,4 +4,10 @@ __pycache__/
 venv/
 node_modules/
 *.db
+*.db-shm
+*.db-wal
 .env
+uploads/
+dist/
+# Test/scratch xlsx files at project root
+/*.xlsx

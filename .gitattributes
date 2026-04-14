@@ -1,0 +1,14 @@
+# Normalize line endings to LF on commit (important for shell scripts on Linux VPS)
+* text=auto eol=lf
+
+# Force LF for shell scripts
+*.sh text eol=lf
+
+# Binary files — no conversion
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
+*.db binary

@@ -83,6 +83,7 @@ def list_chapters(subject_id: int, db: Session = Depends(get_db)):
                 aim=chapter.aim,
                 sessions_total=sessions_total,
                 concept_count=concept_count,
+                pdf_url=f"/uploads/{chapter.pdf_filename}" if chapter.pdf_filename else None,
             )
         )
     return result
@@ -153,6 +154,7 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
         id=chapter.id,
         title=chapter.title,
         aim=chapter.aim,
+        pdf_url=f"/uploads/{chapter.pdf_filename}" if chapter.pdf_filename else None,
         subject=SubjectNestedOut(
             id=subject.id,
             name=subject.name,

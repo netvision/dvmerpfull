@@ -48,6 +48,14 @@
               <div class="badges">
                 <span class="badge badge-sessions">⏱ {{ chapter.sessions_total }} sessions</span>
                 <span class="badge badge-concepts">💡 {{ chapter.concept_count }} concept{{ chapter.concept_count !== 1 ? 's' : '' }}</span>
+                <a
+                  v-if="chapter.pdf_url"
+                  :href="`${apiBase}${chapter.pdf_url}`"
+                  target="_blank"
+                  rel="noopener"
+                  class="badge badge-pdf"
+                  @click.stop
+                >📄 PDF</a>
               </div>
               <span class="view-link">View →</span>
             </div>
@@ -68,6 +76,8 @@ import ErrorBanner from '../components/ErrorBanner.vue'
 const router = useRouter()
 const route = useRoute()
 
+const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 const classId = computed(() => route.params.classId)
 const subjectId = computed(() => route.params.subjectId)
 
@@ -76,7 +86,7 @@ const loading = ref(true)
 const error = ref(null)
 const subjectName = ref('')
 const subjectIcon = ref('')
-const subjectColor = ref('#4f46e5')
+const subjectColor = ref('#2563eb')
 const className = ref('')
 
 async function fetchChapters() {
@@ -100,7 +110,7 @@ async function fetchSubjectInfo() {
     if (subject) {
       subjectName.value = subject.name
       subjectIcon.value = subject.icon || ''
-      subjectColor.value = subject.color || '#4f46e5'
+      subjectColor.value = subject.color || '#2563eb'
     }
     // Also get class name
     const classRes = await api.get('/api/public/classes')
@@ -148,7 +158,7 @@ onMounted(fetchChapters)
 
 .crumb-link {
   cursor: pointer;
-  color: #4f46e5;
+  color: #2563eb;
 }
 
 .crumb-link:hover {
@@ -177,7 +187,7 @@ onMounted(fetchChapters)
   color: #1e1b4b;
   margin: 0;
   letter-spacing: -0.01em;
-  border-left: 4px solid var(--accent, #4f46e5);
+  border-left: 4px solid var(--accent, #2563eb);
   padding-left: 0.75rem;
 }
 
@@ -214,12 +224,12 @@ onMounted(fetchChapters)
 .accent-bar {
   width: 4px;
   flex-shrink: 0;
-  background: var(--accent, #4f46e5);
+  background: var(--accent, #2563eb);
   transition: background 0.2s ease;
 }
 
 .chapter-card:hover .accent-bar {
-  background: color-mix(in srgb, var(--accent, #4f46e5) 70%, black);
+  background: color-mix(in srgb, var(--accent, #2563eb) 70%, black);
 }
 
 .card-body {
@@ -284,15 +294,25 @@ onMounted(fetchChapters)
   color: #065f46;
 }
 
+.badge-pdf {
+  background: #fff7ed;
+  color: #9a3412;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge-pdf:hover {
+  background: #fed7aa;
+}
+
 .view-link {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #4f46e5;
+  color: #2563eb;
   transition: color 0.2s ease;
 }
 
 .chapter-card:hover .view-link {
-  color: #4338ca;
+  color: #1d4ed8;
 }
 
 /* Error / Empty */
@@ -304,7 +324,7 @@ onMounted(fetchChapters)
 .retry-btn {
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -315,7 +335,7 @@ onMounted(fetchChapters)
 }
 
 .retry-btn:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 .empty {

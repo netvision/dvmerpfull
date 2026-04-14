@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School ERP Platform — Full Project Proposal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:   #1d4ed8;
+      --primary-l: #3b82f6;
+      --accent:    #0ea5e9;
+      --green:     #16a34a;
+      --green-l:   #22c55e;
+      --amber:     #d97706;
+      --amber-l:   #f59e0b;
+      --red:       #dc2626;
+      --purple:    #7c3aed;
+      --purple-l:  #a855f7;
+      --teal:      #0d9488;
+      --bg:        #0f172a;
+      --surface:   #1e293b;
+      --card:      #243044;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --border:    #334155;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Deck ── */
+    .deck { width: 100vw; height: 100vh; position: relative; }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2.5rem 4rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      transform: translateY(28px);
+    }
+    .slide.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+
+    /* ── Progress ── */
+    #progress {
+      position: fixed; top: 0; left: 0; height: 3px;
+      background: linear-gradient(90deg, var(--primary-l), var(--accent));
+      transition: width 0.35s ease; z-index: 100;
+    }
+
+    /* ── Nav ── */
+    #nav {
+      position: fixed; bottom: 1.4rem; right: 1.6rem;
+      display: flex; gap: 0.5rem; z-index: 100; align-items: center;
+    }
+    #nav button {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 0.45rem 1rem; border-radius: 8px;
+      cursor: pointer; font-size: 0.85rem; transition: background 0.2s;
+    }
+    #nav button:hover { background: var(--card); }
+    #slide-counter { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── Typography ── */
+    h1 { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; }
+    h2 { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.02em; }
+    h3 { font-size: 1rem; font-weight: 700; }
+    p  { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+
+    .tag {
+      display: inline-block; font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      background: rgba(59,130,246,0.15); color: var(--primary-l);
+      border: 1px solid rgba(59,130,246,0.3); border-radius: 999px;
+      padding: 0.2rem 0.75rem; margin-bottom: 0.6rem;
+    }
+
+    .section-header { text-align: center; margin-bottom: 1.6rem; }
+    .section-header h2 { margin-top: 0.3rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.2rem 1.4rem;
+    }
+    .card.blue-border   { border-left: 4px solid var(--primary-l); }
+    .card.green-border  { border-left: 4px solid var(--green-l); }
+    .card.amber-border  { border-left: 4px solid var(--amber-l); }
+    .card.red-border    { border-left: 4px solid var(--red); }
+    .card.purple-border { border-left: 4px solid var(--purple-l); }
+    .card.accent-border { border-left: 4px solid var(--accent); }
+    .card.teal-border   { border-left: 4px solid var(--teal); }
+
+    /* ── Grid ── */
+    .grid { display: grid; gap: 1rem; width: 100%; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+    /* ── Check list ── */
+    .check { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+    .check li::before { content: "✓ "; color: var(--green-l); font-weight: 700; }
+    .check li { font-size: 0.85rem; color: var(--text); line-height: 1.4; }
+
+    /* ── Icon ── */
+    .icon { font-size: 1.6rem; margin-bottom: 0.5rem; }
+
+    /* ── Cost table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th {
+      background: rgba(59,130,246,0.12);
+      color: var(--primary-l); font-weight: 700;
+      padding: 0.55rem 0.8rem; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 0.5rem 0.8rem; border-bottom: 1px solid rgba(51,65,85,0.6); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .total-row td { font-weight: 700; color: var(--green-l); background: rgba(22,163,74,0.08); }
+
+    /* ── Chips ── */
+    .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+    .chip {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 999px; padding: 0.3rem 0.85rem;
+      font-size: 0.78rem; color: var(--text);
+      display: flex; gap: 0.35rem; align-items: center;
+    }
+    .chip span { color: var(--muted); }
+
+    /* ── Phase pill ── */
+    .phase-pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      border-radius: 8px; padding: 0.55rem 0.9rem; font-size: 0.78rem; font-weight: 700;
+    }
+
+    /* ── Big number ── */
+    .big-num { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; }
+    .big-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.1rem; }
+
+    /* ── Highlight box ── */
+    .highlight-box {
+      background: rgba(37,99,235,0.08);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 12px; padding: 0.8rem 1.2rem;
+      display: flex; align-items: center; gap: 0.8rem;
+    }
+
+    /* ── Layer (arch) ── */
+    .layer {
+      display: flex; align-items: center; justify-content: space-between;
+      border: 1px solid; border-radius: 12px; padding: 0.75rem 1.1rem;
+    }
+    .layer-label { font-weight: 700; font-size: 0.9rem; }
+    .layer-desc  { font-size: 0.78rem; color: var(--muted); margin-top: 0.1rem; }
+
+    /* ── Badge ── */
+    .badge {
+      font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.55rem;
+      border-radius: 999px; white-space: nowrap;
+    }
+    .badge-green  { background: rgba(22,163,74,0.2);  color: #86efac; }
+    .badge-blue   { background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .badge-amber  { background: rgba(217,119,6,0.2);  color: #fcd34d; }
+    .badge-purple { background: rgba(124,58,237,0.2); color: #c4b5fd; }
+    .badge-red    { background: rgba(220,38,38,0.2);  color: #fca5a5; }
+
+    /* ── Title slide gradient text ── */
+    .gradient-text {
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #34d399 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    /* ── Divider ── */
+    .divider { width: 48px; height: 3px; border-radius: 2px; margin: 0.6rem auto; }
+
+    /* ── ROI row ── */
+    .roi-row {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.8rem; border-radius: 8px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    }
+
+    /* ── Timeline ── */
+    .timeline-row {
+      display: grid; grid-template-columns: 80px 1fr;
+      gap: 0.5rem; align-items: start;
+    }
+    .timeline-month {
+      font-size: 0.72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; padding-top: 0.15rem;
+    }
+    .timeline-bar {
+      height: 28px; border-radius: 6px; display: flex;
+      align-items: center; padding: 0 0.7rem;
+      font-size: 0.75rem; font-weight: 600; color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- ════════════════════════════════════════
+       SLIDE 1 — Title
+  ════════════════════════════════════════ -->
+  <div class="slide active" id="s1">
+    <div style="text-align:center; max-width:820px">
+      <div class="tag">Project Proposal · 2026</div>
+      <h1 style="margin:0.6rem 0 0.4rem">
+        <span class="gradient-text">School ERP Platform</span>
+      </h1>
+      <h1 style="font-size:1.5rem; font-weight:400; color:var(--muted); margin-bottom:1.6rem">
+        A complete digital backbone for modern school operations
+      </h1>
+      <div class="divider" style="background:linear-gradient(90deg,var(--primary-l),var(--accent))"></div>
+      <p style="margin-top:1.2rem; font-size:0.95rem; color:var(--muted); max-width:560px; margin-inline:auto">
+        Full-scope proposal covering vision, module breakdown, technology, team, timeline, and cost — for evaluation by the Board of Trustees.
+      </p>
+      <div class="chips" style="justify-content:center; margin-top:1.8rem">
+        <div class="chip">11 Modules</div>
+        <div class="chip">2-Person IT Team + Freelancers</div>
+        <div class="chip">On-Prem AI + Cloud App</div>
+        <div class="chip">INR Costing</div>
+        <div class="chip">12-Month Build</div>
+        <div class="chip">AI-Assisted Development</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 2 — The Problem
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s2">
+    <div class="section-header">
+      <div class="tag">Why This Exists</div>
+      <h2>Schools run on scattered, manual systems</h2>
+    </div>
+    <div class="grid grid-3" style="max-width:980px">
+      <div class="card red-border">
+        <div class="icon">📂</div>
+        <h3>Data in Silos</h3>
+        <p>Excel sheets, paper registers, and WhatsApp messages — each department has its own system that doesn't talk to any other.</p>
+      </div>
+      <div class="card amber-border">
+        <div class="icon">⏱️</div>
+        <h3>Administrative Overhead</h3>
+        <p>Fee receipts, attendance sheets, TC generation, payroll calculations — all done manually, every month, consuming staff hours that should go to students.</p>
+      </div>
+      <div class="card purple-border">
+        <div class="icon">📉</div>
+        <h3>No Visibility</h3>
+        <p>Management has no real-time view of curriculum quality, student performance, fee collection status, or staff attendance — decisions are made on stale data.</p>
+      </div>
+      <div class="card blue-border">
+        <div class="icon">🔓</div>
+        <h3>No Accountability</h3>
+        <p>Without role-based access, there is no audit trail — who changed what, when, and why? Critical data can be edited or deleted by anyone with file access.</p>
+      </div>
+      <div class="card teal-border">
+        <div class="icon">🤖</div>
+        <h3>No AI Leverage</h3>
+        <p>Teachers spend hours creating lesson content and assessments from scratch, when local AI tools (running on school hardware) could do the heavy lifting.</p>
+      </div>
+      <div class="card green-border">
+        <div class="icon">🌐</div>
+        <h3>No Digital Presence</h3>
+        <p>The school's public website is static or absent. Parents and prospective families have no way to engage with curriculum, events, or announcements online.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 3 — The Solution
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s3">
+    <div class="section-header">
+      <div class="tag">The Solution</div>
+      <h2>One integrated platform. Built specifically for this school.</h2>
+    </div>
+    <div style="display:flex; gap:1.2rem; align-items:flex-start; width:100%; max-width:1040px">
+
+      <div style="flex:1; display:flex; flex-direction:column; gap:0.8rem">
+        <div class="card green-border" style="padding:0.9rem 1.1rem">
+          <div style="display:flex; align-items:center; gap:0.6rem">
+            <span style="font-size:1.2rem">🏗️</span>
+            <div>
+              <h3 style="margin:0">Custom-built, not off-the-shelf</h3>
+              <p style="font-size:0.8rem; margin-top:0.2rem">No license fees forever. Every feature fits the school's workflow exactly.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card blue-border" style="padding:0.9rem 1.1rem">
+          <div style="display:flex; align-items:center; gap:0.6rem">
+            <span style="font-size:1.2rem">🔒</span>
+            <div>
+              <h3 style="margin:0">All data stays on school premises</h3>
+              <p style="font-size:0.8rem; margin-top:0.2rem">AI inference runs on a school-owned server. Student data never leaves the campus network.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card purple-border" style="padding:0.9rem 1.1rem">
+          <div style="display:flex; align-items:center; gap:0.6rem">
+            <span style="font-size:1.2rem">📈</span>
+            <div>
+              <h3 style="margin:0">Modular — grow at your pace</h3>
+              <p style="font-size:0.8rem; margin-top:0.2rem">Start with curriculum. Add fee, payroll, assessment, website as needed. No big-bang deployment.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card amber-border" style="padding:0.9rem 1.1rem">
+          <div style="display:flex; align-items:center; gap:0.6rem">
+            <span style="font-size:1.2rem">🧑‍💻</span>
+            <div>
+              <h3 style="margin:0">In-house team — full control</h3>
+              <p style="font-size:0.8rem; margin-top:0.2rem">The school owns the code, the servers, and the team. No vendor dependency, no surprises.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:320px; flex-shrink:0">
+        <div class="card" style="padding:1.2rem 1.4rem; border-color:var(--accent)">
+          <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); margin-bottom:1rem">At a glance</div>
+          <div style="display:flex; flex-direction:column; gap:0.9rem">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <span style="font-size:0.85rem">Modules in scope</span>
+              <span class="big-num" style="font-size:1.6rem; color:var(--primary-l)">11</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <span style="font-size:0.85rem">User roles</span>
+              <span class="big-num" style="font-size:1.6rem; color:var(--accent)">6</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <span style="font-size:0.85rem">Build timeline</span>
+              <span style="font-size:0.92rem; font-weight:700; color:var(--green-l)">~12 months</span>
+            </div>
+            <div style="height:1px; background:var(--border)"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <span style="font-size:0.85rem">Module already live</span>
+              <span class="badge badge-green">Curriculum ✓</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <span style="font-size:0.85rem">External license cost</span>
+              <span class="badge badge-green">₹ 0 / year</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <span style="font-size:0.85rem">Student data leaves campus?</span>
+              <span class="badge badge-green">Never</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 4 — 11 Modules Overview
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s4">
+    <div class="section-header">
+      <div class="tag">Scope</div>
+      <h2>11 integrated modules — one unified platform</h2>
+    </div>
+    <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap:0.75rem; width:100%; max-width:1100px">
+
+      <div class="card" style="border-left:4px solid var(--green-l); padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>📚</span><h3 style="font-size:0.88rem">Curriculum Management</h3>
+        </div>
+        <p style="font-size:0.75rem">Class → Subject → Chapter → Concept hierarchy. Rich editing, images, AI-assisted.</p>
+        <div class="badge badge-green" style="margin-top:0.5rem">Live ✓</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--purple-l); padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>🤖</span><h3 style="font-size:0.88rem">AI Integration</h3>
+        </div>
+        <p style="font-size:0.75rem">Local Ollama / LM Studio. Content drafting, Q&A generation, worksheets.</p>
+        <div class="badge badge-blue" style="margin-top:0.5rem">Phase 2</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--accent); padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>📝</span><h3 style="font-size:0.88rem">Student Assessment</h3>
+        </div>
+        <p style="font-size:0.75rem">Bloom's aligned tests. Online + printable. Auto-grading. Result dashboards.</p>
+        <div class="badge badge-blue" style="margin-top:0.5rem">Phase 2</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid #38bdf8; padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>🎓</span><h3 style="font-size:0.88rem">Student Management</h3>
+        </div>
+        <p style="font-size:0.75rem">Admissions, profiles, class enrollment, attendance tracking.</p>
+        <div class="badge badge-purple" style="margin-top:0.5rem">Phase 3</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--amber-l); padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>👨‍💼</span><h3 style="font-size:0.88rem">Staff Management</h3>
+        </div>
+        <p style="font-size:0.75rem">Staff profiles, departments, designations, document management.</p>
+        <div class="badge badge-purple" style="margin-top:0.5rem">Phase 3</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid #f472b6; padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>🏆</span><h3 style="font-size:0.88rem">Exam & Results</h3>
+        </div>
+        <p style="font-size:0.75rem">Formal exam scheduling, mark entry, report cards, result publishing.</p>
+        <div class="badge badge-purple" style="margin-top:0.5rem">Phase 3</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--green-l); padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>💰</span><h3 style="font-size:0.88rem">Fee Management</h3>
+        </div>
+        <p style="font-size:0.75rem">Fee structures, payment recording, receipts, defaulter reports.</p>
+        <div class="badge badge-purple" style="margin-top:0.5rem">Phase 3</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--teal); padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>📊</span><h3 style="font-size:0.88rem">Finance & Payroll</h3>
+        </div>
+        <p style="font-size:0.75rem">Income & expense ledger, monthly payroll, salary slips.</p>
+        <div class="badge badge-amber" style="margin-top:0.5rem">Phase 4</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid #a78bfa; padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>🗓️</span><h3 style="font-size:0.88rem">Leave & Attendance</h3>
+        </div>
+        <p style="font-size:0.75rem">Staff leave applications, approval workflow, attendance calendar.</p>
+        <div class="badge badge-amber" style="margin-top:0.5rem">Phase 4</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid #fb923c; padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>📄</span><h3 style="font-size:0.88rem">Transfer Certificate</h3>
+        </div>
+        <p style="font-size:0.75rem">TC generation, approval flow, digital dispatch & registry.</p>
+        <div class="badge badge-amber" style="margin-top:0.5rem">Phase 4</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid #34d399; padding:0.85rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span>🌐</span><h3 style="font-size:0.88rem">Website & CMS</h3>
+        </div>
+        <p style="font-size:0.75rem">Public-facing school website. Announcements, events, curriculum showcase.</p>
+        <div class="badge badge-amber" style="margin-top:0.5rem">Phase 4</div>
+      </div>
+
+      <!-- Empty cell for symmetry — replaced with summary -->
+      <div class="card" style="border:1px dashed var(--border); padding:0.85rem 1rem; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center">
+        <div style="font-size:1.5rem">🔗</div>
+        <p style="font-size:0.75rem; margin-top:0.4rem">All modules share a single login, single database, and single codebase — no stitched-together third-party tools.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 5 — User Roles
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s5">
+    <div class="section-header">
+      <div class="tag">Access Control</div>
+      <h2>Six roles — every person sees only what they need</h2>
+    </div>
+
+    <div style="display:flex; align-items:stretch; gap:0.6rem; width:100%; max-width:1100px">
+
+      <div class="card purple-border" style="flex:1; padding:0.9rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span style="font-size:1.2rem">👑</span><h3 style="font-size:0.88rem">Administrator</h3>
+        </div>
+        <ul class="check" style="font-size:0.76rem">
+          <li>All modules, all data</li>
+          <li>User &amp; role management</li>
+          <li>System configuration</li>
+        </ul>
+      </div>
+      <div style="display:flex; align-items:center; color:var(--border); flex-shrink:0">▶</div>
+
+      <div class="card" style="flex:1; border-left:4px solid #0ea5e9; padding:0.9rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span style="font-size:1.2rem">📋</span><h3 style="font-size:0.88rem">Curriculum Incharge</h3>
+        </div>
+        <ul class="check" style="font-size:0.76rem">
+          <li>Oversee all curriculum</li>
+          <li>Approve lesson content</li>
+          <li>Track feedback trends</li>
+        </ul>
+      </div>
+      <div style="display:flex; align-items:center; color:var(--border); flex-shrink:0">▶</div>
+
+      <div class="card amber-border" style="flex:1; padding:0.9rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span style="font-size:1.2rem">🧑‍💼</span><h3 style="font-size:0.88rem">Mentor</h3>
+        </div>
+        <ul class="check" style="font-size:0.76rem">
+          <li>Supervise teachers</li>
+          <li>Review &amp; leave feedback</li>
+          <li>Monitor progress</li>
+        </ul>
+      </div>
+      <div style="display:flex; align-items:center; color:var(--border); flex-shrink:0">▶</div>
+
+      <div class="card green-border" style="flex:1; padding:0.9rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span style="font-size:1.2rem">🧑‍🏫</span><h3 style="font-size:0.88rem">Teacher</h3>
+        </div>
+        <ul class="check" style="font-size:0.76rem">
+          <li>Edit assigned subjects</li>
+          <li>Create assessments</li>
+          <li>AI-assisted authoring</li>
+        </ul>
+      </div>
+      <div style="display:flex; align-items:center; color:var(--border); flex-shrink:0">▶</div>
+
+      <div class="card" style="flex:1; border-left:4px solid #0891b2; padding:0.9rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span style="font-size:1.2rem">🎓</span><h3 style="font-size:0.88rem">Student</h3>
+        </div>
+        <ul class="check" style="font-size:0.76rem">
+          <li>Take assigned assessments</li>
+          <li>View personal results</li>
+          <li>Browse own curriculum</li>
+        </ul>
+      </div>
+      <div style="display:flex; align-items:center; color:var(--border); flex-shrink:0">▶</div>
+
+      <div class="card accent-border" style="flex:1; padding:0.9rem 1rem">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem">
+          <span style="font-size:1.2rem">👤</span><h3 style="font-size:0.88rem">Public Visitor</h3>
+        </div>
+        <ul class="check" style="font-size:0.76rem">
+          <li>Browse curriculum</li>
+          <li>View learning outcomes</li>
+          <li>No login required</li>
+        </ul>
+      </div>
+
+    </div>
+    <p style="margin-top:1rem; font-size:0.8rem; color:var(--muted)">Every permission check enforced server-side — not just hidden in the UI.</p>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 6 — Technology Stack
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s6">
+    <div class="section-header">
+      <div class="tag">Technology</div>
+      <h2>Modern, proven, open-source — zero license fees</h2>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.9rem; width:100%; max-width:1060px">
+
+      <div class="card blue-border" style="padding:1rem">
+        <div class="icon">🖥️</div>
+        <h3 style="margin-bottom:0.4rem">Frontend</h3>
+        <ul class="check" style="font-size:0.78rem">
+          <li>Vue 3 — reactive UI</li>
+          <li>Pinia — state management</li>
+          <li>Vue Router — navigation</li>
+          <li>Vite — fast build tool</li>
+          <li>Axios — API client</li>
+        </ul>
+      </div>
+
+      <div class="card accent-border" style="padding:1rem">
+        <div class="icon">⚙️</div>
+        <h3 style="margin-bottom:0.4rem">Backend API</h3>
+        <ul class="check" style="font-size:0.78rem">
+          <li>Python + FastAPI</li>
+          <li>SQLAlchemy ORM</li>
+          <li>Alembic migrations</li>
+          <li>JWT authentication</li>
+          <li>bcrypt passwords</li>
+        </ul>
+      </div>
+
+      <div class="card green-border" style="padding:1rem">
+        <div class="icon">🗄️</div>
+        <h3 style="margin-bottom:0.4rem">Database &amp; Storage</h3>
+        <ul class="check" style="font-size:0.78rem">
+          <li>PostgreSQL — primary DB</li>
+          <li>Redis — caching &amp; queues</li>
+          <li>Local file storage</li>
+          <li>Automated backups</li>
+          <li>Point-in-time restore</li>
+        </ul>
+      </div>
+
+      <div class="card purple-border" style="padding:1rem">
+        <div class="icon">🤖</div>
+        <h3 style="margin-bottom:0.4rem">AI Inference</h3>
+        <ul class="check" style="font-size:0.78rem">
+          <li>Ollama / LM Studio</li>
+          <li>School-owned GPU server</li>
+          <li>No data leaves campus</li>
+          <li>Llama 3 / Mistral models</li>
+          <li>HTTP API to FastAPI</li>
+        </ul>
+      </div>
+
+    </div>
+    <div class="highlight-box" style="max-width:1060px; margin-top:1rem">
+      <span style="font-size:1.2rem; flex-shrink:0">💡</span>
+      <p style="color:var(--text); font-size:0.84rem">Every component is open-source. <strong>No per-user licensing, no SaaS subscriptions, no vendor lock-in.</strong> The school owns the stack completely. Estimated annual software license cost: ₹ 0.</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 7 — Architecture
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s7">
+    <div class="section-header">
+      <div class="tag">Architecture</div>
+      <h2>Two-server setup — cloud app, on-prem AI</h2>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:1.5rem; align-items:center; width:100%; max-width:1000px">
+
+      <!-- Cloud side -->
+      <div style="display:flex; flex-direction:column; gap:0.5rem">
+        <div style="text-align:center; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); margin-bottom:0.3rem">☁️ Cloud VPS</div>
+        <div class="layer" style="background:rgba(37,99,235,0.1); border-color:var(--primary-l)">
+          <div><div class="layer-label">Browser / App</div><div class="layer-desc">Vue.js — teachers, admins, students</div></div>
+          <span>🖥️</span>
+        </div>
+        <div style="text-align:center; color:var(--muted)">↕ HTTPS</div>
+        <div class="layer" style="background:rgba(14,165,233,0.1); border-color:var(--accent)">
+          <div><div class="layer-label">API Server</div><div class="layer-desc">FastAPI — auth, logic, CRUD</div></div>
+          <span>⚙️</span>
+        </div>
+        <div style="text-align:center; color:var(--muted)">↕</div>
+        <div class="layer" style="background:rgba(22,163,74,0.1); border-color:var(--green-l)">
+          <div><div class="layer-label">PostgreSQL + Redis</div><div class="layer-desc">All school data, encrypted at rest</div></div>
+          <span>🗄️</span>
+        </div>
+      </div>
+
+      <!-- Middle arrow -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.3rem">
+        <div style="font-size:0.72rem; color:var(--muted); text-align:center">Private<br>LAN / VPN</div>
+        <div style="font-size:1.4rem; color:var(--border)">⇌</div>
+      </div>
+
+      <!-- On-prem -->
+      <div style="display:flex; flex-direction:column; gap:0.5rem">
+        <div style="text-align:center; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--purple-l); margin-bottom:0.3rem">🏫 School Server Room</div>
+        <div class="layer" style="background:rgba(124,58,237,0.1); border-color:var(--purple-l)">
+          <div><div class="layer-label">Ollama / LM Studio</div><div class="layer-desc">Local AI models — Llama 3, Mistral</div></div>
+          <span>🤖</span>
+        </div>
+        <div style="text-align:center; color:var(--muted)">↕</div>
+        <div class="layer" style="background:rgba(217,119,6,0.1); border-color:var(--amber-l)">
+          <div><div class="layer-label">GPU Server</div><div class="layer-desc">RTX 4090 or equivalent — owned by school</div></div>
+          <span>💻</span>
+        </div>
+        <div class="card" style="border-color:var(--border); padding:0.7rem 0.9rem; margin-top:0.3rem">
+          <p style="font-size:0.76rem; color:var(--text)">🔒 AI queries never leave the school network. Student content is never sent to third-party AI APIs.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 8 — In-House Team
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s8">
+    <div class="section-header">
+      <div class="tag">Team</div>
+      <h2>2 existing staff + targeted freelancers + AI-assisted development</h2>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; width:100%; max-width:1040px">
+
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div class="card green-border" style="padding:0.9rem 1.1rem">
+          <h3 style="font-size:0.88rem; margin-bottom:0.5rem">🏫 In-House — Already on Payroll</h3>
+          <table>
+            <tbody>
+              <tr>
+                <td>IT Administrator (Project Lead)</td>
+                <td class="num" style="color:var(--green-l)">₹ 0 extra</td>
+              </tr>
+              <tr>
+                <td>IT Assistant (Developer)</td>
+                <td class="num" style="color:var(--green-l)">₹ 0 extra</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="font-size:0.74rem; color:var(--muted); margin-top:0.5rem">Salaries are existing school expenditure — no incremental people cost for this project.</p>
+        </div>
+
+        <div class="card purple-border" style="padding:0.9rem 1.1rem">
+          <h3 style="font-size:0.88rem; margin-bottom:0.5rem">🤖 AI-Assisted Development</h3>
+          <ul class="check" style="font-size:0.78rem">
+            <li>Cursor Pro (AI IDE) — ₹1,700/mo × 2</li>
+            <li>GitHub Copilot — ₹830/mo × 2</li>
+            <li>Claude / ChatGPT for architecture &amp; review</li>
+            <li>Multiplies output of 2-person team 3–5×</li>
+          </ul>
+          <div style="margin-top:0.6rem; font-size:0.8rem; font-weight:700; color:var(--purple-l)">~₹5,000/mo · ₹60,000/yr</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div class="card amber-border" style="padding:0.9rem 1.1rem">
+          <h3 style="font-size:0.88rem; margin-bottom:0.5rem">👷 Freelancers — Hired Per Quarter</h3>
+          <table>
+            <thead><tr><th>Quarter</th><th>Scope</th><th class="num">Budget (₹)</th></tr></thead>
+            <tbody>
+              <tr><td>Q1</td><td>DB setup, deploy, DevOps</td><td class="num">40,000</td></tr>
+              <tr><td>Q2</td><td>AI/Ollama engineer</td><td class="num">1,20,000</td></tr>
+              <tr><td>Q3</td><td>Student, Exam, Fee modules</td><td class="num">1,80,000</td></tr>
+              <tr><td>Q4</td><td>Finance, Payroll, TC, Website</td><td class="num">1,10,000</td></tr>
+              <tr class="total-row"><td colspan="2">Total freelancer budget</td><td class="num">4,50,000</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="highlight-box">
+          <span style="font-size:1.3rem">💡</span>
+          <p style="font-size:0.8rem; color:var(--text)">Freelancers are hired per module and paid for deliverables — not on retainer. In-house team drives the architecture and owns the codebase throughout.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 9 — Phase-wise Timeline
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s9">
+    <div class="section-header">
+      <div class="tag">Timeline</div>
+      <h2>4 quarters — full ERP in 12 months</h2>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:1rem; width:100%; max-width:1100px">
+
+      <!-- Q1 -->
+      <div style="display:flex; flex-direction:column; gap:0.6rem">
+        <div style="background:rgba(37,99,235,0.15); border:1px solid rgba(37,99,235,0.4); border-radius:10px; padding:0.65rem 0.9rem">
+          <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#93c5fd">Q1 · Month 1–3</div>
+          <div style="font-size:0.9rem; font-weight:700; margin-top:0.1rem">Foundation &amp; Curriculum</div>
+          <div style="font-size:0.72rem; color:var(--muted); margin-top:0.15rem">2 in-house + deploy freelancer</div>
+        </div>
+        <div class="card" style="border-color:rgba(37,99,235,0.3); padding:0.8rem 0.9rem; flex:1">
+          <ul class="check" style="font-size:0.76rem; gap:0.35rem">
+            <li>✅ Curriculum module (live)</li>
+            <li>PostgreSQL + Alembic migration</li>
+            <li>All 6 user roles</li>
+            <li>Mentor feedback system</li>
+            <li>Cloud deployment + SSL</li>
+            <li>Vibe-coded with Cursor AI</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div style="display:flex; flex-direction:column; gap:0.6rem">
+        <div style="background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.4); border-radius:10px; padding:0.65rem 0.9rem">
+          <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#c4b5fd">Q2 · Month 4–6</div>
+          <div style="font-size:0.9rem; font-weight:700; margin-top:0.1rem">AI + Assessment</div>
+          <div style="font-size:0.72rem; color:var(--muted); margin-top:0.15rem">2 in-house + AI engineer freelancer</div>
+        </div>
+        <div class="card" style="border-color:rgba(124,58,237,0.3); padding:0.8rem 0.9rem; flex:1">
+          <ul class="check" style="font-size:0.76rem; gap:0.35rem">
+            <li>AI server setup (on-prem)</li>
+            <li>Ollama / LM Studio integration</li>
+            <li>AI content &amp; question generator</li>
+            <li>Assessment builder</li>
+            <li>Online + PDF delivery</li>
+            <li>Bloom's result dashboards</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div style="display:flex; flex-direction:column; gap:0.6rem">
+        <div style="background:rgba(22,163,74,0.15); border:1px solid rgba(22,163,74,0.4); border-radius:10px; padding:0.65rem 0.9rem">
+          <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#86efac">Q3 · Month 7–9</div>
+          <div style="font-size:0.9rem; font-weight:700; margin-top:0.1rem">Student &amp; Operations</div>
+          <div style="font-size:0.72rem; color:var(--muted); margin-top:0.15rem">2 in-house + 2 module freelancers</div>
+        </div>
+        <div class="card" style="border-color:rgba(22,163,74,0.3); padding:0.8rem 0.9rem; flex:1">
+          <ul class="check" style="font-size:0.76rem; gap:0.35rem">
+            <li>Student admissions &amp; profiles</li>
+            <li>Class enrollment &amp; attendance</li>
+            <li>Staff management module</li>
+            <li>Exam scheduling &amp; results</li>
+            <li>Fee structures &amp; payments</li>
+            <li>Report card generation</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div style="display:flex; flex-direction:column; gap:0.6rem">
+        <div style="background:rgba(217,119,6,0.15); border:1px solid rgba(217,119,6,0.4); border-radius:10px; padding:0.65rem 0.9rem">
+          <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#fcd34d">Q4 · Month 10–12</div>
+          <div style="font-size:0.9rem; font-weight:700; margin-top:0.1rem">Finance &amp; Completion</div>
+          <div style="font-size:0.72rem; color:var(--muted); margin-top:0.15rem">2 in-house + finance freelancer</div>
+        </div>
+        <div class="card" style="border-color:rgba(217,119,6,0.3); padding:0.8rem 0.9rem; flex:1">
+          <ul class="check" style="font-size:0.76rem; gap:0.35rem">
+            <li>Finance &amp; expense ledger</li>
+            <li>Payroll computation</li>
+            <li>Leave &amp; approval workflow</li>
+            <li>TC generation &amp; registry</li>
+            <li>Website &amp; CMS module</li>
+            <li>UAT, training &amp; go-live</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="highlight-box" style="max-width:1100px; margin-top:0.9rem">
+      <span>🤖</span>
+      <p style="font-size:0.82rem; color:var(--text)"><strong>Why 12 months is realistic:</strong> AI development tools (Cursor AI + GitHub Copilot) multiply the output of 2 developers significantly. The core codebase already exists. Freelancers handle specialist modules in parallel sprints.</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 10 — Infrastructure Cost (One-Time)
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s10">
+    <div class="section-header">
+      <div class="tag">Initial Investment</div>
+      <h2>One-time infrastructure &amp; setup costs (₹)</h2>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; width:100%; max-width:1040px">
+
+      <div>
+        <table>
+          <thead>
+            <tr><th>Item</th><th class="num">Amount (₹)</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>GPU AI Server (RTX 4090, 16 GB VRAM)</td>
+              <td class="num">4,50,000</td>
+            </tr>
+            <tr>
+              <td>NAS / Network Storage (4 TB RAID)</td>
+              <td class="num">65,000</td>
+            </tr>
+            <tr>
+              <td>UPS + Power backup for server room</td>
+              <td class="num">45,000</td>
+            </tr>
+            <tr>
+              <td>Network switch + structured cabling</td>
+              <td class="num">30,000</td>
+            </tr>
+            <tr>
+              <td>Developer workstations</td>
+              <td class="num" style="color:var(--green-l)">₹ 0 (IT team has own)</td>
+            </tr>
+            <tr>
+              <td>Domain + SSL certificates (5 yr)</td>
+              <td class="num">15,000</td>
+            </tr>
+            <tr>
+              <td>Setup, configuration &amp; commissioning</td>
+              <td class="num">40,000</td>
+            </tr>
+            <tr>
+              <td>Contingency (10%)</td>
+              <td class="num">64,500</td>
+            </tr>
+            <tr class="total-row">
+              <td>Total one-time cost</td>
+              <td class="num">7,09,500</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.85rem">
+        <div class="card green-border" style="padding:0.9rem 1.1rem">
+          <div class="big-num" style="color:var(--green-l)">₹ 7.1 L</div>
+          <div class="big-label">One-time capital expenditure</div>
+          <p style="font-size:0.76rem; margin-top:0.4rem">No developer workstations needed — IT staff use existing school machines. AI server priced at Apr 2026 market rate. Useful life: 5–7 years.</p>
+        </div>
+        <div class="card blue-border" style="padding:0.9rem 1.1rem">
+          <h3 style="font-size:0.85rem; margin-bottom:0.35rem">What this covers</h3>
+          <ul class="check" style="font-size:0.76rem">
+            <li>Full AI inference server (no cloud GPU rental)</li>
+            <li>All developer machines to build the system</li>
+            <li>5-year domain + SSL (zero renewal headache)</li>
+            <li>On-prem storage for files, images, and backups</li>
+          </ul>
+        </div>
+        <div class="highlight-box">
+          <span>💡</span>
+          <p style="font-size:0.78rem; color:var(--text)">The GPU server alone saves <strong>₹ 4–8 L/year</strong> in cloud AI API costs if the same volume of queries were sent to OpenAI / Google.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 11 — Recurring Costs
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s11">
+    <div class="section-header">
+      <div class="tag">Recurring Costs</div>
+      <h2>Annual operating expenditure — post go-live (₹)</h2>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; width:100%; max-width:1040px">
+
+      <table>
+        <thead>
+          <tr><th>Item</th><th class="num">Monthly (₹)</th><th class="num">Annual (₹)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>People</strong> — IT Admin + Assistant (existing salaries)</td>
+            <td class="num" style="color:var(--green-l)">0 extra</td>
+            <td class="num" style="color:var(--green-l)">0 extra</td>
+          </tr>
+          <tr>
+            <td>AI coding tools (Cursor + Copilot × 2)</td>
+            <td class="num">5,000</td>
+            <td class="num">60,000</td>
+          </tr>
+          <tr>
+            <td>Cloud VPS (4 vCPU, 8 GB RAM)</td>
+            <td class="num">6,000</td>
+            <td class="num">72,000</td>
+          </tr>
+          <tr>
+            <td>Managed PostgreSQL backup</td>
+            <td class="num">2,000</td>
+            <td class="num">24,000</td>
+          </tr>
+          <tr>
+            <td>Email service (transactional)</td>
+            <td class="num">1,000</td>
+            <td class="num">12,000</td>
+          </tr>
+          <tr>
+            <td>Server room electricity (AI GPU)</td>
+            <td class="num">4,500</td>
+            <td class="num">54,000</td>
+          </tr>
+          <tr>
+            <td>Hardware maintenance contract</td>
+            <td class="num">2,000</td>
+            <td class="num">24,000</td>
+          </tr>
+          <tr>
+            <td>Software licenses (OSS — ₹0)</td>
+            <td class="num">0</td>
+            <td class="num">0</td>
+          </tr>
+          <tr class="total-row">
+            <td>Total recurring cost (per year)</td>
+            <td class="num">20,500</td>
+            <td class="num">2,46,000</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="display:flex; flex-direction:column; gap:0.85rem">
+        <div class="card green-border" style="padding:0.9rem 1.1rem">
+          <div class="big-num" style="color:var(--green-l)">₹ 2.46 L / yr</div>
+          <div class="big-label">Annual operating cost after go-live</div>
+          <p style="font-size:0.76rem; margin-top:0.3rem">No additional people cost. No license fees. Just cloud infra, electricity, and AI coding tools.</p>
+        </div>
+        <div class="card blue-border" style="padding:0.9rem 1.1rem">
+          <h3 style="font-size:0.85rem; margin-bottom:0.4rem">During Build (Year 1 only)</h3>
+          <div style="display:flex; flex-direction:column; gap:0.4rem">
+            <div class="roi-row">
+              <span class="badge badge-blue">One-time</span>
+              <span style="font-size:0.8rem">Hardware: ₹7.1 L</span>
+            </div>
+            <div class="roi-row">
+              <span class="badge badge-amber">Build cost</span>
+              <span style="font-size:0.8rem">Freelancers: ₹4.5 L</span>
+            </div>
+            <div class="roi-row">
+              <span class="badge badge-purple">Tools</span>
+              <span style="font-size:0.8rem">AI tools (1 yr): ₹0.6 L</span>
+            </div>
+            <div class="roi-row" style="background:rgba(22,163,74,0.08); border-color:rgba(22,163,74,0.3)">
+              <span class="badge badge-green">Year 1 total</span>
+              <span style="font-size:0.8rem; font-weight:700; color:var(--green-l)">~₹14.7 L all-in</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 12 — Cost Summary
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s12">
+    <div class="section-header">
+      <div class="tag">Cost Summary</div>
+      <h2>Total investment — build year + ongoing</h2>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; width:100%; max-width:1040px">
+
+      <table>
+        <thead>
+          <tr><th>Category</th><th class="num">Amount (₹)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Hardware (one-time)</td>
+            <td class="num">7,09,500</td>
+          </tr>
+          <tr>
+            <td>Freelancers — Q1 (DevOps)</td>
+            <td class="num">40,000</td>
+          </tr>
+          <tr>
+            <td>Freelancers — Q2 (AI engineer)</td>
+            <td class="num">1,20,000</td>
+          </tr>
+          <tr>
+            <td>Freelancers — Q3 (Student/Exam/Fee)</td>
+            <td class="num">1,80,000</td>
+          </tr>
+          <tr>
+            <td>Freelancers — Q4 (Finance/TC/Website)</td>
+            <td class="num">1,10,000</td>
+          </tr>
+          <tr>
+            <td>AI coding tools — Year 1</td>
+            <td class="num">60,000</td>
+          </tr>
+          <tr>
+            <td>Cloud + infra — Year 1</td>
+            <td class="num">1,62,000</td>
+          </tr>
+          <tr>
+            <td>People cost (existing salaries)</td>
+            <td class="num" style="color:var(--green-l)">₹ 0 extra</td>
+          </tr>
+          <tr class="total-row">
+            <td>Total Year 1 (build + go-live)</td>
+            <td class="num">13,81,500</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="display:flex; flex-direction:column; gap:0.85rem">
+
+        <div class="card green-border" style="padding:0.9rem 1.1rem">
+          <div class="big-num" style="color:var(--green-l)">₹ 13.8 L</div>
+          <div class="big-label">Total Year 1 investment (build to go-live)</div>
+          <p style="font-size:0.75rem; margin-top:0.35rem">Full 11-module ERP, live in 12 months, with zero incremental people cost. No vendor dependency.</p>
+        </div>
+
+        <div class="card amber-border" style="padding:0.9rem 1.1rem">
+          <div class="big-num" style="color:var(--amber-l)">₹ 2.46 L / yr</div>
+          <div class="big-label">Recurring cost after go-live (Year 2 onward)</div>
+          <p style="font-size:0.75rem; margin-top:0.35rem">Just cloud, electricity, tools, and maintenance. No people cost added. Payback is immediate.</p>
+        </div>
+
+        <div class="card blue-border" style="padding:0.9rem 1.1rem">
+          <h3 style="font-size:0.85rem; margin-bottom:0.4rem">Compared to off-the-shelf ERP</h3>
+          <div style="display:flex; flex-direction:column; gap:0.35rem">
+            <div class="roi-row">
+              <span style="font-size:0.78rem">Typical school ERP license (300 users)</span>
+              <span style="font-size:0.78rem; font-weight:700; color:var(--red)">₹ 8–15 L/yr</span>
+            </div>
+            <div class="roi-row">
+              <span style="font-size:0.78rem">+ Customisation charges</span>
+              <span style="font-size:0.78rem; font-weight:700; color:var(--red)">₹ 5–20 L</span>
+            </div>
+            <div class="roi-row">
+              <span style="font-size:0.78rem">+ No AI, no ownership, vendor dependency</span>
+              <span style="font-size:0.78rem; font-weight:700; color:var(--red)">Forever</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          <span>💡</span>
+          <p style="font-size:0.78rem; color:var(--text)">The 2 IT staff are already on the school payroll. Their time on this project costs the school <strong>₹ 0 additionally</strong>. The entire build is funded by hardware + freelancers alone.</p>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 13 — ROI & Value
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s13">
+    <div class="section-header">
+      <div class="tag">Return on Investment</div>
+      <h2>What the school gets for every rupee spent</h2>
+    </div>
+
+    <div class="grid grid-2" style="max-width:960px">
+
+      <div class="card green-border" style="padding:1rem 1.2rem">
+        <div class="icon">⏱️</div>
+        <h3>Administrative Time Saved</h3>
+        <p>Fee receipt generation, TC processing, attendance marking, report card compilation — each currently takes hours per staff per month. Automation saves an estimated <strong style="color:var(--green-l)">200+ staff-hours/month</strong>.</p>
+      </div>
+
+      <div class="card blue-border" style="padding:1rem 1.2rem">
+        <div class="icon">🎓</div>
+        <h3>Better Student Outcomes</h3>
+        <p>Bloom's-aligned assessments with instant feedback, AI-generated practice questions, and concept-level dashboards allow teachers to identify and address learning gaps <strong style="color:var(--primary-l)">before exams</strong>, not after.</p>
+      </div>
+
+      <div class="card purple-border" style="padding:1rem 1.2rem">
+        <div class="icon">🤖</div>
+        <h3>AI Saves Teacher Hours</h3>
+        <p>Content drafting, question generation, and worksheet creation — currently 3–5 hours per chapter per teacher — reduced to <strong style="color:var(--purple-l)">under 30 minutes</strong> with AI assistance running locally at zero per-query cost.</p>
+      </div>
+
+      <div class="card amber-border" style="padding:1rem 1.2rem">
+        <div class="icon">📊</div>
+        <h3>Real-Time Management Insight</h3>
+        <p>Principals and trustees see live dashboards: fee collection rate, curriculum completion, assessment performance, staff attendance — making governance <strong style="color:var(--amber-l)">data-driven, not gut-driven</strong>.</p>
+      </div>
+
+      <div class="card accent-border" style="padding:1rem 1.2rem">
+        <div class="icon">🌐</div>
+        <h3>Digital Reputation</h3>
+        <p>A polished public-facing website and transparent curriculum browser positions the school as a modern institution — a key factor in parent admission decisions and fee justification.</p>
+      </div>
+
+      <div class="card teal-border" style="padding:1rem 1.2rem">
+        <div class="icon">🏆</div>
+        <h3>Asset, Not Expense</h3>
+        <p>After 3 years the school owns the codebase outright. This platform can be <strong style="color:var(--teal)">licenced to other schools</strong> — creating a revenue stream that recovers the investment.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 14 — Risk & Mitigation
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s14">
+    <div class="section-header">
+      <div class="tag">Risk Management</div>
+      <h2>Known risks and how we address them</h2>
+    </div>
+
+    <div style="width:100%; max-width:960px">
+      <table>
+        <thead>
+          <tr>
+            <th>Risk</th>
+            <th>Likelihood</th>
+            <th>Impact</th>
+            <th>Mitigation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Key developer leaves mid-project</td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td><span class="badge badge-red">High</span></td>
+            <td>Thorough code documentation, pair programming, no single point of knowledge</td>
+          </tr>
+          <tr>
+            <td>Timeline slippage on a phase</td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td>Phased delivery — each phase is independently usable. Slippage delays next phase, not school operations.</td>
+          </tr>
+          <tr>
+            <td>AI server hardware failure</td>
+            <td><span class="badge badge-blue">Low</span></td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td>AI features degrade gracefully — rest of ERP continues. Warranty + maintenance contract on server.</td>
+          </tr>
+          <tr>
+            <td>Data loss / corruption</td>
+            <td><span class="badge badge-blue">Low</span></td>
+            <td><span class="badge badge-red">High</span></td>
+            <td>Daily automated backups to cloud, weekly off-site copy, PostgreSQL point-in-time recovery.</td>
+          </tr>
+          <tr>
+            <td>Staff resistance to adoption</td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td>Phased rollout lets staff adapt gradually. In-house team provides direct support &amp; training.</td>
+          </tr>
+          <tr>
+            <td>Scope creep inflating cost</td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td>Phase-gated approvals — new features only considered after current phase is signed off by management.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 15 — Phase 1 Quick Wins (Start Now)
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s15">
+    <div class="section-header">
+      <div class="tag">Start Now</div>
+      <h2>Phase 1 is already underway — here's what's live</h2>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; width:100%; max-width:980px">
+
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div class="card green-border" style="padding:0.9rem 1.1rem">
+          <h3 style="margin-bottom:0.5rem; font-size:0.9rem">✅ Already Built &amp; Running</h3>
+          <ul class="check" style="font-size:0.8rem">
+            <li>Full curriculum hierarchy (Class → Subject → Chapter → Concept)</li>
+            <li>Rich text editing, image uploads, exhibit tables</li>
+            <li>Public curriculum browsing — no login required</li>
+            <li>Admin + Teacher roles with JWT authentication</li>
+            <li>Teacher–Subject assignment (teachers see only their subjects)</li>
+            <li>Subject and user management portal</li>
+          </ul>
+        </div>
+
+        <div class="card amber-border" style="padding:0.9rem 1.1rem">
+          <h3 style="margin-bottom:0.5rem; font-size:0.9rem">🔧 Remaining to Complete Phase 1</h3>
+          <ul class="check" style="font-size:0.76rem">
+            <li>Add Mentor, Curriculum Incharge, Student roles</li>
+            <li>Mentor feedback &amp; teacher response system</li>
+            <li>Migrate from SQLite to PostgreSQL + Alembic</li>
+            <li>Cloud deployment (VPS + domain + SSL)</li>
+            <li>Basic Website &amp; CMS module</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div class="card blue-border" style="padding:0.9rem 1.1rem">
+          <h3 style="font-size:0.85rem; margin-bottom:0.4rem">Phase 1 Cost to Complete</h3>
+          <table style="margin-top:0.4rem">
+            <tbody>
+              <tr>
+                <td style="padding:0.35rem 0.5rem">2 IT staff (existing payroll)</td>
+                <td class="num" style="padding:0.35rem 0.5rem; color:var(--green-l)">₹ 0 extra</td>
+              </tr>
+              <tr>
+                <td style="padding:0.35rem 0.5rem">DevOps freelancer (Q1 only)</td>
+                <td class="num" style="padding:0.35rem 0.5rem">₹ 40,000</td>
+              </tr>
+              <tr>
+                <td style="padding:0.35rem 0.5rem">AI coding tools (3 months)</td>
+                <td class="num" style="padding:0.35rem 0.5rem">₹ 15,000</td>
+              </tr>
+              <tr>
+                <td style="padding:0.35rem 0.5rem">Cloud VPS + domain + SSL (3 months)</td>
+                <td style="padding:0.35rem 0.5rem; text-align:right">₹ 27,000</td>
+              </tr>
+              <tr class="total-row">
+                <td style="padding:0.4rem 0.5rem">Q1 total</td>
+                <td class="num" style="padding:0.4rem 0.5rem">₹ 82,000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="highlight-box">
+          <span style="font-size:1.5rem">🚀</span>
+          <div>
+            <p style="font-size:0.82rem; color:var(--text); font-weight:600">Immediate action recommended</p>
+            <p style="font-size:0.78rem; margin-top:0.2rem">Curriculum module is functional today. Q1 completion unlocks the full platform for all staff within 3 months for under ₹1 L. Full ERP live by Month 12.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 16 — Decision Points for Management
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s16">
+    <div class="section-header">
+      <div class="tag">Board Decision</div>
+      <h2>Three choices before the board today</h2>
+    </div>
+
+    <div class="grid grid-3" style="max-width:1000px">
+
+      <div class="card green-border" style="padding:1.1rem 1.2rem; position:relative">
+        <div class="badge badge-green" style="position:absolute; top:0.9rem; right:0.9rem">Recommended</div>
+        <div style="font-size:1.8rem; margin-bottom:0.5rem">✅</div>
+        <h3 style="margin-bottom:0.4rem">Option A — Full approval</h3>
+        <p style="font-size:0.8rem; margin-bottom:0.8rem">Approve the full 12-month build. Existing IT staff lead. Freelancers hired per quarter.</p>
+        <ul class="check" style="font-size:0.76rem">
+          <li>Full build cost: ₹ 13.8 L</li>
+          <li>All 11 modules live by Month 12</li>
+          <li>No extra headcount needed</li>
+          <li>Ongoing cost after: ₹ 2.46 L/yr</li>
+        </ul>
+      </div>
+
+      <div class="card blue-border" style="padding:1.1rem 1.2rem">
+        <div style="font-size:1.8rem; margin-bottom:0.5rem">🔵</div>
+        <h3 style="margin-bottom:0.4rem">Option B — Quarter-by-quarter</h3>
+        <p style="font-size:0.8rem; margin-bottom:0.8rem">Approve Q1 only (₹82K). Review outcomes at Month 3 before committing to further quarters.</p>
+        <ul class="check" style="font-size:0.76rem">
+          <li>Immediate commitment: ₹ 82,000</li>
+          <li>Extremely low financial risk</li>
+          <li>Full curriculum live in 3 months</li>
+          <li>Each quarter needs re-approval</li>
+        </ul>
+      </div>
+
+      <div class="card red-border" style="padding:1.1rem 1.2rem">
+        <div style="font-size:1.8rem; margin-bottom:0.5rem">❌</div>
+        <h3 style="margin-bottom:0.4rem">Option C — Status quo</h3>
+        <p style="font-size:0.8rem; margin-bottom:0.8rem">Continue with Excel, paper registers, and disconnected systems.</p>
+        <ul class="check" style="font-size:0.76rem">
+          <li>No upfront investment</li>
+          <li>Staff hours continue to be lost</li>
+          <li>No data visibility for management</li>
+          <li>Competitor schools will pull ahead</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="highlight-box" style="max-width:1000px; margin-top:1.2rem">
+      <span style="font-size:1.3rem">🎯</span>
+      <p style="color:var(--text); font-size:0.86rem"><strong>Our recommendation:</strong> Approve Option B as the immediate step. This gives the board a low-risk proof point (working curriculum platform, live users, real data) within 6 months before committing to the full ERP budget. Transition to Option A upon Phase 1 sign-off.</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SLIDE 17 — Closing
+  ════════════════════════════════════════ -->
+  <div class="slide" id="s17">
+    <div style="text-align:center; max-width:760px">
+      <div style="font-size:2.5rem; margin-bottom:0.8rem">🏫</div>
+      <h1 class="gradient-text" style="font-size:2.2rem; margin-bottom:0.5rem">
+        Built by us. Owned by us.<br>Serving our students.
+      </h1>
+      <p style="font-size:0.95rem; color:var(--muted); margin-top:1rem; max-width:560px; margin-inline:auto">
+        This platform is not a software purchase. It is an institutional asset — the digital backbone of the school for the next decade, built exactly the way we need it, with no vendor dependency and no recurring license fees.
+      </p>
+
+      <div class="grid grid-3" style="max-width:660px; margin:1.8rem auto 0">
+        <div style="text-align:center">
+          <div class="big-num" style="font-size:1.8rem; color:var(--primary-l)">11</div>
+          <div class="big-label">ERP Modules</div>
+        </div>
+        <div style="text-align:center">
+          <div class="big-num" style="font-size:1.8rem; color:var(--green-l)">₹ 0</div>
+          <div class="big-label">License Fees / Year</div>
+        </div>
+        <div style="text-align:center">
+          <div class="big-num" style="font-size:1.8rem; color:var(--purple-l)">12 mo</div>
+          <div class="big-label">To Full ERP</div>
+        </div>
+      </div>
+
+      <div style="margin-top:2rem; padding:0.8rem 1.4rem; background:rgba(37,99,235,0.1); border:1px solid rgba(59,130,246,0.3); border-radius:12px; display:inline-block">
+        <p style="font-size:0.85rem; color:var(--text)">We are ready to begin Phase 1 immediately upon board approval.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Nav -->
+<div id="nav">
+  <button onclick="go(-1)">← Prev</button>
+  <span id="slide-counter"></span>
+  <button onclick="go(1)">Next →</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + total) % total;
+    slides[cur].classList.add('active');
+    document.getElementById('slide-counter').textContent = `${cur + 1} / ${total}`;
+    document.getElementById('progress').style.width = `${((cur + 1) / total) * 100}%`;
+  }
+
+  function go(d) { show(cur + d); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    go(-1);
+  });
+
+  show(0);
+</script>
+</body>
+</html>

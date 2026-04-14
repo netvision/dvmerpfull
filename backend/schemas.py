@@ -71,6 +71,7 @@ class ChapterSummaryOut(BaseModel):
     aim: Optional[str]
     sessions_total: int
     concept_count: int
+    pdf_url: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -79,6 +80,8 @@ class SubjectNestedOut(BaseModel):
     name: str
     icon: Optional[str]
     color: Optional[str]
+    class_name: Optional[str] = None
+    class_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -92,6 +95,7 @@ class ChapterDetailOut(BaseModel):
     id: int
     title: str
     aim: Optional[str]
+    pdf_url: Optional[str] = None
     subject: SubjectNestedOut
     class_: ClassNestedOut = Field(alias="class")
     concepts: List[ConceptOut]
@@ -104,14 +108,18 @@ class ChapterPortalSummaryOut(BaseModel):
     aim: Optional[str]
     sessions_total: int
     concept_count: int
+    subject_id: int
     subject_name: str
+    class_id: int
     class_name: str
+    pdf_url: Optional[str] = None
 
 
 class ChapterUpdateIn(BaseModel):
     title: Optional[str] = None
     aim: Optional[str] = None
     order_index: Optional[int] = None
+    subject_id: Optional[int] = None
 
 
 class ChapterCreateIn(BaseModel):
@@ -180,6 +188,30 @@ class ConceptCreateIn(BaseModel):
     life_lesson: Optional[str] = None
     remarks: Optional[str] = None
     exhibit_ref: Optional[str] = None
+
+
+class SubjectCreateIn(BaseModel):
+    name: str
+    class_id: int
+    icon: Optional[str] = None
+    color: Optional[str] = None
+
+
+class SubjectUpdateIn(BaseModel):
+    name: Optional[str] = None
+    class_id: Optional[int] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+
+
+class SubjectFullOut(BaseModel):
+    id: int
+    name: str
+    icon: Optional[str]
+    color: Optional[str]
+    class_id: int
+    class_name: str
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ExhibitUpdateIn(BaseModel):

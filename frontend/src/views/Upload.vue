@@ -241,7 +241,7 @@ function resetForm() {
 
 /* Navbar */
 .navbar {
-  background: #1e293b;
+  background: #1e3a8a;
   color: white;
   display: flex;
   align-items: center;
@@ -287,7 +287,7 @@ function resetForm() {
 }
 
 .accent {
-  color: #0ea5e9;
+  color: #2563eb;
   font-weight: 600;
 }
 
@@ -333,7 +333,7 @@ function resetForm() {
 }
 
 .field select:focus {
-  border-color: #4f46e5;
+  border-color: #2563eb;
 }
 
 .field select:disabled {
@@ -359,12 +359,12 @@ function resetForm() {
 
 .drop-zone:hover,
 .drop-zone--active {
-  border-color: #4f46e5;
-  background: #eef2ff;
+  border-color: #2563eb;
+  background: #eff6ff;
 }
 
 .drop-zone--has-file {
-  border-color: #0ea5e9;
+  border-color: #2563eb;
   background: #f0f9ff;
 }
 
@@ -413,7 +413,7 @@ function resetForm() {
 
 .upload-btn {
   padding: 0.65rem 1.8rem;
-  background: #0ea5e9;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -460,7 +460,7 @@ function resetForm() {
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #0ea5e9, #4f46e5);
+  background: linear-gradient(90deg, #2563eb, #2563eb);
   border-radius: 4px;
   transition: width 0.2s ease;
 }
@@ -530,8 +530,8 @@ function resetForm() {
 }
 
 .result-badge {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: #dbeafe;
+  color: #2563eb;
   padding: 0.2rem 0.65rem;
   border-radius: 20px;
   font-size: 0.88rem;
@@ -545,7 +545,7 @@ function resetForm() {
 
 .btn-portal {
   padding: 0.55rem 1.3rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -556,7 +556,7 @@ function resetForm() {
 }
 
 .btn-portal:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 .btn-another {

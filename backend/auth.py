@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta, timezone
 
 import bcrypt as _bcrypt
@@ -9,7 +10,9 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User, UserRole
 
-SECRET_KEY = "change-me-in-production"
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8 hours
 

@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson Plan Platform — Management Overview</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:   #2563eb;
+      --primary-d: #1d4ed8;
+      --accent:    #0ea5e9;
+      --green:     #16a34a;
+      --amber:     #d97706;
+      --red:       #dc2626;
+      --purple:    #7c3aed;
+      --bg:        #0f172a;
+      --surface:   #1e293b;
+      --card:      #263349;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --border:    #334155;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Slide Container ── */
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem 4rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      transform: translateY(30px);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    /* ── Navigation ── */
+    .nav {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(30,41,59,0.9);
+      border: 1px solid var(--border);
+      padding: 0.6rem 1.2rem;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+      z-index: 100;
+    }
+
+    .nav button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 0.45rem 1.1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .nav button:hover { background: var(--primary-d); }
+    .nav button:disabled { background: var(--border); cursor: default; }
+
+    .nav .counter {
+      font-size: 0.85rem;
+      color: var(--muted);
+      min-width: 5rem;
+      text-align: center;
+    }
+
+    /* ── Progress bar ── */
+    .progress {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--border);
+      z-index: 200;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.4s ease;
+    }
+
+    /* ── Slide Numbers badge ── */
+    .slide-num {
+      position: fixed;
+      top: 1.2rem;
+      right: 1.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      z-index: 100;
+    }
+
+    /* ── Typography helpers ── */
+    .tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    h1 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; line-height: 1.15; }
+    h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; line-height: 1.2; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.4rem; }
+    p  { font-size: 1rem; color: var(--muted); line-height: 1.7; }
+
+    .highlight { color: var(--accent); }
+
+    /* ── Card grid ── */
+    .grid {
+      display: grid;
+      gap: 1.2rem;
+      width: 100%;
+      max-width: 1000px;
+    }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.4rem 1.6rem;
+    }
+
+    .card.accent-border { border-left: 4px solid var(--accent); }
+    .card.green-border  { border-left: 4px solid var(--green); }
+    .card.amber-border  { border-left: 4px solid var(--amber); }
+    .card.purple-border { border-left: 4px solid var(--purple); }
+    .card.red-border    { border-left: 4px solid var(--red); }
+
+    /* ── Icon circle ── */
+    .icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 0.9rem;
+    }
+    .icon-blue   { background: rgba(37,99,235,0.2); }
+    .icon-green  { background: rgba(22,163,74,0.2); }
+    .icon-amber  { background: rgba(217,119,6,0.2); }
+    .icon-purple { background: rgba(124,58,237,0.2); }
+    .icon-red    { background: rgba(220,38,38,0.2); }
+    .icon-sky    { background: rgba(14,165,233,0.2); }
+
+    /* ── Flow diagram ── */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 960px;
+      flex-wrap: nowrap;
+    }
+    .flow-step {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem 1rem;
+      text-align: center;
+      position: relative;
+    }
+    .flow-step .step-num {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flow-step h3 { font-size: 0.9rem; margin-bottom: 0.2rem; }
+    .flow-step p  { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+    .flow-arrow {
+      color: var(--accent);
+      font-size: 1.4rem;
+      padding: 0 0.4rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Role pills ── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      margin: 0.25rem;
+    }
+    .pill-blue   { background: rgba(37,99,235,0.2);  color: #93c5fd; }
+    .pill-green  { background: rgba(22,163,74,0.2);  color: #86efac; }
+    .pill-amber  { background: rgba(217,119,6,0.2);  color: #fcd34d; }
+    .pill-purple { background: rgba(124,58,237,0.2); color: #c4b5fd; }
+
+    /* ── Title slide ── */
+    .title-slide {
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,0.25) 0%, transparent 70%),
+        var(--bg);
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin-top: 1rem;
+      line-height: 1.7;
+    }
+
+    .meta {
+      margin-top: 2.5rem;
+      font-size: 0.82rem;
+      color: var(--border);
+    }
+
+    /* ── List ── */
+    ul.check {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    ul.check li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    ul.check li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+
+    /* ── Section header ── */
+    .section-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    /* ── Tech stack chip ── */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      justify-content: center;
+    }
+    .chip {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .chip span { color: var(--muted); font-weight: 400; margin-left: 0.4rem; }
+
+    /* ── Keyboard hint ── */
+    .kbd-hint {
+      position: fixed;
+      top: 1.2rem;
+      left: 1.5rem;
+      font-size: 0.72rem;
+      color: var(--border);
+    }
+
+    /* ── Big stat ── */
+    .stat-big {
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    /* ── Architecture layers ── */
+    .layer {
+      width: 100%;
+      max-width: 820px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.8rem 1.4rem;
+      margin-bottom: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .layer-label { font-size: 0.78rem; color: var(--muted); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .layer-desc  { font-size: 0.9rem; font-weight: 600; }
+
+    /* ── Closing slide gradient ── */
+    .closing-slide {
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 100%, rgba(14,165,233,0.2) 0%, transparent 70%),
+        var(--bg);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+<div class="slide-num" id="slideNum"></div>
+<div class="kbd-hint">← → Arrow keys to navigate</div>
+
+<div class="deck" id="deck">
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 1 — Title
+  ═══════════════════════════════════════════════ -->
+  <div class="slide title-slide active" id="s1">
+    <div class="tag">Management Briefing · 2026</div>
+    <h1>Lesson Plan <span class="highlight">Platform</span></h1>
+    <p class="subtitle">
+      A centralised digital system for organising, managing, and delivering
+      structured lesson plans across all classes and subjects.
+    </p>
+    <div class="meta">Confidential — Internal Use Only</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 2 — Problem Statement
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s2">
+    <div class="section-header">
+      <div class="tag">The Problem</div>
+      <h2>What challenges does this solve?</h2>
+    </div>
+    <div class="grid grid-2" style="max-width:850px">
+      <div class="card red-border">
+        <div class="icon icon-red">📂</div>
+        <h3>Scattered Lesson Plans</h3>
+        <p>Lesson plans stored in disconnected Excel files across multiple teachers with no central access point.</p>
+      </div>
+      <div class="card amber-border">
+        <div class="icon icon-amber">🔄</div>
+        <h3>Manual Updates</h3>
+        <p>Any change to a syllabus requires manually editing spreadsheets and redistributing them to all staff.</p>
+      </div>
+      <div class="card red-border">
+        <div class="icon icon-red">🔒</div>
+        <h3>No Access Control</h3>
+        <p>No way to restrict who can edit which subject — any teacher could modify any content.</p>
+      </div>
+      <div class="card amber-border">
+        <div class="icon icon-amber">👁️</div>
+        <h3>No Visibility</h3>
+        <p>Management has no real-time view of what lessons, concepts, or learning outcomes are being planned.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 3 — Solution Overview
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s3">
+    <div class="section-header">
+      <div class="tag">The Solution</div>
+      <h2>One Platform. Multiple Roles. All Subjects.</h2>
+    </div>
+    <div class="grid grid-3" style="max-width:960px">
+      <div class="card accent-border">
+        <div class="icon icon-blue">🌐</div>
+        <h3>Public View</h3>
+        <p>Anyone can browse the lesson structure — classes, subjects, chapters, and learning outcomes — without logging in.</p>
+      </div>
+      <div class="card green-border">
+        <div class="icon icon-green">🔏</div>
+        <h3>Teacher &amp; Mentor Portal</h3>
+        <p>Logged-in staff manage their assigned subjects, review content, provide feedback, and track progress across the platform.</p>
+      </div>
+      <div class="card purple-border">
+        <div class="icon icon-purple">👑</div>
+        <h3>Admin Control</h3>
+        <p>Admins manage all users, roles, subjects, and assignments — with full read/write access to every class and subject.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 4 — User Roles
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s4">
+    <div class="section-header">
+      <div class="tag">User Roles</div>
+      <h2>Who uses the platform and how?</h2>
+    </div>
+
+    <!-- Role hierarchy ladder -->
+    <div style="display:flex; align-items:stretch; gap:0.8rem; width:100%; max-width:1050px">
+
+      <div class="card purple-border" style="flex:1; padding:1rem 1.1rem">
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem">
+          <span style="font-size:1.3rem">👑</span>
+          <h3 style="margin:0">Administrator</h3>
+        </div>
+        <ul class="check" style="font-size:0.82rem">
+          <li>Manage all users &amp; roles</li>
+          <li>Create classes, subjects</li>
+          <li>Assign staff to subjects</li>
+          <li>Full edit access everywhere</li>
+        </ul>
+      </div>
+
+      <div style="display:flex; align-items:center; color:var(--border); font-size:1.2rem; flex-shrink:0">▶</div>
+
+      <div class="card" style="flex:1; border-left:4px solid #0ea5e9; padding:1rem 1.1rem">
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem">
+          <span style="font-size:1.3rem">📋</span>
+          <h3 style="margin:0">Curriculum Incharge</h3>
+        </div>
+        <ul class="check" style="font-size:0.82rem">
+          <li>Oversee curriculum across subjects</li>
+          <li>Review &amp; approve lesson content</li>
+          <li>Track feedback trends</li>
+          <li>Read access to all subjects</li>
+        </ul>
+      </div>
+
+      <div style="display:flex; align-items:center; color:var(--border); font-size:1.2rem; flex-shrink:0">▶</div>
+
+      <div class="card amber-border" style="flex:1; padding:1rem 1.1rem">
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem">
+          <span style="font-size:1.3rem">🧑‍💼</span>
+          <h3 style="margin:0">Mentor</h3>
+        </div>
+        <ul class="check" style="font-size:0.82rem">
+          <li>Supervise assigned teachers</li>
+          <li>Review lesson plans &amp; concepts</li>
+          <li>Leave feedback on content</li>
+          <li>Monitor teacher progress</li>
+        </ul>
+      </div>
+
+      <div style="display:flex; align-items:center; color:var(--border); font-size:1.2rem; flex-shrink:0">▶</div>
+
+      <div class="card green-border" style="flex:1; padding:1rem 1.1rem">
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem">
+          <span style="font-size:1.3rem">🧑‍🏫</span>
+          <h3 style="margin:0">Teacher</h3>
+        </div>
+        <ul class="check" style="font-size:0.82rem">
+          <li>Edit assigned subjects only</li>
+          <li>Add chapters &amp; concepts</li>
+          <li>Upload images, add remarks</li>
+          <li>Respond to mentor feedback</li>
+          <li>AI-assisted research &amp; content creation</li>
+        </ul>
+      </div>
+
+      <div style="display:flex; align-items:center; color:var(--border); font-size:1.2rem; flex-shrink:0">▶</div>
+
+      <div class="card" style="flex:1; border-left:4px solid #0891b2; padding:1rem 1.1rem">
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem">
+          <span style="font-size:1.3rem">🎓</span>
+          <h3 style="margin:0">Student</h3>
+        </div>
+        <ul class="check" style="font-size:0.82rem">
+          <li>Login to take assessments</li>
+          <li>View assigned lessons</li>
+          <li>Submit answers online</li>
+          <li>See personal result history</li>
+        </ul>
+      </div>
+
+      <div style="display:flex; align-items:center; color:var(--border); font-size:1.2rem; flex-shrink:0">▶</div>
+
+      <div class="card accent-border" style="flex:1; padding:1rem 1.1rem">
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem">
+          <span style="font-size:1.3rem">👤</span>
+          <h3 style="margin:0">Public Visitor</h3>
+        </div>
+        <ul class="check" style="font-size:0.82rem">
+          <li>Browse all subjects &amp; chapters</li>
+          <li>View learning outcomes</li>
+          <li>No login required</li>
+          <li>Read-only access</li>
+        </ul>
+      </div>
+
+    </div>
+    <p style="margin-top:1.2rem; font-size:0.82rem; color:var(--muted)">Each role sees only what it needs — higher roles include all permissions of the roles below them. Student accounts unlock in Phase 3.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 5 — Content Hierarchy
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s5">
+    <div class="section-header">
+      <div class="tag">Data Structure</div>
+      <h2>How lesson content is organised</h2>
+    </div>
+    <div class="flow" style="max-width:960px">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="icon icon-blue" style="margin: 0 auto 0.6rem">🏫</div>
+        <h3>Class</h3>
+        <p>e.g. Class 6, Class 7</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="icon icon-sky" style="margin: 0 auto 0.6rem">📚</div>
+        <h3>Subject</h3>
+        <p>e.g. Mathematics, Science</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="icon icon-green" style="margin: 0 auto 0.6rem">📖</div>
+        <h3>Chapter</h3>
+        <p>e.g. Chapter 1 — Sets</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="icon icon-amber" style="margin: 0 auto 0.6rem">💡</div>
+        <h3>Concept</h3>
+        <p>Topic within chapter with outcomes</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="icon icon-purple" style="margin: 0 auto 0.6rem">🖼️</div>
+        <h3>Details</h3>
+        <p>Images, exhibits, activities</p>
+      </div>
+    </div>
+    <p style="margin-top: 1.8rem; max-width: 700px; text-align: center">
+      Each concept holds learning outcomes, integration with other subjects, library references,
+      classroom activities, life lessons, remarks, and attached images.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 6 — Admin Workflow
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s6">
+    <div class="section-header">
+      <div class="tag">Admin Workflow</div>
+      <h2>Setting up the platform from scratch</h2>
+    </div>
+    <div class="flow" style="flex-direction: column; align-items: stretch; gap: 0.8rem; max-width: 700px">
+      <div class="flow-step" style="display:flex; align-items:center; gap:1rem; padding: 1rem 1.4rem; text-align:left">
+        <div class="step-num" style="position:static; width:28px; height:28px; flex-shrink:0">1</div>
+        <div>
+          <h3>Log in as Administrator</h3>
+          <p>Use admin credentials to access the management portal.</p>
+        </div>
+      </div>
+      <div class="flow-step" style="display:flex; align-items:center; gap:1rem; padding: 1rem 1.4rem; text-align:left">
+        <div class="step-num" style="position:static; width:28px; height:28px; flex-shrink:0">2</div>
+        <div>
+          <h3>Create Classes &amp; Subjects</h3>
+          <p>Define the academic structure — classes, then subjects under each class.</p>
+        </div>
+      </div>
+      <div class="flow-step" style="display:flex; align-items:center; gap:1rem; padding: 1rem 1.4rem; text-align:left">
+        <div class="step-num" style="position:static; width:28px; height:28px; flex-shrink:0">3</div>
+        <div>
+          <h3>Create Teacher Accounts &amp; Assign Subjects</h3>
+          <p>Add teachers with name, email, and password. Assign each teacher to one or more subjects.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 7 — Teacher Workflow
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s7">
+    <div class="section-header">
+      <div class="tag">Teacher Workflow</div>
+      <h2>Day-to-day usage for a teacher</h2>
+    </div>
+    <div class="grid grid-2" style="max-width:900px">
+      <div class="card accent-border">
+        <div class="icon icon-sky">🔑</div>
+        <h3>Step 1 — Log In</h3>
+        <p>Teacher logs in with their email and password from any browser. A secure session token is issued.</p>
+      </div>
+      <div class="card green-border">
+        <div class="icon icon-green">📋</div>
+        <h3>Step 2 — View Dashboard</h3>
+        <p>The portal shows only the subjects assigned to that teacher — nothing more, nothing less.</p>
+      </div>
+      <div class="card amber-border">
+        <div class="icon icon-amber">🤖</div>
+        <h3>Step 3 — Research &amp; Create with AI</h3>
+        <p>Use the built-in AI assistant to research topics, draft learning outcomes, generate assessments, or brainstorm activities — without leaving the platform.</p>
+      </div>
+      <div class="card purple-border">
+        <div class="icon icon-purple">✏️</div>
+        <h3>Step 4 — Edit &amp; Refine Content</h3>
+        <p>Review AI suggestions, edit chapter and concept details, add images, and tailor everything to the school's curriculum needs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 8 — AI for Teachers
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s8">
+    <div class="section-header">
+      <div class="tag">Powered by AI</div>
+      <h2>AI as a co-creator for every teacher</h2>
+      <p style="font-size:0.9rem; margin-top:0.3rem">Teachers get access to an integrated AI assistant — right inside the platform — running on the school's own local AI server. No data leaves the premises.</p>
+    </div>
+
+    <div style="width:100%; max-width:1020px; display:flex; flex-direction:column; gap:1rem">
+
+      <!-- Top: 4 capability cards -->
+      <div class="grid grid-4">
+
+        <div class="card" style="border-left:4px solid #7c3aed; padding:1.1rem 1rem">
+          <div style="font-size:1.8rem; margin-bottom:0.5rem">🔍</div>
+          <h3 style="font-size:0.92rem; margin-bottom:0.4rem">Topic Research</h3>
+          <p style="font-size:0.8rem">Ask the AI to explain a concept, summarise background material, or suggest age-appropriate analogies for any topic in any subject.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #0ea5e9; padding:1.1rem 1rem">
+          <div style="font-size:1.8rem; margin-bottom:0.5rem">📝</div>
+          <h3 style="font-size:0.92rem; margin-bottom:0.4rem">Content &amp; Outcomes</h3>
+          <p style="font-size:0.8rem">Generate draft learning outcomes, lesson summaries, key takeaways, and classroom activity ideas — then edit and save them directly into the chapter.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #16a34a; padding:1.1rem 1rem">
+          <div style="font-size:1.8rem; margin-bottom:0.5rem">📋</div>
+          <h3 style="font-size:0.92rem; margin-bottom:0.4rem">Assessments &amp; Quizzes</h3>
+          <p style="font-size:0.8rem">Generate Bloom's-aligned questions across all six cognitive levels — from recall to evaluation — for any concept's learning outcomes.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #d97706; padding:1.1rem 1rem">
+          <div style="font-size:1.8rem; margin-bottom:0.5rem">🎨</div>
+          <h3 style="font-size:0.92rem; margin-bottom:0.4rem">Illustrations &amp; Visuals</h3>
+          <p style="font-size:0.8rem">Describe a concept and generate or find a relevant illustration, diagram prompt, or visual reference to attach directly to the lesson.</p>
+        </div>
+
+      </div>
+
+      <!-- Bottom: Local AI infra + key principles -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+
+        <div class="card" style="border:1px solid var(--border); padding:1rem 1.2rem; display:flex; flex-direction:column; gap:0.7rem">
+          <div style="font-size:0.75rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted)">Local AI Server — On-Premises</div>
+          <div style="display:flex; align-items:center; gap:0.7rem">
+            <div style="background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.4); border-radius:8px; padding:0.5rem 0.8rem; font-size:0.82rem; font-weight:700; color:#c4b5fd">🧠 Ollama</div>
+            <span style="color:var(--muted); font-size:0.85rem">or</span>
+            <div style="background:rgba(14,165,233,0.15); border:1px solid rgba(14,165,233,0.4); border-radius:8px; padding:0.5rem 0.8rem; font-size:0.82rem; font-weight:700; color:#7dd3fc">🏠 LM Studio</div>
+          </div>
+          <ul class="check" style="font-size:0.82rem">
+            <li><strong>No data sent to cloud</strong> — all inference runs on school hardware</li>
+            <li>Works offline — no internet dependency for AI features</li>
+            <li>School controls which model to run — swap anytime</li>
+            <li>Platform connects via standard local API — no lock-in</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border:1px solid var(--border); padding:1rem 1.2rem; display:flex; flex-direction:column; gap:0.5rem">
+          <div style="font-size:0.75rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted)">Key principles</div>
+          <ul class="check" style="font-size:0.82rem">
+            <li>AI <strong>assists</strong>, teachers <strong>decide</strong> — no content is saved without teacher review</li>
+            <li>All AI output is editable before it enters the curriculum database</li>
+            <li>Content stays within the school's curriculum context — grounded, not generic</li>
+            <li>Saves hours of research per teacher per week</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 9 — Excel sheets vs. Direct Platform
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s9">
+    <div class="section-header">
+      <div class="tag">Why the Platform Wins</div>
+      <h2>Excel sheets vs. using the platform directly</h2>
+      <p style="font-size:0.9rem; margin-top:0.3rem">A direct comparison across every dimension that matters for a school's curriculum management.</p>
+    </div>
+
+    <!-- Comparison table -->
+    <div style="width:100%; max-width:1020px; display:flex; flex-direction:column; gap:0; border:1px solid var(--border); border-radius:14px; overflow:hidden; font-size:0.82rem">
+
+      <!-- Header row -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; background:var(--surface)">
+        <div style="padding:0.65rem 1.1rem; font-weight:700; font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted)">Dimension</div>
+        <div style="padding:0.65rem 1.1rem; font-weight:700; color:#f87171; text-align:center">❌ Excel Workflow</div>
+        <div style="padding:0.65rem 1.1rem; font-weight:700; color:#4ade80; text-align:center">✅ Platform Direct Editing</div>
+      </div>
+
+      <!-- Row 1 -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid var(--border); background:var(--card)">
+        <div style="padding:0.7rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><span>📁</span> File Management</div>
+        <div style="padding:0.7rem 1.1rem; color:#fca5a5; border-left:1px solid var(--border)">Dozens of copies floating across email, drives, and devices — <em>LessonPlan_v3_FINAL_use_this.xlsx</em>. No one knows which is current.</div>
+        <div style="padding:0.7rem 1.1rem; color:#86efac; border-left:1px solid var(--border)">One URL. One database. Every teacher always sees and edits the same live version — no copies, no confusion.</div>
+      </div>
+
+      <!-- Row 2 -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid var(--border)">
+        <div style="padding:0.7rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><span>🔄</span> Updates &amp; Distribution</div>
+        <div style="padding:0.7rem 1.1rem; color:#fca5a5; border-left:1px solid var(--border)">Every change requires editing the file, saving, and re-sharing. Recipients may ignore, miss, or lose the email.</div>
+        <div style="padding:0.7rem 1.1rem; color:#86efac; border-left:1px solid var(--border)">Save once — instantly visible to all. Mentors, admins, and the public see updates the moment they're made.</div>
+      </div>
+
+      <!-- Row 3 -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid var(--border); background:var(--card)">
+        <div style="padding:0.7rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><span>🔒</span> Access Control</div>
+        <div style="padding:0.7rem 1.1rem; color:#fca5a5; border-left:1px solid var(--border)">Anyone with the file can edit anything. Rows get deleted, formulas break, and there is no way to know who did what.</div>
+        <div style="padding:0.7rem 1.1rem; color:#86efac; border-left:1px solid var(--border)">Every role has precisely scoped access. Teachers edit only their subjects; mentors review; admins control everything.</div>
+      </div>
+
+      <!-- Row 4 -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid var(--border)">
+        <div style="padding:0.7rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><span>🖼️</span> Rich Content</div>
+        <div style="padding:0.7rem 1.1rem; color:#fca5a5; border-left:1px solid var(--border)">Excel is a grid. Embedding images, formatting notes, or linking exhibits is clunky, fragile, and breaks on other machines.</div>
+        <div style="padding:0.7rem 1.1rem; color:#86efac; border-left:1px solid var(--border)">Images, formatted text, activity notes, and exhibits are stored neatly per concept and rendered beautifully in the browser.</div>
+      </div>
+
+      <!-- Row 5 -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid var(--border); background:var(--card)">
+        <div style="padding:0.7rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><span>💬</span> Feedback &amp; Review</div>
+        <div style="padding:0.7rem 1.1rem; color:#fca5a5; border-left:1px solid var(--border)">No feedback loop. Comments live in email threads or sticky notes — disconnected from the actual lesson plan content.</div>
+        <div style="padding:0.7rem 1.1rem; color:#86efac; border-left:1px solid var(--border)">Mentors leave feedback directly on specific concepts. Teachers respond in-platform. Curriculum Incharge tracks resolution.</div>
+      </div>
+
+      <!-- Row 6 -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid var(--border)">
+        <div style="padding:0.7rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><span>👁️</span> Management Visibility</div>
+        <div style="padding:0.7rem 1.1rem; color:#fca5a5; border-left:1px solid var(--border)">To review any plan, someone must chase down the right file, open Excel, and navigate multi-tab sheets — repeatedly.</div>
+        <div style="padding:0.7rem 1.1rem; color:#86efac; border-left:1px solid var(--border)">Open a browser. The full curriculum — every class, subject, chapter, and concept — is structured, searchable, and always live.</div>
+      </div>
+
+      <!-- Row 7 -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid var(--border); background:var(--card)">
+        <div style="padding:0.7rem 1.1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><span>📜</span> Audit Trail</div>
+        <div style="padding:0.7rem 1.1rem; color:#fca5a5; border-left:1px solid var(--border)">No history. If something is changed or deleted, there is no record of who did it, when, or what the previous value was.</div>
+        <div style="padding:0.7rem 1.1rem; color:#86efac; border-left:1px solid var(--border)">Every edit, feedback comment, and status change is timestamped and attributed — a permanent, reliable history of the curriculum.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 10 — System Architecture
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s10">
+    <div class="section-header">
+      <div class="tag">Technical Overview</div>
+      <h2>How it's built (simplified)</h2>
+    </div>
+    <div style="width:100%; max-width:900px; display:grid; grid-template-columns:1fr auto; gap:1rem; align-items:center">
+
+      <!-- Left column: vertical stack -->
+      <div style="display:flex; flex-direction:column">
+        <div class="layer" style="background: rgba(37,99,235,0.12); border-color: var(--primary)">
+          <div>
+            <div class="layer-label">Frontend (Browser)</div>
+            <div class="layer-desc">Vue.js Web Application — runs in any modern browser, no installation required</div>
+          </div>
+          <span style="font-size: 1.5rem">🖥️</span>
+        </div>
+        <div style="text-align:center; color: var(--muted); font-size: 1.2rem; margin: 0.2rem 0">↕</div>
+        <div class="layer" style="background: rgba(14,165,233,0.12); border-color: var(--accent)">
+          <div>
+            <div class="layer-label">API Server</div>
+            <div class="layer-desc">FastAPI (Python) — handles all logic, authentication, and file processing securely</div>
+          </div>
+          <span style="font-size: 1.5rem">⚙️</span>
+        </div>
+        <div style="text-align:center; color: var(--muted); font-size: 1.2rem; margin: 0.2rem 0">↕</div>
+        <div class="layer" style="background: rgba(22,163,74,0.12); border-color: var(--green)">
+          <div>
+            <div class="layer-label">Database</div>
+            <div class="layer-desc">PostgreSQL — stores all users, subjects, chapters, concepts, and images</div>
+          </div>
+          <span style="font-size: 1.5rem">🗄️</span>
+        </div>
+      </div>
+
+      <!-- Right column: AI inference node -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem">
+        <div style="color:var(--muted); font-size:0.75rem; text-align:center; writing-mode:initial">← API calls locally →</div>
+        <div style="background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.5); border-radius:12px; padding:1rem 1.2rem; text-align:center; min-width:170px">
+          <div style="font-size:1.8rem; margin-bottom:0.4rem">🤖</div>
+          <div style="font-size:0.82rem; font-weight:700; color:#c4b5fd; margin-bottom:0.25rem">AI Inference</div>
+          <div style="font-size:0.72rem; color:var(--muted); line-height:1.4">Ollama / LM Studio<br>School-owned server<br>No cloud dependency</div>
+        </div>
+        <div style="font-size:0.68rem; color:var(--muted); text-align:center">Phase 2</div>
+      </div>
+
+    </div>
+    <div class="chips" style="margin-top: 1.5rem">
+      <div class="chip">Vue.js <span>UI Framework</span></div>
+      <div class="chip">FastAPI <span>Backend</span></div>
+      <div class="chip">SQLite <span>Database</span></div>
+      <div class="chip">JWT <span>Auth Tokens</span></div>
+      <div class="chip">Excel Parser <span>xlsx import</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 11 — Security & Access Control
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s11">
+    <div class="section-header">
+      <div class="tag">Security</div>
+      <h2>Data is protected at every level</h2>
+    </div>
+    <div class="grid grid-2" style="max-width:860px">
+      <div class="card accent-border">
+        <div class="icon icon-sky">🔐</div>
+        <h3>JWT Authentication</h3>
+        <p>Login issues a secure token stored in the browser. Every request is verified — no token means no access to protected data.</p>
+      </div>
+      <div class="card purple-border">
+        <div class="icon icon-purple">🛡️</div>
+        <h3>Role-Based Permissions</h3>
+        <p>Admins control everything. Teachers can only touch their assigned subjects. Public users can only read.</p>
+      </div>
+      <div class="card green-border">
+        <div class="icon icon-green">🔑</div>
+        <h3>Hashed Passwords</h3>
+        <p>Passwords are never stored in plain text. Only a one-way cryptographic hash is kept in the database (bcrypt).</p>
+      </div>
+      <div class="card amber-border">
+        <div class="icon icon-amber">🚧</div>
+        <h3>Subject-Level Guard</h3>
+        <p>Even if a teacher knows another subject's ID, the server refuses access — permission is enforced server-side.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 12 — Benefits Summary
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s12">
+    <div class="section-header">
+      <div class="tag">Benefits</div>
+      <h2>What the school gains</h2>
+    </div>
+    <div class="grid grid-3" style="max-width:960px">
+      <div class="card accent-border">
+        <div class="icon icon-sky">⚡</div>
+        <h3>Speed</h3>
+        <p>Import a full year's lesson plan from Excel in seconds. No manual data entry.</p>
+      </div>
+      <div class="card green-border">
+        <div class="icon icon-green">🎯</div>
+        <h3>Accuracy</h3>
+        <p>Single source of truth — everyone sees the same up-to-date content, always.</p>
+      </div>
+      <div class="card purple-border">
+        <div class="icon icon-purple">📱</div>
+        <h3>Accessibility</h3>
+        <p>Works in any browser on any device — desktop, tablet, or phone. No app to install.</p>
+      </div>
+      <div class="card amber-border">
+        <div class="icon icon-amber">🔍</div>
+        <h3>Visibility</h3>
+        <p>Management can browse the full curriculum structure at any time from a single URL.</p>
+      </div>
+      <div class="card red-border">
+        <div class="icon icon-red">🔒</div>
+        <h3>Control</h3>
+        <p>Precise subject-level assignments. Teachers edit only what they're responsible for.</p>
+      </div>
+      <div class="card accent-border">
+        <div class="icon icon-blue">📈</div>
+        <h3>Scalability</h3>
+        <p>Add more classes, subjects, and teachers at any time. No structural limit.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 13 — Feedback System
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s13">
+    <div class="section-header">
+      <div class="tag">Feedback System</div>
+      <h2>A built-in loop for continuous improvement</h2>
+    </div>
+    <div class="grid grid-2" style="max-width:960px; align-items:start">
+
+      <!-- Left: How it works -->
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div style="font-size:0.75rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent); margin-bottom:0.1rem">How feedback flows</div>
+        <div class="card accent-border" style="padding:1rem 1.2rem; display:flex; align-items:center; gap:0.8rem">
+          <span style="font-size:1.5rem; flex-shrink:0">🧑‍🏫</span>
+          <div><h3 style="font-size:0.9rem">Teacher adds or updates content</h3><p style="font-size:0.8rem">Chapters, concepts, outcomes, and activities are entered directly in the platform.</p></div>
+        </div>
+        <div style="text-align:center; color:var(--muted); font-size:1rem">↓</div>
+        <div class="card amber-border" style="padding:1rem 1.2rem; display:flex; align-items:center; gap:0.8rem">
+          <span style="font-size:1.5rem; flex-shrink:0">🧑‍💼</span>
+          <div><h3 style="font-size:0.9rem">Mentor reviews &amp; leaves feedback</h3><p style="font-size:0.8rem">Mentors comment on specific concepts or chapters — suggestions, corrections, or approvals.</p></div>
+        </div>
+        <div style="text-align:center; color:var(--muted); font-size:1rem">↓</div>
+        <div class="card" style="padding:1rem 1.2rem; display:flex; align-items:center; gap:0.8rem; border-left:4px solid #0ea5e9">
+          <span style="font-size:1.5rem; flex-shrink:0">📋</span>
+          <div><h3 style="font-size:0.9rem">Curriculum Incharge tracks trends</h3><p style="font-size:0.8rem">Gets a bird's-eye view of feedback across all subjects — identifies gaps and patterns.</p></div>
+        </div>
+        <div style="text-align:center; color:var(--muted); font-size:1rem">↓</div>
+        <div class="card green-border" style="padding:1rem 1.2rem; display:flex; align-items:center; gap:0.8rem">
+          <span style="font-size:1.5rem; flex-shrink:0">✅</span>
+          <div><h3 style="font-size:0.9rem">Teacher acts on feedback</h3><p style="font-size:0.8rem">Revises content based on mentor comments. The cycle repeats every academic period.</p></div>
+        </div>
+      </div>
+
+      <!-- Right: Key capabilities -->
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div style="font-size:0.75rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--green); margin-bottom:0.1rem">What the system enables</div>
+        <div class="card green-border" style="padding:1rem 1.2rem">
+          <h3 style="font-size:0.9rem">📌 Concept-level comments</h3>
+          <p style="font-size:0.82rem">Feedback is attached to the exact concept or chapter it refers to — no ambiguity, no lost emails.</p>
+        </div>
+        <div class="card green-border" style="padding:1rem 1.2rem">
+          <h3 style="font-size:0.9rem">🔔 Notifications</h3>
+          <p style="font-size:0.82rem">Teachers are notified when a mentor leaves feedback. Mentors are notified when a teacher responds or updates content.</p>
+        </div>
+        <div class="card green-border" style="padding:1rem 1.2rem">
+          <h3 style="font-size:0.9rem">📊 Feedback Status Tracking</h3>
+          <p style="font-size:0.82rem">Feedback items are marked Open, In Progress, or Resolved — giving Curriculum Incharge a clear completion picture.</p>
+        </div>
+        <div class="card green-border" style="padding:1rem 1.2rem">
+          <h3 style="font-size:0.9rem">🗂️ Full Audit History</h3>
+          <p style="font-size:0.82rem">Every comment, reply, and content change is timestamped and stored — a permanent record of curriculum evolution.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 14 — Student Assessment System
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s14">
+    <div class="section-header">
+      <div class="tag">Student Assessment</div>
+      <h2>Bloom's Taxonomy-aligned assessment — built into the platform</h2>
+      <p style="font-size:0.9rem; margin-top:0.3rem">Every question is tagged to one of Bloom's six cognitive levels. Assessment isn't just about marks — it reveals <em>how deeply</em> students understand the curriculum.</p>
+    </div>
+
+    <div style="width:100%; max-width:1020px; display:flex; flex-direction:column; gap:1rem">
+
+      <!-- Bloom's pyramid row -->
+      <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:0.5rem; align-items:end">
+        <div style="background:rgba(37,99,235,0.18); border:1px solid rgba(37,99,235,0.4); border-radius:8px; padding:0.6rem 0.4rem; text-align:center">
+          <div style="font-size:1.2rem">🧠</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#93c5fd; margin-top:0.2rem">Remember</div>
+          <div style="font-size:0.68rem; color:var(--muted); margin-top:0.15rem">MCQ recall, definitions</div>
+        </div>
+        <div style="background:rgba(14,165,233,0.18); border:1px solid rgba(14,165,233,0.4); border-radius:8px; padding:0.6rem 0.4rem; text-align:center">
+          <div style="font-size:1.2rem">📚</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#7dd3fc; margin-top:0.2rem">Understand</div>
+          <div style="font-size:0.68rem; color:var(--muted); margin-top:0.15rem">Explain in own words</div>
+        </div>
+        <div style="background:rgba(22,163,74,0.18); border:1px solid rgba(22,163,74,0.4); border-radius:8px; padding:0.6rem 0.4rem; text-align:center">
+          <div style="font-size:1.2rem">🔧</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#86efac; margin-top:0.2rem">Apply</div>
+          <div style="font-size:0.68rem; color:var(--muted); margin-top:0.15rem">Solve problems, use knowledge</div>
+        </div>
+        <div style="background:rgba(217,119,6,0.18); border:1px solid rgba(217,119,6,0.4); border-radius:8px; padding:0.6rem 0.4rem; text-align:center">
+          <div style="font-size:1.2rem">🔎</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#fcd34d; margin-top:0.2rem">Analyse</div>
+          <div style="font-size:0.68rem; color:var(--muted); margin-top:0.15rem">Break down, compare</div>
+        </div>
+        <div style="background:rgba(220,38,38,0.18); border:1px solid rgba(220,38,38,0.4); border-radius:8px; padding:0.6rem 0.4rem; text-align:center">
+          <div style="font-size:1.2rem">⚖️</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#fca5a5; margin-top:0.2rem">Evaluate</div>
+          <div style="font-size:0.68rem; color:var(--muted); margin-top:0.15rem">Judge, critique, justify</div>
+        </div>
+        <div style="background:rgba(124,58,237,0.18); border:1px solid rgba(124,58,237,0.4); border-radius:8px; padding:0.6rem 0.4rem; text-align:center">
+          <div style="font-size:1.2rem">✨</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#c4b5fd; margin-top:0.2rem">Create</div>
+          <div style="font-size:0.68rem; color:var(--muted); margin-top:0.15rem">Design, build, produce</div>
+        </div>
+      </div>
+
+      <!-- Assessment types + delivery row -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.75rem">
+        <div class="card" style="border-left:4px solid #2563eb; padding:0.9rem 0.9rem; text-align:center">
+          <div style="font-size:1.4rem; margin-bottom:0.3rem">🔘</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">MCQ</h3>
+          <p style="font-size:0.76rem">AI generates distractor options. Tagged to Bloom's level. Auto-graded on submission.</p>
+        </div>
+        <div class="card" style="border-left:4px solid #0ea5e9; padding:0.9rem 0.9rem; text-align:center">
+          <div style="font-size:1.4rem; margin-bottom:0.3rem">✏️</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Short Answer</h3>
+          <p style="font-size:0.76rem">Text responses reviewed by teacher. AI suggests model answers for grading guidance.</p>
+        </div>
+        <div class="card" style="border-left:4px solid #16a34a; padding:0.9rem 0.9rem; text-align:center">
+          <div style="font-size:1.4rem; margin-bottom:0.3rem">📄</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Long Answer / Essay</h3>
+          <p style="font-size:0.76rem">Rubric-based grading aligned to Evaluate &amp; Create levels. Teacher marks with criteria.</p>
+        </div>
+        <div class="card" style="border-left:4px solid #d97706; padding:0.9rem 0.9rem; text-align:center">
+          <div style="font-size:1.4rem; margin-bottom:0.3rem">📎</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Assignment / File Upload</h3>
+          <p style="font-size:0.76rem">Students submit files. Teacher grades and records marks. Supports offline workflows.</p>
+        </div>
+      </div>
+
+      <!-- Online vs Printable -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem">
+        <div class="card green-border" style="padding:0.9rem 1.1rem; display:flex; gap:0.8rem; align-items:flex-start">
+          <span style="font-size:1.4rem; flex-shrink:0">🖥️</span>
+          <div><h3 style="font-size:0.88rem; margin-bottom:0.3rem">Online Delivery</h3><p style="font-size:0.8rem">Students log in, take timed assessments in browser. MCQs auto-graded instantly. Results visible to teacher and mentor in real time.</p></div>
+        </div>
+        <div class="card amber-border" style="padding:0.9rem 1.1rem; display:flex; gap:0.8rem; align-items:flex-start">
+          <span style="font-size:1.4rem; flex-shrink:0">🖨️</span>
+          <div><h3 style="font-size:0.88rem; margin-bottom:0.3rem">Printable / Offline</h3><p style="font-size:0.8rem">Export any assessment as a formatted PDF question paper. Marks entered manually after offline exam. Results stored in platform.</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 15 — Assessment Dashboard
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s15">
+    <div class="section-header">
+      <div class="tag">Results Dashboard</div>
+      <h2>Assessment results at every level — class, subject, lesson</h2>
+      <p style="font-size:0.9rem; margin-top:0.3rem">Results are not just stored — they are organised along the same hierarchy as the curriculum so every stakeholder sees exactly what they need.</p>
+    </div>
+
+    <div style="width:100%; max-width:1020px; display:flex; flex-direction:column; gap:1rem">
+
+      <!-- Drilldown hierarchy -->
+      <div style="display:flex; align-items:stretch; gap:0">
+
+        <div style="flex:1; border:1px solid rgba(37,99,235,0.4); background:rgba(37,99,235,0.1); border-radius:10px 0 0 10px; padding:0.9rem 1rem">
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#93c5fd; margin-bottom:0.4rem">🏫 School View</div>
+          <ul class="check" style="font-size:0.8rem; gap:0.35rem">
+            <li>Overall pass rate across all classes</li>
+            <li>Bloom's level coverage heatmap — are students being challenged at all 6 levels?</li>
+            <li>Subjects with the lowest average scores flagged for curriculum review</li>
+          </ul>
+        </div>
+        <div style="display:flex; align-items:center; color:var(--accent); font-size:1rem; padding:0 0.3rem; background:var(--surface)">▶</div>
+
+        <div style="flex:1; border:1px solid rgba(14,165,233,0.4); background:rgba(14,165,233,0.1); padding:0.9rem 1rem">
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#7dd3fc; margin-bottom:0.4rem">📚 Class View</div>
+          <ul class="check" style="font-size:0.8rem; gap:0.35rem">
+            <li>Average score per subject within the class</li>
+            <li>Student ranking and score distribution</li>
+            <li>Weak subjects surfaced automatically</li>
+          </ul>
+        </div>
+        <div style="display:flex; align-items:center; color:var(--accent); font-size:1rem; padding:0 0.3rem; background:var(--surface)">▶</div>
+
+        <div style="flex:1; border:1px solid rgba(22,163,74,0.4); background:rgba(22,163,74,0.1); padding:0.9rem 1rem">
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#86efac; margin-bottom:0.4rem">📚 Subject View</div>
+          <ul class="check" style="font-size:0.8rem; gap:0.35rem">
+            <li>Score per chapter and concept within the subject</li>
+            <li>Bloom's level performance breakdown per chapter</li>
+            <li>Concepts where most students struggled</li>
+          </ul>
+        </div>
+        <div style="display:flex; align-items:center; color:var(--accent); font-size:1rem; padding:0 0.3rem; background:var(--surface)">▶</div>
+
+        <div style="flex:1; border:1px solid rgba(217,119,6,0.4); background:rgba(217,119,6,0.1); padding:0.9rem 1rem">
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#fcd34d; margin-bottom:0.4rem">💡 Concept / Lesson View</div>
+          <ul class="check" style="font-size:0.8rem; gap:0.35rem">
+            <li>Per-question correct/incorrect breakdown</li>
+            <li>Bloom's level each question tested</li>
+            <li>Links back to lesson plan for targeted revision</li>
+          </ul>
+        </div>
+        <div style="display:flex; align-items:center; color:var(--accent); font-size:1rem; padding:0 0.3rem; background:var(--surface)">▶</div>
+
+        <div style="flex:1; border:1px solid rgba(124,58,237,0.4); background:rgba(124,58,237,0.1); border-radius:0 10px 10px 0; padding:0.9rem 1rem">
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#c4b5fd; margin-bottom:0.4rem">🧑‍🏫 Student View</div>
+          <ul class="check" style="font-size:0.8rem; gap:0.35rem">
+            <li>Personal score history across all assessments</li>
+            <li>Bloom's level strengths &amp; gaps</li>
+            <li>Suggested concepts to revisit</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Who sees what -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.7rem">
+        <div class="card" style="border-color:rgba(124,58,237,0.4); padding:0.8rem 1rem">
+          <div style="font-size:0.72rem; font-weight:700; color:#c4b5fd; margin-bottom:0.3rem">👑 Admin &amp; Curriculum Incharge</div>
+          <p style="font-size:0.78rem; color:var(--muted)">All levels. School-wide overview, class comparisons, curriculum gap analysis.</p>
+        </div>
+        <div class="card" style="border-color:rgba(217,119,6,0.4); padding:0.8rem 1rem">
+          <div style="font-size:0.72rem; font-weight:700; color:#fcd34d; margin-bottom:0.3rem">🧑‍💼 Mentor</div>
+          <p style="font-size:0.78rem; color:var(--muted)">Assigned classes. Subject &amp; concept-level breakdown. Feeds into feedback loop.</p>
+        </div>
+        <div class="card" style="border-color:rgba(22,163,74,0.4); padding:0.8rem 1rem">
+          <div style="font-size:0.72rem; font-weight:700; color:#86efac; margin-bottom:0.3rem">🧑‍🏫 Teacher</div>
+          <p style="font-size:0.78rem; color:var(--muted)">Own subjects only. Per-assessment, per-concept, per-student results.</p>
+        </div>
+        <div class="card" style="border-color:rgba(14,165,233,0.4); padding:0.8rem 1rem">
+          <div style="font-size:0.72rem; font-weight:700; color:#7dd3fc; margin-bottom:0.3rem">🎓 Student</div>
+          <p style="font-size:0.78rem; color:var(--muted)">Own results only. Progress over time, Bloom's level feedback, revision suggestions.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 16 — Platform Roadmap
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s16">
+    <div class="section-header">
+      <div class="tag">Roadmap</div>
+      <h2>Three phases to a complete curriculum platform</h2>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.2rem; width:100%; max-width:1020px">
+
+      <!-- Phase 1 -->
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div style="background:rgba(37,99,235,0.15); border:1px solid rgba(37,99,235,0.4); border-radius:10px; padding:0.7rem 1rem; display:flex; align-items:center; gap:0.6rem">
+          <span style="font-size:1.1rem">🏗️</span>
+          <div>
+            <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#93c5fd">Phase 1 — Now</div>
+            <div style="font-size:0.92rem; font-weight:700">Foundation + Core Platform</div>
+          </div>
+          <span style="margin-left:auto; background:rgba(37,99,235,0.4); color:#93c5fd; font-size:0.7rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:999px">In Progress</span>
+        </div>
+        <div class="card" style="border-color:rgba(37,99,235,0.3); padding:1rem 1.1rem">
+          <ul class="check" style="font-size:0.82rem; gap:0.45rem">
+            <li>✅ Curriculum hierarchy (Class → Subject → Chapter → Concept)</li>
+            <li>✅ Rich content editing, image uploads &amp; exhibits</li>
+            <li>✅ Public read-only curriculum view</li>
+            <li>✅ Two-role auth (admin + teacher) — live now</li>
+            <li>Expand to 5 roles + mentor feedback system</li>
+            <li>Migrate DB to PostgreSQL + Alembic migrations</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Phase 2 -->
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div style="background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.4); border-radius:10px; padding:0.7rem 1rem; display:flex; align-items:center; gap:0.6rem">
+          <span style="font-size:1.1rem">🤖</span>
+          <div>
+            <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#c4b5fd">Phase 2 — Next</div>
+            <div style="font-size:0.92rem; font-weight:700">AI Integration</div>
+          </div>
+          <span style="margin-left:auto; background:rgba(124,58,237,0.3); color:#c4b5fd; font-size:0.7rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:999px">Planned</span>
+        </div>
+        <div class="card" style="border-color:rgba(124,58,237,0.3); padding:1rem 1.1rem">
+          <ul class="check" style="font-size:0.82rem; gap:0.45rem">
+            <li>AI panel inside every concept edit screen</li>
+            <li>Topic research &amp; content drafting</li>
+            <li>Learning outcome generation</li>
+            <li>AI-generated MCQ, short &amp; long answer questions</li>
+            <li>Printable worksheet generation from any concept</li>
+            <li>Provider-agnostic local inference (Ollama / LM Studio)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Phase 3 -->
+      <div style="display:flex; flex-direction:column; gap:0.75rem">
+        <div style="background:rgba(22,163,74,0.15); border:1px solid rgba(22,163,74,0.4); border-radius:10px; padding:0.7rem 1rem; display:flex; align-items:center; gap:0.6rem">
+          <span style="font-size:1.1rem">🎓</span>
+          <div>
+            <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#86efac">Phase 3 — Future</div>
+            <div style="font-size:0.92rem; font-weight:700">Student Assessment</div>
+          </div>
+          <span style="margin-left:auto; background:rgba(22,163,74,0.2); color:#86efac; font-size:0.7rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:999px">Roadmap</span>
+        </div>
+        <div class="card" style="border-color:rgba(22,163,74,0.3); padding:1rem 1.1rem">
+          <ul class="check" style="font-size:0.82rem; gap:0.45rem">
+            <li>Student accounts &amp; login</li>
+            <li>Bloom's Taxonomy-aligned question tagging</li>
+            <li>Online &amp; printable PDF assessment delivery</li>
+            <li>Auto-grading for MCQs</li>
+            <li>Dashboard: school → class → subject → concept → student</li>
+            <li>Results feed back into curriculum improvement loop</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card" style="max-width:1020px; margin-top:1rem; padding:0.85rem 1.2rem; border-color:var(--accent); display:flex; align-items:center; gap:0.8rem">
+      <span style="font-size:1.3rem; flex-shrink:0">🔁</span>
+      <p style="font-size:0.85rem; color:var(--text)">Each phase builds directly on the previous. The content hierarchy and user role system remain the same — assessment and AI are additive layers, not rebuilds.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 17 — School ERP Vision
+  ═══════════════════════════════════════════════ -->
+  <div class="slide" id="s17">
+    <div class="section-header">
+      <div class="tag">The Bigger Picture</div>
+      <h2>From Curriculum Platform to full School ERP</h2>
+      <p style="font-size:0.9rem; margin-top:0.3rem">What we are building today is <strong>Module 1</strong> of a complete, integrated school management system — built ground-up, owned entirely by the school.</p>
+    </div>
+
+    <div style="width:100%; max-width:1060px; display:flex; flex-direction:column; gap:1rem">
+
+      <!-- Module 1 — highlighted as current -->
+      <div style="border:2px solid var(--accent); border-radius:12px; padding:0.8rem 1.2rem; background:rgba(14,165,233,0.08); display:flex; align-items:center; gap:1rem">
+        <span style="font-size:1.6rem; flex-shrink:0">📚</span>
+        <div style="flex:1">
+          <div style="display:flex; align-items:center; gap:0.7rem; margin-bottom:0.2rem">
+            <span style="font-size:0.95rem; font-weight:800">Module 1 — Curriculum &amp; Lesson Plan Platform</span>
+            <span style="background:#16a34a; color:#fff; font-size:0.68rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:999px">Building Now</span>
+          </div>
+          <p style="font-size:0.8rem; color:var(--muted)">Class &amp; subject hierarchy · Lesson plans · Teacher &amp; mentor roles · AI-assisted content · Bloom's-aligned assessments · Results dashboard · Feedback loop</p>
+        </div>
+      </div>
+
+      <!-- Remaining modules grid -->
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.65rem">
+
+        <div class="card" style="border-left:4px solid #0ea5e9; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">🎓</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Student Management</h3>
+          <p style="font-size:0.76rem">Admissions, enrolment, student profiles, class assignments, attendance tracking, progress reports, TC generation.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #7c3aed; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">👨‍💼</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Staff Management</h3>
+          <p style="font-size:0.76rem">Staff profiles, qualifications, designations, joining &amp; service records, document management, appraisals.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #16a34a; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">📝</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Exam &amp; Results</h3>
+          <p style="font-size:0.76rem">Exam scheduling, hall tickets, mark entry, grade calculation, result publication, rank lists, report cards.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #d97706; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">💰</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Fee Management</h3>
+          <p style="font-size:0.76rem">Fee structures per class, instalment plans, online &amp; offline collection, receipts, dues &amp; defaulter reports.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #dc2626; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">📊</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Finance &amp; Accounts</h3>
+          <p style="font-size:0.76rem">Income &amp; expense ledger, budget planning, vendor payments, bank reconciliation, financial reports &amp; audits.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #0ea5e9; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">💵</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Payroll</h3>
+          <p style="font-size:0.76rem">Salary structures, allowances &amp; deductions, monthly payroll processing, payslips, PF &amp; tax computation.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #7c3aed; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">🏖️</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">Leave Management</h3>
+          <p style="font-size:0.76rem">Leave types &amp; balances, online applications, multi-level approvals, holiday calendar, leave reports for HR.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #16a34a; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">📄</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">TC &amp; Certificates</h3>
+          <p style="font-size:0.76rem">Transfer certificate generation, character &amp; bonafide certificates, digital signatures, certificate registry &amp; tracking.</p>
+        </div>
+
+        <div class="card" style="border-left:4px solid #0ea5e9; padding:0.85rem 0.9rem">
+          <div style="font-size:1.3rem; margin-bottom:0.3rem">🌐</div>
+          <h3 style="font-size:0.85rem; margin-bottom:0.25rem">School Website &amp; CMS</h3>
+          <p style="font-size:0.76rem">Public-facing school website managed from the same admin panel — news, events, gallery, notices, admissions page, and curriculum showcase — no separate CMS needed.</p>
+        </div>
+
+      </div>
+
+      <!-- Integration note -->
+      <div class="card" style="padding:0.75rem 1.1rem; border-color:var(--accent); display:flex; align-items:center; gap:0.8rem">
+        <span style="font-size:1.2rem; flex-shrink:0">🔗</span>
+        <p style="font-size:0.82rem; color:var(--text)">All modules share a <strong>single database and login system</strong> — a student enrolled in the Student module automatically appears in Fee, Exam, and Curriculum. No data duplication across the school.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 18 — Closing
+  ═══════════════════════════════════════════════ -->
+  <div class="slide closing-slide" id="s18">
+    <div class="tag">Thank You</div>
+    <h1>One school. <span class="highlight">One platform.</span></h1>
+    <p class="subtitle">
+      Starting with Curriculum &amp; Lesson Planning — growing into<br/>a complete school ERP built and owned by your institution.
+    </p>
+    <div style="display:flex; gap:2.5rem; margin-top:2.5rem; text-align:center">
+      <div>
+        <div class="stat-big">1</div>
+        <div class="stat-label">Platform, All Modules</div>
+      </div>
+      <div>
+        <div class="stat-big">10</div>
+        <div class="stat-label">ERP Modules Planned</div>
+      </div>
+      <div>
+        <div class="stat-big">6</div>
+        <div class="stat-label">Bloom's Levels</div>
+      </div>
+      <div>
+        <div class="stat-big">0</div>
+        <div class="stat-label">Third-Party ERP Fees</div>
+      </div>
+      <div>
+        <div class="stat-big">∞</div>
+        <div class="stat-label">Scalability</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Navigation -->
+<nav class="nav">
+  <button id="btnPrev" onclick="navigate(-1)" disabled>← Prev</button>
+  <span class="counter" id="counter"></span>
+  <button id="btnNext" onclick="navigate(1)">Next →</button>
+</nav>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+
+  function show(idx) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(idx, total - 1));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('slideNum').textContent = `Slide ${current + 1} of ${total}`;
+    document.getElementById('btnPrev').disabled = current === 0;
+    document.getElementById('btnNext').disabled = current === total - 1;
+    document.getElementById('progressFill').style.width = `${((current + 1) / total) * 100}%`;
+  }
+
+  function navigate(dir) { show(current + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  navigate(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    navigate(-1);
+  });
+
+  show(0);
+</script>
+</body>
+</html>

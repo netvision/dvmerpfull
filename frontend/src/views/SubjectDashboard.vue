@@ -27,7 +27,7 @@
           v-for="subject in subjects"
           :key="subject.id"
           class="subject-card"
-          :style="{ '--top-border-color': subject.color || '#4f46e5' }"
+          :style="{ '--top-border-color': subject.color || '#2563eb' }"
           @click="router.push(`/class/${classId}/${subject.id}`)"
         >
           <div class="subject-icon-wrap">
@@ -61,7 +61,7 @@ const error = ref(null)
 const className = ref('')
 
 const bannerGradient = computed(() => {
-  return 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+  return 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
 })
 
 async function fetchSubjects() {
@@ -164,7 +164,7 @@ onMounted(fetchSubjects)
 .subject-card {
   background: white;
   border-radius: 16px;
-  border-top: 4px solid var(--top-border-color, #4f46e5);
+  border-top: 4px solid var(--top-border-color, #2563eb);
   padding: 1.75rem 1.25rem 1.25rem;
   cursor: pointer;
   display: flex;
@@ -207,8 +207,8 @@ onMounted(fetchSubjects)
 .subject-badge {
   font-size: 0.78rem;
   font-weight: 600;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: #eff6ff;
+  color: #2563eb;
   padding: 0.2rem 0.65rem;
   border-radius: 20px;
   margin-top: 0.15rem;
@@ -223,7 +223,7 @@ onMounted(fetchSubjects)
 }
 
 .subject-card:hover .subject-explore {
-  color: #4f46e5;
+  color: #2563eb;
 }
 
 /* Error */
@@ -235,7 +235,7 @@ onMounted(fetchSubjects)
 .retry-btn {
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -246,7 +246,7 @@ onMounted(fetchSubjects)
 }
 
 .retry-btn:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 @media (max-width: 640px) {

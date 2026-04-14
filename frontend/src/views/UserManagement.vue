@@ -161,7 +161,6 @@
     <div v-if="showSubjectsModal" class="modal-overlay" @click.self="closeSubjectsModal">
       <div class="modal modal-wide">
         <h2 class="modal-title">Assign Subjects — {{ subjectTarget?.name }}</h2>
-        <p class="modal-subtitle">Class 6 subjects</p>
 
         <div v-if="subjectsLoading" class="subjects-loading">
           <div class="spinner"></div>
@@ -306,8 +305,12 @@ const assigningSubs = ref(false)
 
 async function loadAllSubjects() {
   try {
-    const res = await api.get('/api/public/classes/1/subjects')
-    allSubjects.value = res.data
+    const classesRes = await api.get('/api/public/classes')
+    const fetches = classesRes.data.map(cls =>
+      api.get(`/api/public/classes/${cls.id}/subjects`)
+    )
+    const results = await Promise.all(fetches)
+    allSubjects.value = results.flatMap(r => r.data)
   } catch (_) {}
 }
 
@@ -358,7 +361,7 @@ async function saveSubjects() {
 
 /* ── Navbar ───────────────────────────────────────────────────────────────── */
 .navbar {
-  background: #1e293b;
+  background: #1e3a8a;
   color: white;
   display: flex;
   align-items: center;
@@ -420,12 +423,12 @@ async function saveSubjects() {
 }
 
 .role-badge.admin {
-  background: #7c3aed;
+  background: #1d4ed8;
   color: white;
 }
 
 .role-badge.teacher {
-  background: #0ea5e9;
+  background: #2563eb;
   color: white;
 }
 
@@ -471,7 +474,7 @@ async function saveSubjects() {
 
 .add-btn {
   padding: 0.55rem 1.2rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 7px;
@@ -482,7 +485,7 @@ async function saveSubjects() {
 }
 
 .add-btn:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 /* ── Table ────────────────────────────────────────────────────────────────── */
@@ -543,7 +546,7 @@ async function saveSubjects() {
 
 .btn-edit {
   padding: 0.35rem 0.85rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 6px;
@@ -554,14 +557,14 @@ async function saveSubjects() {
 }
 
 .btn-edit:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 .btn-subjects {
   padding: 0.35rem 0.85rem;
   background: white;
-  color: #0ea5e9;
-  border: 1.5px solid #0ea5e9;
+  color: #2563eb;
+  border: 1.5px solid #2563eb;
   border-radius: 6px;
   font-size: 0.83rem;
   font-weight: 600;
@@ -590,7 +593,7 @@ async function saveSubjects() {
   width: 36px;
   height: 36px;
   border: 3px solid #e2e8f0;
-  border-top-color: #4f46e5;
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -683,7 +686,7 @@ async function saveSubjects() {
 
 .field input:focus,
 .field select:focus {
-  border-color: #4f46e5;
+  border-color: #2563eb;
 }
 
 .error-banner {
@@ -719,7 +722,7 @@ async function saveSubjects() {
 
 .btn-save {
   padding: 0.55rem 1.4rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 7px;
@@ -735,7 +738,7 @@ async function saveSubjects() {
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 /* ── Toggle Switch ───────────────────────────────────────────────────────── */
@@ -771,7 +774,7 @@ async function saveSubjects() {
 }
 
 .toggle-input:checked + .toggle-track {
-  background: #4f46e5;
+  background: #2563eb;
 }
 
 .toggle-thumb {
@@ -827,9 +830,9 @@ async function saveSubjects() {
 }
 
 .subject-item.selected {
-  border-color: #4f46e5;
-  background: #eef2ff;
-  color: #4f46e5;
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
   font-weight: 600;
 }
 

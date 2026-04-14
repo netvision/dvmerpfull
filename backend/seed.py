@@ -207,19 +207,19 @@ def seed():
         # ------------------------------------------------------------------
         # 4. Default admin user
         # ------------------------------------------------------------------
-        admin = db.query(User).filter(User.email == "admin@school.com").first()
+        admin = db.query(User).filter(User.email == "admin@dalmiatrusts.in").first()
         if admin is None:
             hashed = _hash_password("admin123")
             admin = User(
                 name="Admin",
-                email="admin@school.com",
+                email="admin@dalmiatrusts.in",
                 hashed_password=hashed,
                 role=UserRole.admin,
                 is_active=True,
             )
             db.add(admin)
             db.commit()
-            print("Created admin user: admin@school.com / admin123")
+            print("Created admin user: admin@dalmiatrusts.in / admin123")
         else:
             print("Admin user already exists — skipping.")
 

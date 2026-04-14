@@ -24,11 +24,21 @@
             </span>
           </nav>
           <h1 class="hero-title">{{ chapter.title }}</h1>
-          <div v-if="chapter.aim" class="hero-aim ql-content" v-html="chapter.aim"></div>
+          <div v-if="chapter.aim" class="hero-aim ql-content" v-html="sanitize(chapter.aim)"></div>
           <div class="hero-stats">
             <span class="stat-badge">⏱ {{ totalSessions }} sessions</span>
             <span class="stat-badge">💡 {{ chapter.concepts?.length || 0 }} concepts</span>
           </div>
+          <a
+            v-if="chapter.pdf_url"
+            :href="`${apiBase}${chapter.pdf_url}`"
+            target="_blank"
+            rel="noopener"
+            class="pdf-download-btn"
+            @click.stop
+          >
+            📄 Download Chapter PDF
+          </a>
         </div>
       </div>
 
@@ -56,30 +66,30 @@
                 <!-- Learning Outcomes -->
                 <div v-if="concept.learning_outcomes" class="concept-section">
                   <p class="field-label">Learning Outcomes</p>
-                  <div class="ql-content field-content" v-html="concept.learning_outcomes"></div>
+                  <div class="ql-content field-content" v-html="sanitize(concept.learning_outcomes)"></div>
                 </div>
 
                 <!-- Extra Fields -->
                 <div class="extra-fields">
                   <div v-if="concept.integration_other_sub" class="extra-field">
                     <p class="field-label">Integration with Other Subjects</p>
-                    <div class="ql-content field-content" v-html="concept.integration_other_sub"></div>
+                    <div class="ql-content field-content" v-html="sanitize(concept.integration_other_sub)"></div>
                   </div>
                   <div v-if="concept.library" class="extra-field">
                     <p class="field-label">Library</p>
-                    <div class="ql-content field-content" v-html="concept.library"></div>
+                    <div class="ql-content field-content" v-html="sanitize(concept.library)"></div>
                   </div>
                   <div v-if="concept.activity" class="extra-field">
                     <p class="field-label">Activity</p>
-                    <div class="ql-content field-content" v-html="concept.activity"></div>
+                    <div class="ql-content field-content" v-html="sanitize(concept.activity)"></div>
                   </div>
                   <div v-if="concept.life_lesson" class="extra-field">
                     <p class="field-label">Life Lesson</p>
-                    <div class="ql-content field-content" v-html="concept.life_lesson"></div>
+                    <div class="ql-content field-content" v-html="sanitize(concept.life_lesson)"></div>
                   </div>
                   <div v-if="concept.remarks" class="extra-field">
                     <p class="field-label">Remarks</p>
-                    <div class="ql-content field-content" v-html="concept.remarks"></div>
+                    <div class="ql-content field-content" v-html="sanitize(concept.remarks)"></div>
                   </div>
                 </div>
 
@@ -88,12 +98,12 @@
                   <a
                     v-for="img in concept.images"
                     :key="img.id"
-                    :href="`http://localhost:8000${img.url}`"
+                    :href="`${apiBase}${img.url}`"
                     target="_blank"
                     rel="noopener"
                   >
                     <img
-                      :src="`http://localhost:8000${img.url}`"
+                      :src="`${apiBase}${img.url}`"
                       :alt="img.original_name"
                       class="concept-thumbnail"
                     />
@@ -160,7 +170,7 @@
                   </template>
                   <!-- Rich text / HTML -->
                   <template v-else>
-                    <div class="ql-content" v-html="exhibit.field_value"></div>
+                    <div class="ql-content" v-html="sanitize(exhibit.field_value)"></div>
                   </template>
                 </div>
                 <hr v-if="idx < modalConcept.exhibits.length - 1" class="exhibit-divider" />
@@ -177,9 +187,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import DOMPurify from 'dompurify'
 import api from '../api.js'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import ErrorBanner from '../components/ErrorBanner.vue'
+
+const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const sanitize = (html) => DOMPurify.sanitize(html || '')
 
 const router = useRouter()
 const route = useRoute()
@@ -195,7 +209,7 @@ const modalConcept = ref(null)
 
 const heroGradient = computed(() => {
   const color = chapter.value?.subject?.color
-  if (!color) return 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+  if (!color) return 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
   return `linear-gradient(135deg, ${color} 0%, ${shiftColor(color)} 100%)`
 })
 
@@ -343,6 +357,26 @@ onMounted(fetchChapter)
   gap: 0.35rem;
 }
 
+.pdf-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding: 0.45rem 1.1rem;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 24px;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.pdf-download-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Concepts Section */
 .concepts-section {
   padding: 0 1.5rem;
@@ -400,7 +434,7 @@ onMounted(fetchChapter)
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: white;
-  background: #4f46e5;
+  background: #2563eb;
   padding: 0.22rem 0.65rem;
   border-radius: 20px;
   flex-shrink: 0;
@@ -500,7 +534,7 @@ onMounted(fetchChapter)
 }
 
 .exhibit-btn {
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -513,7 +547,7 @@ onMounted(fetchChapter)
 }
 
 .exhibit-btn:hover {
-  background: #4338ca;
+  background: #1d4ed8;
   transform: translateY(-1px);
 }
 
@@ -522,7 +556,7 @@ onMounted(fetchChapter)
 .ql-content :deep(ul), .ql-content :deep(ol) { padding-left: 20px; margin: 4px 0; }
 .ql-content :deep(strong) { font-weight: 600; }
 .ql-content :deep(em) { font-style: italic; }
-.ql-content :deep(a) { color: #4f46e5; }
+.ql-content :deep(a) { color: #2563eb; }
 .ql-content :deep(p:last-child) { margin-bottom: 0; }
 
 /* Modal */
@@ -643,12 +677,12 @@ onMounted(fetchChapter)
 }
 
 .exhibit-link {
-  color: #4f46e5;
+  color: #2563eb;
   word-break: break-all;
 }
 
 .exhibit-link:hover {
-  color: #4338ca;
+  color: #1d4ed8;
 }
 
 /* YouTube embed */
@@ -709,7 +743,7 @@ onMounted(fetchChapter)
 .retry-btn {
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -720,7 +754,7 @@ onMounted(fetchChapter)
 }
 
 .retry-btn:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 @media (max-width: 640px) {

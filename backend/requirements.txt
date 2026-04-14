@@ -3,6 +3,9 @@ uvicorn[standard]
 sqlalchemy
 alembic
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt
 python-multipart
 openpyxl
+python-dotenv
+slowapi
+psycopg2-binary

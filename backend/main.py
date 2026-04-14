@@ -1,13 +1,19 @@
 import os
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env before anything reads os.environ
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from database import engine, Base
 import models  # noqa: F401 — import models so they register with Base metadata
 from config import UPLOADS_DIR
+from limiter import limiter
 
 from routers import public, portal, users
 
@@ -23,12 +29,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Lesson Plan Platform API", lifespan=lifespan)
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # ---------------------------------------------------------------------------
-# CORS — allow local Vite dev server
+# CORS — origins configured via ALLOWED_ORIGINS env var (comma-separated)
 # ---------------------------------------------------------------------------
+_origins_env = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
+_allowed_origins = [o.strip() for o in _origins_env.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

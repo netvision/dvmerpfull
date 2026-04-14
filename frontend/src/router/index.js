@@ -20,12 +20,21 @@ const routes = [
   {
     path: '/portal/upload',
     component: () => import('../views/Upload.vue'),
-    meta: { requiresAuth: true, hideNav: true }
+    meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }
   },
   {
     path: '/portal/users',
     component: () => import('../views/UserManagement.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }
+  },
+  {
+    path: '/portal/subjects',
+    component: () => import('../views/SubjectManagement.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    component: () => import('../views/NotFound.vue'),
   },
 ]
 
@@ -36,6 +45,11 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
+  // If a token exists but user hasn't been fetched yet (e.g. hard refresh),
+  // resolve the user before evaluating role-based guards.
+  if ((to.meta.requiresAuth || to.meta.requiresAdmin) && auth.isLoggedIn && !auth.user) {
+    try { await auth.fetchMe() } catch (_) {}
+  }
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
     return next('/login')
   }

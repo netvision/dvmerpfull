@@ -1,0 +1,16 @@
+# Netlify configuration for DVM frontend
+# Netlify auto-detects this file at the repo root or frontend/ directory.
+
+[build]
+  base    = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback — all routes handled by Vue Router
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

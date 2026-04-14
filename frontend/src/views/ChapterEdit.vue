@@ -30,6 +30,52 @@
             </div>
           </div>
           <button class="btn-edit-chapter" @click="openChapterModal">Edit Chapter Details</button>
+          <button v-if="auth.isAdmin" class="btn-delete-chapter" :disabled="deletingChapter" @click="deleteChapter">
+            <span v-if="deletingChapter" class="spinner-sm"></span>
+            <span v-else>Delete Chapter</span>
+          </button>
+        </div>
+
+        <!-- Documents Card -->
+        <div class="docs-card">
+          <h3 class="docs-title">Chapter Documents</h3>
+          <div class="docs-row">
+            <!-- PDF Section -->
+            <div class="doc-section">
+              <div class="doc-label">Chapter PDF</div>
+              <div v-if="chapter.pdf_url" class="doc-current">
+                <a :href="`${API_BASE}${chapter.pdf_url}`" target="_blank" class="pdf-link">&#128196; View current PDF</a>
+              </div>
+              <div class="doc-upload-row">
+                <label class="file-pick-btn">
+                  <input type="file" accept=".pdf" style="display:none" @change="onPdfChange" />
+                  {{ pdfFile ? pdfFile.name : 'Choose PDF…' }}
+                </label>
+                <button class="btn-doc-upload" :disabled="!pdfFile || pdfUploading" @click="uploadPdf">
+                  <span v-if="pdfUploading" class="spinner-sm"></span>
+                  <span v-else>Upload PDF</span>
+                </button>
+              </div>
+              <div v-if="pdfMsg.text" :class="['inline-msg', pdfMsg.type]">{{ pdfMsg.text }}</div>
+            </div>
+
+            <!-- xlsx Re-upload Section (admin only) -->
+            <div v-if="auth.isAdmin" class="doc-section doc-section--border">
+              <div class="doc-label">Re-upload from xlsx</div>
+              <div class="doc-note">Replaces all chapter content from an xlsx file.</div>
+              <div class="doc-upload-row">
+                <label class="file-pick-btn">
+                  <input type="file" accept=".xlsx" style="display:none" @change="onXlsxChange" />
+                  {{ xlsxFile ? xlsxFile.name : 'Choose xlsx…' }}
+                </label>
+                <button class="btn-doc-upload btn-doc-upload--warn" :disabled="!xlsxFile || xlsxUploading" @click="uploadXlsx">
+                  <span v-if="xlsxUploading" class="spinner-sm"></span>
+                  <span v-else>Upload xlsx</span>
+                </button>
+              </div>
+              <div v-if="xlsxMsg.text" :class="['inline-msg', xlsxMsg.type]">{{ xlsxMsg.text }}</div>
+            </div>
+          </div>
         </div>
 
         <!-- Concepts Section -->
@@ -85,6 +131,20 @@
           <div class="field">
             <label>Aim</label>
             <RichTextEditor v-model="chapterForm.aim" placeholder="Chapter aim / objective" minHeight="140px" />
+          </div>
+          <div class="field">
+            <label>Class</label>
+            <select v-model="chapterForm.class_id" @change="onModalClassChange">
+              <option value="">Select class</option>
+              <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Subject</label>
+            <select v-model="chapterForm.subject_id" :disabled="!modalSubjects.length">
+              <option value="">{{ chapterForm.class_id ? 'Select subject' : 'Select a class first' }}</option>
+              <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+            </select>
           </div>
           <div class="field">
             <label>Order Index</label>
@@ -267,6 +327,15 @@
         <div class="modal-footer">
           <button class="btn-cancel" @click="showConceptModal = false">Cancel</button>
           <button
+            v-if="activeTab === 0 && !isNewConcept"
+            class="btn-delete-concept"
+            :disabled="deletingConcept"
+            @click="deleteConcept"
+          >
+            <span v-if="deletingConcept" class="spinner-sm"></span>
+            <span v-else>Delete</span>
+          </button>
+          <button
             v-if="activeTab === 0"
             class="btn-save"
             :disabled="conceptSaving"
@@ -282,13 +351,13 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../api.js'
 import { useAuthStore } from '../stores/auth.js'
 import RichTextEditor from '../components/RichTextEditor.vue'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 const router = useRouter()
 const route = useRoute()
@@ -301,9 +370,31 @@ const chapter = ref(null)
 const loading = ref(true)
 const loadError = ref(null)
 
+// ---- Classes / Subjects for chapter modal ----
+const classes = ref([])
+const modalSubjects = ref([])
+
+async function loadClasses() {
+  try {
+    const res = await api.get('/api/public/classes')
+    classes.value = res.data
+  } catch (_) {}
+}
+
+async function onModalClassChange() {
+  modalSubjects.value = []
+  chapterForm.value.subject_id = ''
+  if (chapterForm.value.class_id) {
+    try {
+      const res = await api.get(`/api/public/classes/${chapterForm.value.class_id}/subjects`)
+      modalSubjects.value = res.data
+    } catch (_) {}
+  }
+}
+
 // ---- Chapter Modal ----
 const showChapterModal = ref(false)
-const chapterForm = ref({ title: '', aim: '', order_index: 0 })
+const chapterForm = ref({ title: '', aim: '', order_index: 0, class_id: '', subject_id: '' })
 const chapterSaving = ref(false)
 const chapterMsg = ref({ text: '', type: '' })
 
@@ -328,6 +419,18 @@ const conceptForm = ref({
 })
 const conceptSaving = ref(false)
 const conceptMsg = ref({ text: '', type: '' })
+const deletingConcept = ref(false)
+const deletingChapter = ref(false)
+
+// ---- PDF upload ----
+const pdfFile = ref(null)
+const pdfUploading = ref(false)
+const pdfMsg = ref({ text: '', type: '' })
+
+// ---- xlsx re-upload ----
+const xlsxFile = ref(null)
+const xlsxUploading = ref(false)
+const xlsxMsg = ref({ text: '', type: '' })
 
 // ---- Exhibit rows ----
 const exhibitRows = ref([])
@@ -356,10 +459,22 @@ async function fetchChapter() {
 
 // ---- Chapter Modal ----
 function openChapterModal() {
+  const classId = chapter.value.class?.id || ''
+  const subjectId = chapter.value.subject?.id || ''
   chapterForm.value = {
     title: chapter.value.title || '',
     aim: chapter.value.aim || '',
     order_index: chapter.value.order_index ?? 0,
+    class_id: classId,
+    subject_id: subjectId,
+  }
+  // Pre-load subjects for the chapter's current class
+  if (classId) {
+    api.get(`/api/public/classes/${classId}/subjects`)
+      .then(res => { modalSubjects.value = res.data })
+      .catch(() => {})
+  } else {
+    modalSubjects.value = []
   }
   chapterMsg.value = { text: '', type: '' }
   showChapterModal.value = true
@@ -564,7 +679,91 @@ async function deleteImage(img) {
   }
 }
 
-onMounted(fetchChapter)
+onMounted(async () => {
+  await Promise.all([fetchChapter(), loadClasses()])
+})
+
+async function deleteChapter() {
+  if (!confirm(`Delete chapter "${chapter.value.title}"? This will permanently remove all its concepts, exhibits, and images.`)) return
+  deletingChapter.value = true
+  try {
+    await api.delete(`/api/portal/chapters/${chapterId.value}`)
+    router.replace('/portal')
+  } catch (e) {
+    alert(e.response?.data?.detail || 'Delete failed')
+    deletingChapter.value = false
+  }
+}
+
+async function deleteConcept() {
+  if (!selectedConcept.value?.id) return
+  if (!confirm(`Delete concept "${selectedConcept.value.title}"? This cannot be undone.`)) return
+  deletingConcept.value = true
+  try {
+    await api.delete(`/api/portal/concepts/${selectedConcept.value.id}`)
+    chapter.value.concepts = chapter.value.concepts.filter(c => c.id !== selectedConcept.value.id)
+    showConceptModal.value = false
+  } catch (e) {
+    alert(e.response?.data?.detail || 'Delete failed')
+    deletingConcept.value = false
+  }
+}
+
+// ---- PDF upload ----
+function onPdfChange(e) {
+  pdfFile.value = e.target.files[0] || null
+  pdfMsg.value = { text: '', type: '' }
+}
+
+async function uploadPdf() {
+  if (!pdfFile.value) return
+  pdfUploading.value = true
+  pdfMsg.value = { text: '', type: '' }
+  try {
+    const fd = new FormData()
+    fd.append('file', pdfFile.value)
+    const res = await api.post(`/api/portal/chapters/${chapterId.value}/pdf`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    chapter.value.pdf_url = res.data.pdf_url
+    pdfFile.value = null
+    pdfMsg.value = { text: 'PDF uploaded!', type: 'success' }
+    setTimeout(() => { pdfMsg.value = { text: '', type: '' } }, 2000)
+  } catch (e) {
+    pdfMsg.value = { text: e.response?.data?.detail || 'Upload failed', type: 'error' }
+  } finally {
+    pdfUploading.value = false
+  }
+}
+
+// ---- xlsx re-upload ----
+function onXlsxChange(e) {
+  xlsxFile.value = e.target.files[0] || null
+  xlsxMsg.value = { text: '', type: '' }
+}
+
+async function uploadXlsx() {
+  if (!xlsxFile.value || !chapter.value?.subject?.id) return
+  if (!confirm('Re-uploading xlsx will replace ALL concepts and exhibits for this chapter. Continue?')) return
+  xlsxUploading.value = true
+  xlsxMsg.value = { text: '', type: '' }
+  try {
+    const fd = new FormData()
+    fd.append('file', xlsxFile.value)
+    fd.append('subject_id', chapter.value.subject.id)
+    await api.post('/api/portal/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    xlsxFile.value = null
+    xlsxMsg.value = { text: 'Upload successful — reloading chapter…', type: 'success' }
+    await fetchChapter()
+    xlsxMsg.value = { text: '', type: '' }
+  } catch (e) {
+    xlsxMsg.value = { text: e.response?.data?.detail || 'Upload failed', type: 'error' }
+  } finally {
+    xlsxUploading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -577,7 +776,7 @@ onMounted(fetchChapter)
 
 /* ---- Navbar ---- */
 .navbar {
-  background: #1e1b4b;
+  background: #1e3a8a;
   color: white;
   padding: 0 1.5rem;
   height: 56px;
@@ -622,13 +821,119 @@ onMounted(fetchChapter)
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ---- Documents Card ---- */
+.docs-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.2rem 1.6rem 1.4rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
   margin-bottom: 2rem;
 }
+
+.docs-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0 0 1rem;
+}
+
+.docs-row {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.doc-section {
+  flex: 1;
+  min-width: 220px;
+}
+
+.doc-section--border {
+  padding-left: 2rem;
+  border-left: 1px solid #e5e7eb;
+}
+
+.doc-label {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 0.4rem;
+}
+
+.doc-note {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-bottom: 0.6rem;
+}
+
+.doc-current {
+  margin-bottom: 0.6rem;
+}
+
+.pdf-link {
+  color: #2563eb;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.pdf-link:hover { text-decoration: underline; }
+
+.doc-upload-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.file-pick-btn {
+  display: inline-block;
+  padding: 0.4rem 0.9rem;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #374151;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.file-pick-btn:hover { background: #e2e8f0; }
+
+.btn-doc-upload {
+  padding: 0.4rem 0.9rem;
+  background: #1e3a8a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: background 0.15s;
+}
+.btn-doc-upload:hover { background: #1d4ed8; }
+.btn-doc-upload:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-doc-upload--warn {
+  background: #92400e;
+}
+.btn-doc-upload--warn:hover { background: #b45309; }
 
 .summary-title {
   font-size: 1.3rem;
   font-weight: 800;
-  color: #1e1b4b;
+  color: #1e3a8a;
   margin-bottom: 0.4rem;
 }
 
@@ -639,8 +944,8 @@ onMounted(fetchChapter)
 }
 
 .meta-badge {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: #eff6ff;
+  color: #2563eb;
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.2rem 0.7rem;
@@ -648,7 +953,7 @@ onMounted(fetchChapter)
 }
 
 .btn-edit-chapter {
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   padding: 0.55rem 1.2rem;
@@ -658,7 +963,24 @@ onMounted(fetchChapter)
   font-weight: 600;
   transition: background 0.15s;
 }
-.btn-edit-chapter:hover { background: #4338ca; }
+.btn-edit-chapter:hover { background: #1d4ed8; }
+
+.btn-delete-chapter {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1.5px solid #fca5a5;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-delete-chapter:hover { background: #fecaca; border-color: #f87171; }
+.btn-delete-chapter:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ---- Concepts Header ---- */
 .concepts-header {
@@ -671,7 +993,7 @@ onMounted(fetchChapter)
 .section-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1e1b4b;
+  color: #1e3a8a;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -679,8 +1001,8 @@ onMounted(fetchChapter)
 }
 
 .count-badge {
-  background: #e0e7ff;
-  color: #4338ca;
+  background: #dbeafe;
+  color: #1d4ed8;
   font-size: 0.78rem;
   font-weight: 700;
   padding: 0.15rem 0.6rem;
@@ -742,13 +1064,13 @@ onMounted(fetchChapter)
 .concepts-table tbody tr:last-child td { border-bottom: none; }
 .concepts-table tbody tr:hover td { background: #fafafa; }
 
-.td-sno { color: #4f46e5; font-weight: 700; width: 80px; }
+.td-sno { color: #2563eb; font-weight: 700; width: 80px; }
 .td-sessions { width: 90px; color: #6b7280; }
 .td-actions { width: 80px; text-align: right; }
 
 .btn-edit-sm {
   background: #ede9fe;
-  color: #4f46e5;
+  color: #2563eb;
   border: none;
   padding: 0.35rem 0.85rem;
   border-radius: 6px;
@@ -779,7 +1101,7 @@ onMounted(fetchChapter)
 
 .retry-btn {
   margin-top: 1rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   padding: 0.5rem 1.5rem;
@@ -792,7 +1114,7 @@ onMounted(fetchChapter)
   width: 36px;
   height: 36px;
   border: 3px solid #e5e7eb;
-  border-top-color: #4f46e5;
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   margin: 0 auto 1rem;
@@ -855,7 +1177,7 @@ onMounted(fetchChapter)
 .modal-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1e1b4b;
+  color: #1e3a8a;
   margin: 0;
 }
 
@@ -909,11 +1231,11 @@ onMounted(fetchChapter)
   transition: color 0.15s, border-color 0.15s;
 }
 
-.tab-btn:hover { color: #4f46e5; }
+.tab-btn:hover { color: #2563eb; }
 
 .tab-btn--active {
-  color: #4f46e5;
-  border-bottom-color: #4f46e5;
+  color: #2563eb;
+  border-bottom-color: #2563eb;
 }
 
 /* ---- Form fields ---- */
@@ -967,7 +1289,7 @@ onMounted(fetchChapter)
 
 /* ---- Buttons ---- */
 .btn-save {
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   padding: 0.55rem 1.4rem;
@@ -980,7 +1302,7 @@ onMounted(fetchChapter)
   gap: 0.4rem;
   transition: background 0.15s;
 }
-.btn-save:hover:not(:disabled) { background: #4338ca; }
+.btn-save:hover:not(:disabled) { background: #1d4ed8; }
 .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-cancel {
@@ -995,6 +1317,24 @@ onMounted(fetchChapter)
   transition: background 0.15s;
 }
 .btn-cancel:hover { background: #e5e7eb; }
+
+.btn-delete-concept {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1.5px solid #fca5a5;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: auto;
+}
+.btn-delete-concept:hover { background: #fecaca; border-color: #f87171; }
+.btn-delete-concept:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ---- Inline messages ---- */
 .inline-msg {
@@ -1151,7 +1491,7 @@ onMounted(fetchChapter)
   font-size: 0.9rem;
 }
 .upload-zone:hover { border-color: #a5b4fc; background: #f5f3ff; }
-.upload-zone--drag { border-color: #4f46e5; background: #eef2ff; }
+.upload-zone--drag { border-color: #2563eb; background: #eff6ff; }
 
 .selected-files-list {
   list-style: none;
@@ -1163,7 +1503,7 @@ onMounted(fetchChapter)
 .selected-files-list li { font-size: 0.84rem; color: #374151; padding: 0.15rem 0; }
 
 .btn-upload {
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   padding: 0.55rem 1.4rem;
@@ -1176,7 +1516,7 @@ onMounted(fetchChapter)
   gap: 0.4rem;
   transition: background 0.15s;
 }
-.btn-upload:hover:not(:disabled) { background: #4338ca; }
+.btn-upload:hover:not(:disabled) { background: #1d4ed8; }
 .btn-upload:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tab-notice {

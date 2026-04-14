@@ -2,7 +2,7 @@
   <div class="portal-page">
     <!-- Nav Bar -->
     <nav class="navbar">
-      <span class="nav-title">Teacher Portal</span>
+      <span class="nav-title">DVM Lesson Plans</span>
       <div class="nav-right">
         <span v-if="auth.user" class="user-info">
           <span class="user-name">{{ auth.user.name }}</span>
@@ -29,8 +29,14 @@
             <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
         </div>
-        <button v-if="auth.isAdmin" class="add-btn" @click="showAddModal = true">
+        <button class="add-btn" @click="openAddModal">
           + Add Chapter
+        </button>
+        <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/subjects')">
+          Manage Subjects
+        </button>
+        <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/users')">
+          Manage Users
         </button>
       </div>
 
@@ -47,6 +53,7 @@
       <div v-else-if="chapters.length === 0" class="empty-state">
         <p>No chapters found.</p>
         <p v-if="auth.isAdmin" class="hint">Click "Add Chapter" to create one, or upload an xlsx file.</p>
+        <p v-else class="hint">Click "Add Chapter" to create one for your assigned subjects.</p>
       </div>
 
       <!-- Data Table -->
@@ -73,8 +80,9 @@
                 <button class="btn-edit" @click="router.push(`/portal/chapter/${ch.id}/edit`)">
                   Edit
                 </button>
-                <button class="btn-upload" @click="goToUpload(ch)">
-                  Upload xlsx
+                <button v-if="auth.isAdmin" class="btn-delete" :disabled="ch.deleting" @click="deleteChapter(ch)">
+                  <span v-if="ch.deleting" class="spinner-inline"></span>
+                  <span v-else>Delete</span>
                 </button>
               </td>
             </tr>
@@ -83,7 +91,7 @@
       </div>
     </div>
 
-    <!-- Add Chapter Modal (admin only) -->
+    <!-- Add Chapter Modal -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
       <div class="modal">
         <h2 class="modal-title">Add Chapter</h2>
@@ -96,9 +104,9 @@
             <label>Aim</label>
             <textarea v-model="newChapter.aim" rows="3" placeholder="Chapter aim / objective"></textarea>
           </div>
-          <div class="field">
+          <div v-if="auth.isAdmin" class="field">
             <label>Class *</label>
-            <select v-model="newChapter.class_id" required>
+            <select v-model="newChapter.class_id" required @change="newChapter.subject_id = ''">
               <option value="">Select class</option>
               <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
@@ -107,7 +115,7 @@
             <label>Subject *</label>
             <select v-model="newChapter.subject_id" required>
               <option value="">Select subject</option>
-              <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+              <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ s.name }} ({{ s.class_name }})</option>
             </select>
           </div>
           <div v-if="createError" class="error-banner">{{ createError }}</div>
@@ -124,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api.js'
@@ -141,22 +149,29 @@ const loading = ref(false)
 const error = ref('')
 
 const showAddModal = ref(false)
-const modalSubjects = ref([])
+const allModalSubjects = ref([])
 const newChapter = ref({ title: '', aim: '', class_id: '', subject_id: '' })
 const creating = ref(false)
 const createError = ref('')
 
-// Auto-load subjects when class is selected in Add Chapter modal
-watch(() => newChapter.value.class_id, async (classId) => {
-  modalSubjects.value = []
-  newChapter.value.subject_id = ''
-  if (classId) {
-    try {
-      const res = await api.get(`/api/public/classes/${classId}/subjects`)
-      modalSubjects.value = res.data
-    } catch (_) {}
+// For admin: filter subjects by selected class; teachers see all their assigned subjects
+const modalSubjects = computed(() => {
+  if (auth.isAdmin && newChapter.value.class_id) {
+    return allModalSubjects.value.filter(s => s.class_id === newChapter.value.class_id)
   }
+  return allModalSubjects.value
 })
+
+async function openAddModal() {
+  newChapter.value = { title: '', aim: '', class_id: '', subject_id: '' }
+  createError.value = ''
+  allModalSubjects.value = []
+  try {
+    const res = await api.get('/api/portal/my-subjects')
+    allModalSubjects.value = res.data
+  } catch (_) {}
+  showAddModal.value = true
+}
 
 onMounted(async () => {
   await ensureUser()
@@ -215,14 +230,7 @@ function handleLogout() {
 }
 
 async function loadModalSubjects() {
-  modalSubjects.value = []
-  newChapter.value.subject_id = ''
-  if (newChapter.value.class_id) {
-    try {
-      const res = await api.get(`/api/public/classes/${newChapter.value.class_id}/subjects`)
-      modalSubjects.value = res.data
-    } catch (_) {}
-  }
+  // no-op: handled by openAddModal
 }
 
 async function createChapter() {
@@ -243,6 +251,18 @@ async function createChapter() {
     creating.value = false
   }
 }
+
+async function deleteChapter(ch) {
+  if (!confirm(`Delete chapter "${ch.title}"? This will permanently remove all its concepts, exhibits, and images.`)) return
+  ch.deleting = true
+  try {
+    await api.delete(`/api/portal/chapters/${ch.id}`)
+    chapters.value = chapters.value.filter(c => c.id !== ch.id)
+  } catch (e) {
+    alert(e.response?.data?.detail || 'Delete failed')
+    ch.deleting = false
+  }
+}
 </script>
 
 <style scoped>
@@ -254,14 +274,14 @@ async function createChapter() {
 
 /* Navbar */
 .navbar {
-  background: #1e293b;
+  background: #1e3a8a;
   color: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 1.5rem;
   height: 56px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 
 .nav-title {
@@ -302,7 +322,7 @@ async function createChapter() {
 }
 
 .role-badge.teacher {
-  background: #0ea5e9;
+  background: #2563eb;
   color: white;
 }
 
@@ -368,24 +388,42 @@ async function createChapter() {
 }
 
 .filter-group select:focus {
-  border-color: #4f46e5;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.12);
 }
 
 .add-btn {
   margin-left: auto;
   padding: 0.55rem 1.2rem;
-  background: #4f46e5;
-  color: white;
+  background: #eab308;
+  color: #1e293b;
   border: none;
   border-radius: 7px;
   font-size: 0.93rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .add-btn:hover {
-  background: #4338ca;
+  background: #ca8a04;
+  color: white;
+}
+
+.manage-btn {
+  padding: 0.55rem 1.1rem;
+  background: #1e3a8a;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.manage-btn:hover {
+  background: #1d4ed8;
 }
 
 /* Table */
@@ -451,7 +489,7 @@ async function createChapter() {
 
 .btn-edit {
   padding: 0.35rem 0.85rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 6px;
@@ -462,14 +500,14 @@ async function createChapter() {
 }
 
 .btn-edit:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 .btn-upload {
   padding: 0.35rem 0.85rem;
   background: white;
-  color: #0ea5e9;
-  border: 1.5px solid #0ea5e9;
+  color: #2563eb;
+  border: 1.5px solid #2563eb;
   border-radius: 6px;
   font-size: 0.83rem;
   font-weight: 600;
@@ -479,6 +517,33 @@ async function createChapter() {
 
 .btn-upload:hover {
   background: #f0f9ff;
+}
+
+.btn-delete {
+  padding: 0.35rem 0.85rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1.5px solid #fca5a5;
+  border-radius: 6px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.btn-delete:hover { background: #fecaca; border-color: #f87171; }
+.btn-delete:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.spinner-inline {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fca5a5;
+  border-top-color: #dc2626;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
 /* Empty / Loading / Error */
@@ -498,7 +563,7 @@ async function createChapter() {
   width: 36px;
   height: 36px;
   border: 3px solid #e2e8f0;
-  border-top-color: #4f46e5;
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -591,7 +656,7 @@ async function createChapter() {
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
-  border-color: #4f46e5;
+  border-color: #2563eb;
 }
 
 .field textarea {
@@ -631,7 +696,7 @@ async function createChapter() {
 
 .btn-save {
   padding: 0.55rem 1.4rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 7px;
@@ -646,7 +711,7 @@ async function createChapter() {
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 @media (max-width: 768px) {

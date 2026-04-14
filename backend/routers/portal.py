@@ -5,19 +5,23 @@ import shutil
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, UploadFile, File, Form, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from auth import create_access_token, get_current_user, require_admin, verify_password
 from config import UPLOADS_DIR
 from database import get_db
-from models import User, UserRole, TeacherSubject, Subject, Chapter, Concept, Exhibit, ConceptImage
+from limiter import limiter
+from models import User, UserRole, TeacherSubject, Subject, Class, Chapter, Concept, Exhibit, ConceptImage
 from schemas import (
     TokenOut,
     UserOut,
     ChapterDetailOut,
     SubjectNestedOut,
+    SubjectCreateIn,
+    SubjectUpdateIn,
+    SubjectFullOut,
     ClassNestedOut,
     ConceptOut,
     ConceptImageOut,
@@ -112,11 +116,14 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
         id=chapter.id,
         title=chapter.title,
         aim=chapter.aim,
+        pdf_url=f"/uploads/{chapter.pdf_filename}" if chapter.pdf_filename else None,
         subject=SubjectNestedOut(
             id=subject.id,
             name=subject.name,
             icon=subject.icon,
             color=subject.color,
+            class_name=cls.name,
+            class_id=cls.id,
         ),
         **{"class": ClassNestedOut(id=cls.id, name=cls.name)},
         concepts=concepts_out,
@@ -128,7 +135,9 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
 # ---------------------------------------------------------------------------
 
 @router.post("/auth/login", response_model=TokenOut)
+@limiter.limit("10/minute")
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
@@ -158,6 +167,36 @@ def me(current_user: User = Depends(get_current_user)):
         email=current_user.email,
         role=current_user.role.value,
     )
+
+
+# ---------------------------------------------------------------------------
+# Teacher utility
+# ---------------------------------------------------------------------------
+
+@router.get("/my-subjects", response_model=List[SubjectNestedOut])
+def my_subjects(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return subjects assigned to the current teacher (or all subjects for admin)."""
+    if current_user.role == UserRole.admin:
+        rows = db.query(Subject).join(Subject.cls).order_by(Subject.id).all()
+    else:
+        assigned_ids = [ts.subject_id for ts in current_user.teacher_subjects]
+        if not assigned_ids:
+            return []
+        rows = db.query(Subject).filter(Subject.id.in_(assigned_ids)).join(Subject.cls).order_by(Subject.id).all()
+    return [
+        SubjectNestedOut(
+            id=s.id,
+            name=s.name,
+            icon=s.icon,
+            color=s.color,
+            class_name=s.cls.name if s.cls else None,
+            class_id=s.cls.id if s.cls else None,
+        )
+        for s in rows
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -209,8 +248,11 @@ def list_chapters(
                 aim=chapter.aim,
                 sessions_total=sessions_total,
                 concept_count=concept_count,
+                subject_id=chapter.subject.id,
                 subject_name=chapter.subject.name,
+                class_id=chapter.subject.cls.id,
                 class_name=chapter.subject.cls.name,
+                pdf_url=f"/uploads/{chapter.pdf_filename}" if chapter.pdf_filename else None,
             )
         )
     return result
@@ -251,6 +293,12 @@ def update_chapter(
         chapter.aim = body.aim
     if body.order_index is not None:
         chapter.order_index = body.order_index
+    if body.subject_id is not None:
+        new_subject = db.query(Subject).filter(Subject.id == body.subject_id).first()
+        if new_subject is None:
+            raise HTTPException(status_code=404, detail="Subject not found")
+        _check_subject_access(db, current_user, body.subject_id)
+        chapter.subject_id = body.subject_id
 
     db.commit()
     db.refresh(chapter)
@@ -260,10 +308,11 @@ def update_chapter(
 @router.post("/chapters", response_model=ChapterDetailOut, status_code=201)
 def create_chapter(
     body: ChapterCreateIn,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Create a new chapter. Admin only."""
+    """Create a new chapter. Teacher may only create in their assigned subjects."""
+    _check_subject_access(db, current_user, body.subject_id)
     subject = db.query(Subject).filter(Subject.id == body.subject_id).first()
     if subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
@@ -296,6 +345,47 @@ def delete_chapter(
     return {"ok": True}
 
 
+@router.post("/chapters/{chapter_id}/pdf")
+async def upload_chapter_pdf(
+    chapter_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Upload or replace the PDF file for a chapter. Teacher must own the subject."""
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    _check_subject_access(db, current_user, chapter.subject_id)
+
+    fname = (file.filename or "").lower()
+    if not fname.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only .pdf files are accepted.")
+    ct = (file.content_type or "").split(";")[0].strip()
+    if ct and ct not in {"application/pdf", "application/octet-stream"}:
+        raise HTTPException(status_code=415, detail=f"Unsupported content type '{ct}'.")
+
+    contents = await file.read()
+    if len(contents) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="PDF exceeds the 50 MB size limit.")
+
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+    # Remove old PDF if replacing
+    if chapter.pdf_filename:
+        old_path = os.path.join(UPLOADS_DIR, chapter.pdf_filename)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    unique_name = f"chapter_{chapter_id}_{uuid.uuid4().hex}.pdf"
+    with open(os.path.join(UPLOADS_DIR, unique_name), "wb") as f:
+        f.write(contents)
+
+    chapter.pdf_filename = unique_name
+    db.commit()
+    return {"pdf_url": f"/uploads/{unique_name}"}
+
+
 # ---------------------------------------------------------------------------
 # Upload route
 # ---------------------------------------------------------------------------
@@ -317,11 +407,28 @@ async def upload_xlsx(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
 
+    # ── Validate uploaded file ─────────────────────────────────────────────
+    _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    _ALLOWED_MIME = {_XLSX_MIME, "application/octet-stream", "application/zip"}
+    _MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+
+    fname = (file.filename or "").lower()
+    if not fname.endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Only .xlsx files are accepted.")
+    ct = (file.content_type or "").split(";")[0].strip()
+    if ct and ct not in _ALLOWED_MIME:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported content type '{ct}'. Upload an .xlsx file.",
+        )
+
     # Save to temp file
-    suffix = os.path.splitext(file.filename or "upload")[1] or ".xlsx"
+    suffix = ".xlsx"
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=suffix)
     try:
         contents = await file.read()
+        if len(contents) > _MAX_BYTES:
+            raise HTTPException(status_code=413, detail="File exceeds the 10 MB size limit.")
         with os.fdopen(tmp_fd, "wb") as tmp_file:
             tmp_file.write(contents)
 
@@ -739,3 +846,103 @@ def update_concept_image(
     db.commit()
     db.refresh(img)
     return _build_image_out(img)
+
+
+# ---------------------------------------------------------------------------
+# Subject CRUD routes (admin only)
+# ---------------------------------------------------------------------------
+
+def _subject_to_out(subject: Subject) -> SubjectFullOut:
+    return SubjectFullOut(
+        id=subject.id,
+        name=subject.name,
+        icon=subject.icon,
+        color=subject.color,
+        class_id=subject.class_id,
+        class_name=subject.cls.name,
+    )
+
+
+@router.get("/subjects", response_model=List[SubjectFullOut])
+def list_subjects_portal(
+    class_id: Optional[int] = None,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Return all subjects, optionally filtered by class. Admin only."""
+    query = db.query(Subject)
+    if class_id is not None:
+        query = query.filter(Subject.class_id == class_id)
+    subjects = query.order_by(Subject.class_id, Subject.id).all()
+    return [_subject_to_out(s) for s in subjects]
+
+
+@router.post("/subjects", response_model=SubjectFullOut, status_code=201)
+def create_subject(
+    body: SubjectCreateIn,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Create a new subject. Admin only."""
+    cls = db.query(Class).filter(Class.id == body.class_id).first()
+    if cls is None:
+        raise HTTPException(status_code=404, detail="Class not found")
+    subject = Subject(
+        name=body.name,
+        class_id=body.class_id,
+        icon=body.icon,
+        color=body.color,
+    )
+    db.add(subject)
+    db.commit()
+    db.refresh(subject)
+    return _subject_to_out(subject)
+
+
+@router.put("/subjects/{subject_id}", response_model=SubjectFullOut)
+def update_subject(
+    subject_id: int,
+    body: SubjectUpdateIn,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Update a subject. Admin only."""
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if subject is None:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    if body.name is not None:
+        subject.name = body.name
+    if body.icon is not None:
+        subject.icon = body.icon
+    if body.color is not None:
+        subject.color = body.color
+    if body.class_id is not None:
+        cls = db.query(Class).filter(Class.id == body.class_id).first()
+        if cls is None:
+            raise HTTPException(status_code=404, detail="Class not found")
+        subject.class_id = body.class_id
+    db.commit()
+    db.refresh(subject)
+    return _subject_to_out(subject)
+
+
+@router.delete("/subjects/{subject_id}")
+def delete_subject(
+    subject_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Delete a subject. Admin only. Blocked if chapters exist under it."""
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if subject is None:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    chapter_count = db.query(Chapter).filter(Chapter.subject_id == subject_id).count()
+    if chapter_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete: {chapter_count} chapter(s) exist under this subject. Delete chapters first.",
+        )
+    db.query(TeacherSubject).filter(TeacherSubject.subject_id == subject_id).delete()
+    db.delete(subject)
+    db.commit()
+    return {"ok": True}

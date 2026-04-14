@@ -3,12 +3,12 @@
     <!-- Hero Banner -->
     <div class="hero">
       <div class="hero-inner">
-        <h1 class="hero-school">DVM School</h1>
-        <p class="hero-tagline">Explore lesson plans crafted for curious minds</p>
+        <h1 class="hero-school">Dalmia Vidya Mandir</h1>
+        <p class="hero-tagline">✨ From Living Standards to Life Standards ✨</p>
       </div>
       <!-- Wave SVG -->
       <svg class="hero-wave" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" fill="#f0f4ff"/>
+        <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" fill="#f8fafc"/>
       </svg>
     </div>
 
@@ -92,14 +92,14 @@ onMounted(fetchClasses)
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f0f4ff;
-  font-family: system-ui, -apple-system, sans-serif;
+  background: #f8fafc;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
 /* Hero */
 .hero {
   position: relative;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
   padding: 4rem 2rem 3.5rem;
   text-align: center;
   overflow: hidden;
@@ -156,7 +156,7 @@ onMounted(fetchClasses)
 .section-heading {
   font-size: 1.8rem;
   font-weight: 800;
-  color: #1e1b4b;
+  color: #1e3a8a;
   margin: 0 0 2rem;
 }
 
@@ -219,7 +219,7 @@ onMounted(fetchClasses)
 .retry-btn {
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
-  background: #4f46e5;
+  background: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -230,7 +230,7 @@ onMounted(fetchClasses)
 }
 
 .retry-btn:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 @media (max-width: 640px) {
