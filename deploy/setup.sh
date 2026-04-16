@@ -67,7 +67,28 @@ echo "    .env created at $BACKEND/.env"
 
 echo "==> Running Alembic migrations..."
 cd "$BACKEND"
-"$BACKEND/venv/bin/alembic" upgrade head
+if ! "$BACKEND/venv/bin/alembic" upgrade head; then
+	echo "==> Alembic upgrade failed. Checking for empty database bootstrap case..."
+	if "$BACKEND/venv/bin/python" - <<'PY'
+from sqlalchemy import inspect
+from database import engine, Base
+import models  # noqa: F401
+
+tables = inspect(engine).get_table_names()
+if tables:
+	raise SystemExit(1)
+
+Base.metadata.create_all(bind=engine)
+print("Created base schema from SQLAlchemy models on empty database.")
+PY
+	then
+		"$BACKEND/venv/bin/alembic" stamp head
+		echo "==> Alembic stamped to head after base schema bootstrap."
+	else
+		echo "ERROR: Migration failed and database is not empty. Manual intervention required."
+		exit 1
+	fi
+fi
 
 echo "==> Running database seed (creates admin user)..."
 "$BACKEND/venv/bin/python" seed.py
@@ -79,13 +100,13 @@ sudo systemctl enable dvmapi
 sudo systemctl start dvmapi
 
 echo "==> Installing Nginx config..."
-sudo cp "$APP_DIR/deploy/api.dvmchirawa.ac.in.conf" /etc/nginx/sites-available/api.dvmchirawa.ac.in
-sudo ln -sf /etc/nginx/sites-available/api.dvmchirawa.ac.in /etc/nginx/sites-enabled/api.dvmchirawa.ac.in
+sudo cp "$APP_DIR/deploy/fastapi.dvmchirawa.ac.in.conf" /etc/nginx/sites-available/fastapi.dvmchirawa.ac.in
+sudo ln -sf /etc/nginx/sites-available/fastapi.dvmchirawa.ac.in /etc/nginx/sites-enabled/fastapi.dvmchirawa.ac.in
 sudo nginx -t
 sudo systemctl reload nginx
 
 echo ""
 echo "==> Setup complete! Next steps:"
-echo "    1. Run: sudo certbot --nginx -d api.dvmchirawa.ac.in"
-echo "    2. Check API: https://api.dvmchirawa.ac.in/"
-echo "    3. Deploy frontend to Netlify and set VITE_API_BASE_URL=https://api.dvmchirawa.ac.in"
+echo "    1. Run: sudo certbot --nginx -d fastapi.dvmchirawa.ac.in"
+echo "    2. Check API: https://fastapi.dvmchirawa.ac.in/"
+echo "    3. Deploy frontend to Netlify and set VITE_API_BASE_URL=https://fastapi.dvmchirawa.ac.in"

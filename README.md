@@ -123,7 +123,7 @@ Change this immediately in production.
 ## Deployment (VPS + Netlify)
 
 Production target:
-- API domain: https://api.dvmchirawa.ac.in
+- API domain: https://fastapi.dvmchirawa.ac.in
 - Frontend host: Netlify
 
 ### VPS First-Time Setup
@@ -139,7 +139,7 @@ Typical flow:
 6. Run Alembic migrations
 7. Seed initial data
 8. Install systemd service from deploy/dvmapi.service
-9. Install Nginx config from deploy/api.dvmchirawa.ac.in.conf
+9. Install Nginx config from deploy/fastapi.dvmchirawa.ac.in.conf
 10. Enable SSL using certbot
 
 ### Ongoing Deployment

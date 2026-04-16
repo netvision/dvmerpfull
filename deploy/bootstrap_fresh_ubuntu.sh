@@ -53,4 +53,4 @@ DB_PASSWORD="${DB_PASSWORD:-}" FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://YOUR_
 
 echo ""
 echo "==> Bootstrap complete. Next step:"
-echo "    sudo certbot --nginx -d api.dvmchirawa.ac.in"
+echo "    sudo certbot --nginx -d fastapi.dvmchirawa.ac.in"

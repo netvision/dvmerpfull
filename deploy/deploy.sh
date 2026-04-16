@@ -21,4 +21,4 @@ cd "$BACKEND"
 echo "==> Restarting API service..."
 sudo systemctl restart dvmapi
 
-echo "==> Done. API is live at https://api.dvmchirawa.ac.in"
+echo "==> Done. API is live at https://fastapi.dvmchirawa.ac.in"
