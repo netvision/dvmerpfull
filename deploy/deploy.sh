@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # deploy/deploy.sh
 # Run this on the VPS as user 'dev' to deploy updates.
-# First-time setup: see deploy/SETUP.md
+# First-time setup: run deploy/setup.sh
 set -euo pipefail
 
 APP_DIR="/home/dev/dvmerpfull"
