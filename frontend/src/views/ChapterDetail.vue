@@ -147,32 +147,99 @@
                 :key="exhibit.id || exhibit.field_key"
                 class="exhibit-entry"
               >
-                <p class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</p>
+                <div class="exhibit-header">
+                  <p class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</p>
+                  <span v-if="exhibit.field_type" class="exhibit-type-badge" :class="exhibit.field_type">{{ exhibit.field_type }}</span>
+                </div>
+                
                 <div class="exhibit-value">
-                  <!-- YouTube embed -->
-                  <template v-if="getYoutubeId(exhibit.field_value)">
-                    <div class="video-wrap">
-                      <iframe
-                        :src="`https://www.youtube.com/embed/${getYoutubeId(exhibit.field_value)}`"
-                        allowfullscreen
-                        class="yt-iframe"
-                      ></iframe>
-                    </div>
-                  </template>
-                  <!-- Plain URL (not youtube) -->
-                  <template v-else-if="isUrl(stripHtml(exhibit.field_value))">
-                    <a
-                      :href="stripHtml(exhibit.field_value).trim()"
-                      target="_blank"
-                      rel="noopener"
-                      class="exhibit-link"
-                    >{{ stripHtml(exhibit.field_value).trim() }}</a>
-                  </template>
-                  <!-- Rich text / HTML -->
-                  <template v-else>
+                  <!-- String type -->
+                  <template v-if="exhibit.field_type === 'string'">
                     <div class="ql-content" v-html="sanitize(exhibit.field_value)"></div>
                   </template>
+
+                  <!-- Link type -->
+                  <template v-else-if="exhibit.field_type === 'link'">
+                    <!-- YouTube embed -->
+                    <template v-if="getYoutubeId(exhibit.field_value)">
+                      <div class="video-wrap">
+                        <iframe
+                          :src="`https://www.youtube.com/embed/${getYoutubeId(exhibit.field_value)}`"
+                          allowfullscreen
+                          class="yt-iframe"
+                        ></iframe>
+                      </div>
+                    </template>
+                    <!-- Other URLs as links -->
+                    <template v-else>
+                      <a
+                        :href="exhibit.field_value"
+                        target="_blank"
+                        rel="noopener"
+                        class="exhibit-link"
+                      >{{ exhibit.field_value }}</a>
+                    </template>
+                  </template>
+
+                  <!-- Image type -->
+                  <template v-else-if="exhibit.field_type === 'image'">
+                    <div class="media-container image-container">
+                      <img 
+                        :src="`${API_BASE}${exhibit.file_url}`" 
+                        :alt="exhibit.field_key"
+                        class="exhibit-image"
+                      />
+                    </div>
+                  </template>
+
+                  <!-- Audio type -->
+                  <template v-else-if="exhibit.field_type === 'audio'">
+                    <div class="media-container audio-container">
+                      <audio controls class="exhibit-audio">
+                        <source :src="`${API_BASE}${exhibit.file_url}`" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  </template>
+
+                  <!-- Video type -->
+                  <template v-else-if="exhibit.field_type === 'video'">
+                    <div class="media-container video-container">
+                      <video controls class="exhibit-video">
+                        <source :src="`${API_BASE}${exhibit.file_url}`" />
+                        Your browser does not support the video element.
+                      </video>
+                    </div>
+                  </template>
+
+                  <!-- Fallback for old format (legacy field_value rendering) -->
+                  <template v-else>
+                    <!-- YouTube embed -->
+                    <template v-if="getYoutubeId(exhibit.field_value)">
+                      <div class="video-wrap">
+                        <iframe
+                          :src="`https://www.youtube.com/embed/${getYoutubeId(exhibit.field_value)}`"
+                          allowfullscreen
+                          class="yt-iframe"
+                        ></iframe>
+                      </div>
+                    </template>
+                    <!-- Plain URL -->
+                    <template v-else-if="isUrl(stripHtml(exhibit.field_value))">
+                      <a
+                        :href="stripHtml(exhibit.field_value).trim()"
+                        target="_blank"
+                        rel="noopener"
+                        class="exhibit-link"
+                      >{{ stripHtml(exhibit.field_value).trim() }}</a>
+                    </template>
+                    <!-- Rich text -->
+                    <template v-else>
+                      <div class="ql-content" v-html="sanitize(exhibit.field_value)"></div>
+                    </template>
+                  </template>
                 </div>
+                
                 <hr v-if="idx < modalConcept.exhibits.length - 1" class="exhibit-divider" />
               </div>
             </template>
@@ -766,5 +833,95 @@ onMounted(fetchChapter)
   .modal-card { max-height: 90vh; }
   .modal-header { padding: 1.1rem 1.1rem 1rem; }
   .modal-body { padding: 1rem 1.1rem 1.25rem; }
+}
+
+/* ---- Exhibit Type Badge ---- */
+.exhibit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.exhibit-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.exhibit-type-badge.string {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.exhibit-type-badge.audio {
+  background: #fce7f3;
+  color: #be123c;
+}
+
+.exhibit-type-badge.image {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.exhibit-type-badge.video {
+  background: #fed7aa;
+  color: #92400e;
+}
+
+.exhibit-type-badge.link {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+/* ---- Media Containers ---- */
+.media-container {
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-container {
+  aspect-ratio: 4/3;
+  max-width: 100%;
+}
+
+.exhibit-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.audio-container {
+  padding: 1.5rem 1rem;
+  width: 100%;
+}
+
+.exhibit-audio {
+  width: 100%;
+  height: 40px;
+}
+
+.video-container {
+  aspect-ratio: 16/9;
+  width: 100%;
+}
+
+.exhibit-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 </style>

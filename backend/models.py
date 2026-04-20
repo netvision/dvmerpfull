@@ -22,6 +22,14 @@ class UserRole(enum.Enum):
     super_admin = "super_admin"
 
 
+class ExhibitFieldType(enum.Enum):
+    string = "string"
+    audio = "audio"
+    image = "image"
+    video = "video"
+    link = "link"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -116,7 +124,9 @@ class Exhibit(Base):
     id = Column(Integer, primary_key=True, index=True)
     concept_id = Column(Integer, ForeignKey("concepts.id"), nullable=False)
     field_key = Column(String, nullable=False)
-    field_value = Column(Text, nullable=True)
+    field_type = Column(Enum(ExhibitFieldType), nullable=False, default=ExhibitFieldType.string)
+    field_value = Column(Text, nullable=True)  # for string and link types
+    file_key = Column(String, nullable=True)   # for audio/image/video types (stored filename)
     sort_order = Column(Integer, default=0)
 
     concept = relationship("Concept", back_populates="exhibits")

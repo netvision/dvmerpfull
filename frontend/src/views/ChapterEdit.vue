@@ -234,35 +234,41 @@
               Save concept first to manage exhibit fields.
             </div>
             <template v-else>
-              <div
-                v-for="(ex, idx) in exhibitRows"
-                :key="ex.id ?? 'new-' + idx"
-                class="exhibit-row"
-              >
-                <input
-                  v-model="ex.field_key"
-                  type="text"
-                  class="exhibit-key-input"
-                  placeholder="field_key"
-                />
-                <div class="exhibit-value-wrap">
-                  <RichTextEditor v-model="ex.field_value" minHeight="80px" />
-                </div>
-                <div class="exhibit-row-actions">
-                  <button class="btn-save-ex" :disabled="ex.saving" @click="saveExhibit(ex, idx)" title="Save">
-                    <span v-if="ex.saving" class="spinner-sm"></span>
-                    <span v-else>&#10003;</span>
-                  </button>
-                  <button class="btn-del-ex" :disabled="ex.deleting" @click="deleteExhibit(ex, idx)" title="Delete">
-                    <span v-if="ex.deleting" class="spinner-sm"></span>
-                    <span v-else>&times;</span>
-                  </button>
-                </div>
-              </div>
               <div v-if="!exhibitRows.length" class="tab-notice">No exhibit fields yet.</div>
-              <button class="btn-add-field" @click="addExhibitRow">+ Add Field</button>
+              <table v-else class="exhibits-table">
+                <thead>
+                  <tr>
+                    <th>Field Key</th>
+                    <th>Type</th>
+                    <th>Value/File</th>
+                    <th style="width: 80px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(ex, idx) in exhibitRows" :key="ex.id ?? 'new-' + idx">
+                    <td class="cell-key">{{ ex.field_key }}</td>
+                    <td class="cell-type">
+                      <span class="type-badge" :class="ex.field_type">{{ ex.field_type }}</span>
+                    </td>
+                    <td class="cell-value">
+                      <span v-if="ex.field_type === 'string'" class="value-preview">{{ truncate(ex.field_value, 40) }}</span>
+                      <span v-else-if="ex.field_type === 'link'" class="value-preview link-preview">{{ truncate(ex.field_value, 40) }}</span>
+                      <span v-else class="value-preview">{{ ex.file_key ? '✓ File' : '(no file)' }}</span>
+                    </td>
+                    <td class="cell-actions">
+                      <button class="btn-edit-ex" :disabled="ex.saving" @click="openExhibitModal(ex, idx)" title="Edit">✎</button>
+                      <button class="btn-del-ex" :disabled="ex.deleting" @click="deleteExhibit(ex, idx)" title="Delete">
+                        <span v-if="ex.deleting" class="spinner-sm"></span>
+                        <span v-else>&times;</span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <button class="btn-add-field" @click="openExhibitModal(null)">+ Add Exhibit Field</button>
             </template>
           </div>
+
 
           <!-- Tab 3: Images -->
           <div v-if="activeTab === 2">
@@ -343,6 +349,76 @@
           >
             <span v-if="conceptSaving" class="spinner-sm"></span>
             {{ conceptSaving ? 'Saving…' : 'Save Concept' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exhibit Modal -->
+    <div v-if="showExhibitModal" class="modal-backdrop" @click.self="showExhibitModal = false">
+      <div class="modal-box exhibit-modal-box">
+        <div class="modal-header">
+          <h2>{{ isNewExhibit ? 'Add Exhibit Field' : 'Edit Exhibit Field' }}</h2>
+          <button class="modal-close" @click="showExhibitModal = false">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Field Key *</label>
+            <input v-model="exhibitForm.field_key" type="text" placeholder="e.g., video_link, reference" />
+          </div>
+
+          <div class="form-group">
+            <label>Field Type *</label>
+            <div class="field-type-options">
+              <label class="type-option" v-for="type in ['string', 'audio', 'image', 'video', 'link']" :key="type">
+                <input v-model="exhibitForm.field_type" type="radio" :value="type" />
+                <span class="type-label">{{ type.charAt(0).toUpperCase() + type.slice(1) }}</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- String Type Input -->
+          <div v-if="exhibitForm.field_type === 'string'" class="form-group">
+            <label>Value</label>
+            <RichTextEditor v-model="exhibitForm.field_value" minHeight="150px" />
+          </div>
+
+          <!-- Link Type Input -->
+          <div v-if="exhibitForm.field_type === 'link'" class="form-group">
+            <label>URL *</label>
+            <input v-model="exhibitForm.field_value" type="url" placeholder="https://youtube.com/watch?v=... or other URL" />
+            <div class="input-note">Supports YouTube, social media links, and general URLs</div>
+          </div>
+
+          <!-- File Upload for Media Types -->
+          <div v-if="['audio', 'image', 'video'].includes(exhibitForm.field_type)" class="form-group">
+            <label>{{ exhibitForm.field_type.charAt(0).toUpperCase() + exhibitForm.field_type.slice(1) }} File *</label>
+            <div class="file-upload-zone" @dragover.prevent="isDraggingExhibit = true" @dragleave="isDraggingExhibit = false" @drop.prevent="onExhibitFileDrop">
+              <div v-if="!exhibitForm.selectedFile" class="upload-placeholder">
+                <div class="upload-icon">📁</div>
+                <p>Drag & drop your {{ exhibitForm.field_type }} file here</p>
+                <p class="upload-note">or</p>
+                <label class="upload-file-btn">
+                  Browse
+                  <input type="file" style="display:none" @change="onExhibitFileChange" :accept="getAcceptType(exhibitForm.field_type)" />
+                </label>
+              </div>
+              <div v-else class="upload-preview">
+                <div class="preview-icon">✓</div>
+                <div class="preview-name">{{ exhibitForm.selectedFile.name }}</div>
+                <button type="button" class="preview-remove" @click="exhibitForm.selectedFile = null">Remove</button>
+              </div>
+            </div>
+            <div v-if="exhibitMsg.text" :class="['inline-msg', exhibitMsg.type]">{{ exhibitMsg.text }}</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showExhibitModal = false">Cancel</button>
+          <button class="btn-save" :disabled="exhibitSaving" @click="saveExhibit">
+            <span v-if="exhibitSaving" class="spinner-sm"></span>
+            {{ exhibitSaving ? 'Saving…' : 'Save' }}
           </button>
         </div>
       </div>
@@ -434,6 +510,20 @@ const xlsxMsg = ref({ text: '', type: '' })
 
 // ---- Exhibit rows ----
 const exhibitRows = ref([])
+
+// ---- Exhibit Modal ----
+const showExhibitModal = ref(false)
+const isNewExhibit = ref(false)
+const exhibitEditingIndex = ref(null)
+const exhibitForm = ref({
+  field_key: '',
+  field_type: 'string',
+  field_value: '',
+  selectedFile: null,
+})
+const exhibitSaving = ref(false)
+const exhibitMsg = ref({ text: '', type: '' })
+const isDraggingExhibit = ref(false)
 
 // ---- Images ----
 const imageList = ref([])
@@ -586,31 +676,125 @@ async function saveConcept() {
 }
 
 // ---- Exhibit Fields ----
-function addExhibitRow() {
-  exhibitRows.value.push({ id: null, field_key: '', field_value: '', saving: false, deleting: false })
+function truncate(str, len) {
+  if (!str) return ''
+  return str.length > len ? str.substring(0, len) + '…' : str
 }
 
-async function saveExhibit(ex, idx) {
-  if (!selectedConcept.value?.id) return
-  ex.saving = true
-  try {
-    if (ex.id) {
-      const res = await api.put(`/api/portal/exhibits/${ex.id}`, {
-        field_key: ex.field_key,
-        field_value: ex.field_value,
-      })
-      ex.id = res.data.id
-    } else {
-      const res = await api.post(`/api/portal/concepts/${selectedConcept.value.id}/exhibits`, {
-        field_key: ex.field_key,
-        field_value: ex.field_value,
-      })
-      ex.id = res.data.id
+function getAcceptType(fieldType) {
+  const accepts = {
+    audio: 'audio/*',
+    image: 'image/*',
+    video: 'video/*',
+  }
+  return accepts[fieldType] || ''
+}
+
+function openExhibitModal(exhibit = null, idx = null) {
+  isNewExhibit.value = exhibit === null
+  exhibitEditingIndex.value = idx
+  
+  if (isNewExhibit.value) {
+    exhibitForm.value = {
+      field_key: '',
+      field_type: 'string',
+      field_value: '',
+      selectedFile: null,
     }
+  } else {
+    exhibitForm.value = {
+      field_key: exhibit.field_key || '',
+      field_type: exhibit.field_type || 'string',
+      field_value: exhibit.field_value || '',
+      selectedFile: null, // Can't edit existing files inline
+    }
+  }
+  
+  exhibitMsg.value = { text: '', type: '' }
+  isDraggingExhibit.value = false
+  showExhibitModal.value = true
+}
+
+function onExhibitFileChange(e) {
+  exhibitForm.value.selectedFile = e.target.files[0] || null
+}
+
+function onExhibitFileDrop(e) {
+  isDraggingExhibit.value = false
+  const files = e.dataTransfer.files
+  if (files.length > 0) {
+    exhibitForm.value.selectedFile = files[0]
+  }
+}
+
+async function saveExhibit() {
+  if (!selectedConcept.value?.id) return
+  
+  // Validation
+  if (!exhibitForm.value.field_key?.trim()) {
+    exhibitMsg.value = { text: 'Field key is required', type: 'error' }
+    return
+  }
+  
+  if (exhibitForm.value.field_type === 'link' && !exhibitForm.value.field_value?.trim()) {
+    exhibitMsg.value = { text: 'URL is required for link type', type: 'error' }
+    return
+  }
+  
+  if (['audio', 'image', 'video'].includes(exhibitForm.value.field_type)) {
+    if (isNewExhibit.value && !exhibitForm.value.selectedFile) {
+      exhibitMsg.value = { text: `File is required for ${exhibitForm.value.field_type} type`, type: 'error' }
+      return
+    }
+  }
+  
+  exhibitSaving.value = true
+  exhibitMsg.value = { text: '', type: '' }
+  
+  try {
+    const formData = new FormData()
+    formData.append('field_key', exhibitForm.value.field_key)
+    formData.append('field_type', exhibitForm.value.field_type)
+    
+    if (exhibitForm.value.field_type === 'string' || exhibitForm.value.field_type === 'link') {
+      formData.append('field_value', exhibitForm.value.field_value || '')
+    }
+    
+    if (exhibitForm.value.selectedFile) {
+      formData.append('file', exhibitForm.value.selectedFile)
+    }
+    
+    let res
+    if (isNewExhibit.value) {
+      res = await api.post(`/api/portal/concepts/${selectedConcept.value.id}/exhibits`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      exhibitRows.value.push({
+        ...res.data,
+        saving: false,
+        deleting: false,
+      })
+    } else {
+      const currentExhibit = exhibitRows.value[exhibitEditingIndex.value]
+      res = await api.put(`/api/portal/exhibits/${currentExhibit.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      Object.assign(currentExhibit, {
+        ...res.data,
+        saving: false,
+        deleting: false,
+      })
+    }
+    
+    exhibitMsg.value = { text: 'Saved!', type: 'success' }
+    setTimeout(() => {
+      showExhibitModal.value = false
+      exhibitMsg.value = { text: '', type: '' }
+    }, 800)
   } catch (e) {
-    alert(e.response?.data?.detail || 'Save failed')
+    exhibitMsg.value = { text: e.response?.data?.detail || 'Save failed', type: 'error' }
   } finally {
-    ex.saving = false
+    exhibitSaving.value = false
   }
 }
 
@@ -1524,5 +1708,296 @@ async function uploadXlsx() {
   font-size: 0.9rem;
   padding: 1rem 0;
   text-align: center;
+}
+
+/* ---- Exhibits Table ---- */
+.exhibits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.exhibits-table thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.exhibits-table th {
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.exhibits-table td {
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.exhibits-table tbody tr:hover {
+  background: #f3f4f6;
+}
+
+.cell-key {
+  font-weight: 600;
+  color: #1e3a8a;
+  max-width: 150px;
+  word-break: break-word;
+}
+
+.cell-type {
+  text-align: center;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.type-badge.string {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.type-badge.audio {
+  background: #fce7f3;
+  color: #be123c;
+}
+
+.type-badge.image {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.type-badge.video {
+  background: #fed7aa;
+  color: #92400e;
+}
+
+.type-badge.link {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.cell-value {
+  max-width: 250px;
+  word-break: break-word;
+}
+
+.value-preview {
+  display: block;
+  color: #6b7280;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.value-preview.link-preview {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.cell-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.btn-edit-ex {
+  padding: 0.3rem 0.6rem;
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  margin-right: 0.3rem;
+}
+
+.btn-edit-ex:hover {
+  background: #bfdbfe;
+}
+
+.btn-edit-ex:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-del-ex {
+  padding: 0.3rem 0.5rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all 0.15s;
+}
+
+.btn-del-ex:hover {
+  background: #fecaca;
+}
+
+.btn-del-ex:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-add-field {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #dbeafe;
+  color: #0c4a6e;
+  border: 2px dashed #3b82f6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  margin-top: 1rem;
+}
+
+.btn-add-field:hover {
+  background: #bfdbfe;
+  border-color: #2563eb;
+}
+
+/* ---- Exhibit Modal ---- */
+.exhibit-modal-box {
+  max-width: 600px;
+}
+
+.field-type-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0.5rem 0;
+}
+
+.type-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.type-option input[type="radio"] {
+  cursor: pointer;
+}
+
+.type-label {
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+}
+
+.type-option input[type="radio"]:checked + .type-label {
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+.input-note {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 0.4rem;
+}
+
+.file-upload-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.file-upload-zone:hover,
+.file-upload-zone.dragging {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.upload-icon {
+  font-size: 2.5rem;
+}
+
+.upload-placeholder p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.upload-note {
+  color: #d1d5db !important;
+  font-size: 0.85rem !important;
+}
+
+.upload-file-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+
+.upload-file-btn:hover {
+  background: #2563eb;
+}
+
+.upload-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.preview-icon {
+  font-size: 2rem;
+  color: #10b981;
+}
+
+.preview-name {
+  font-weight: 600;
+  color: #374151;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.preview-remove {
+  padding: 0.3rem 0.8rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.preview-remove:hover {
+  background: #fecaca;
 }
 </style>

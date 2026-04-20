@@ -21,7 +21,7 @@ from auth import (
 from config import UPLOADS_DIR
 from database import get_db
 from limiter import limiter
-from models import User, UserRole, TeacherSubject, Subject, Class, Chapter, Concept, Exhibit, ConceptImage
+from models import User, UserRole, TeacherSubject, Subject, Class, Chapter, Concept, Exhibit, ConceptImage, ExhibitFieldType
 from schemas import (
     TokenOut,
     UserOut,
@@ -91,7 +91,10 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
             ExhibitOut(
                 id=ex.id,
                 field_key=ex.field_key,
+                field_type=ex.field_type,
                 field_value=ex.field_value,
+                file_key=ex.file_key,
+                file_url=f"/uploads/{ex.file_key}" if ex.file_key else None,
                 sort_order=ex.sort_order,
             )
             for ex in ordered_exhibits
@@ -553,7 +556,10 @@ def _build_concept_out(db: Session, concept: Concept) -> ConceptOut:
         ExhibitOut(
             id=ex.id,
             field_key=ex.field_key,
+            field_type=ex.field_type,
             field_value=ex.field_value,
+            file_key=ex.file_key,
+            file_url=f"/uploads/{ex.file_key}" if ex.file_key else None,
             sort_order=ex.sort_order,
         )
         for ex in ordered_exhibits
@@ -688,13 +694,20 @@ def create_concept(
 # ---------------------------------------------------------------------------
 
 @router.put("/exhibits/{exhibit_id}", response_model=ExhibitOut)
-def update_exhibit(
+async def update_exhibit(
     exhibit_id: int,
-    body: ExhibitUpdateIn,
+    field_key: Optional[str] = Form(None),
+    field_type: Optional[str] = Form(None),
+    field_value: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update an exhibit. Teacher must own the subject via concept->chapter->subject."""
+    """Update an exhibit. Teacher must own the subject via concept->chapter->subject.
+    
+    To replace the file, provide a new file. To remove it, this endpoint doesn't support
+    deletion of files directly - delete and recreate the exhibit instead.
+    """
     exhibit = db.query(Exhibit).filter(Exhibit.id == exhibit_id).first()
     if exhibit is None:
         raise HTTPException(status_code=404, detail="Exhibit not found")
@@ -702,17 +715,47 @@ def update_exhibit(
     subject_id = _get_concept_subject_id(db, exhibit.concept_id)
     _check_subject_access(db, current_user, subject_id)
 
-    if body.field_key is not None:
-        exhibit.field_key = body.field_key
-    if body.field_value is not None:
-        exhibit.field_value = body.field_value
+    # Validate field_type if provided
+    if field_type:
+        valid_types = ["string", "audio", "image", "video", "link"]
+        if field_type not in valid_types:
+            raise HTTPException(status_code=400, detail=f"Invalid field_type. Must be one of: {', '.join(valid_types)}")
+        exhibit.field_type = field_type
+
+    if field_key is not None:
+        exhibit.field_key = field_key
+    if field_value is not None:
+        exhibit.field_value = field_value
+
+    # Handle file replacement
+    if file:
+        # Delete old file if exists
+        if exhibit.file_key:
+            old_path = os.path.join(UPLOADS_DIR, exhibit.file_key)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        
+        os.makedirs(UPLOADS_DIR, exist_ok=True)
+        unique_name = f"{uuid.uuid4()}_{file.filename}"
+        dest_path = os.path.join(UPLOADS_DIR, unique_name)
+        
+        # Save new file
+        with open(dest_path, "wb") as f:
+            f.write(await file.read())
+        
+        exhibit.file_key = unique_name
 
     db.commit()
     db.refresh(exhibit)
+    
+    file_url = f"/uploads/{exhibit.file_key}" if exhibit.file_key else None
     return ExhibitOut(
         id=exhibit.id,
         field_key=exhibit.field_key,
+        field_type=exhibit.field_type,
         field_value=exhibit.field_value,
+        file_key=exhibit.file_key,
+        file_url=file_url,
         sort_order=exhibit.sort_order,
     )
 
@@ -723,7 +766,7 @@ def delete_exhibit(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Delete an exhibit. Teacher must own the subject."""
+    """Delete an exhibit. Teacher must own the subject. Also deletes associated files."""
     exhibit = db.query(Exhibit).filter(Exhibit.id == exhibit_id).first()
     if exhibit is None:
         raise HTTPException(status_code=404, detail="Exhibit not found")
@@ -731,19 +774,33 @@ def delete_exhibit(
     subject_id = _get_concept_subject_id(db, exhibit.concept_id)
     _check_subject_access(db, current_user, subject_id)
 
+    # Delete associated file if exists
+    if exhibit.file_key:
+        file_path = os.path.join(UPLOADS_DIR, exhibit.file_key)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
     db.delete(exhibit)
     db.commit()
     return {"ok": True}
 
 
 @router.post("/concepts/{concept_id}/exhibits", response_model=ExhibitOut, status_code=201)
-def create_exhibit(
+async def create_exhibit(
     concept_id: int,
-    body: ExhibitCreateIn,
+    field_key: str = Form(...),
+    field_type: str = Form(default="string"),
+    field_value: Optional[str] = Form(None),
+    sort_order: Optional[int] = Form(0),
+    file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Create a new exhibit for a concept. Teacher must own the subject."""
+    """Create a new exhibit for a concept. Teacher must own the subject.
+    
+    For file-type exhibits (audio, image, video), provide the file parameter.
+    For string/link types, provide field_value.
+    """
     concept = db.query(Concept).filter(Concept.id == concept_id).first()
     if concept is None:
         raise HTTPException(status_code=404, detail="Concept not found")
@@ -751,19 +808,44 @@ def create_exhibit(
     subject_id = _get_concept_subject_id(db, concept_id)
     _check_subject_access(db, current_user, subject_id)
 
+    # Validate field_type
+    valid_types = ["string", "audio", "image", "video", "link"]
+    if field_type not in valid_types:
+        raise HTTPException(status_code=400, detail=f"Invalid field_type. Must be one of: {', '.join(valid_types)}")
+
+    # Handle file upload if provided
+    file_key = None
+    if file:
+        os.makedirs(UPLOADS_DIR, exist_ok=True)
+        unique_name = f"{uuid.uuid4()}_{file.filename}"
+        dest_path = os.path.join(UPLOADS_DIR, unique_name)
+        
+        # Save file
+        with open(dest_path, "wb") as f:
+            f.write(await file.read())
+        
+        file_key = unique_name
+
     exhibit = Exhibit(
         concept_id=concept_id,
-        field_key=body.field_key,
-        field_value=body.field_value,
-        sort_order=body.sort_order if body.sort_order is not None else 0,
+        field_key=field_key,
+        field_type=field_type,
+        field_value=field_value,
+        file_key=file_key,
+        sort_order=sort_order if sort_order is not None else 0,
     )
     db.add(exhibit)
     db.commit()
     db.refresh(exhibit)
+    
+    file_url = f"/uploads/{file_key}" if file_key else None
     return ExhibitOut(
         id=exhibit.id,
         field_key=exhibit.field_key,
+        field_type=exhibit.field_type,
         field_value=exhibit.field_value,
+        file_key=file_key,
+        file_url=file_url,
         sort_order=exhibit.sort_order,
     )
 

@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+from models import ExhibitFieldType
 
 
 class TokenOut(BaseModel):
@@ -41,7 +42,10 @@ class SubjectOut(BaseModel):
 class ExhibitOut(BaseModel):
     id: int
     field_key: str
-    field_value: Optional[str]
+    field_type: str  # from ExhibitFieldType enum
+    field_value: Optional[str] = None
+    file_key: Optional[str] = None
+    file_url: Optional[str] = None  # computed: "/uploads/{file_key}"
     sort_order: int = 0
     model_config = ConfigDict(from_attributes=True)
 
@@ -223,10 +227,12 @@ class SubjectFullOut(BaseModel):
 
 class ExhibitUpdateIn(BaseModel):
     field_key: Optional[str] = None
+    field_type: Optional[str] = None
     field_value: Optional[str] = None
 
 
 class ExhibitCreateIn(BaseModel):
     field_key: str
+    field_type: str = "string"  # default to string type
     field_value: Optional[str] = None
     sort_order: Optional[int] = 0
