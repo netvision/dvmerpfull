@@ -17,6 +17,7 @@ else:
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 import bcrypt as _bcrypt
+from sqlalchemy import text
 
 from database import SessionLocal, engine
 from models import Base, Class, Subject, Chapter, Concept, Exhibit, User, UserRole
@@ -62,6 +63,37 @@ ROLE_BOOTSTRAP_USERS = [
 
 def _hash_password(plain: str) -> str:
     return _bcrypt.hashpw(plain.encode(), _bcrypt.gensalt()).decode()
+
+
+def _normalize_legacy_admin_role(db) -> None:
+    """Normalize legacy 'admin' rows to 'super_admin' before ORM user queries.
+
+    This protects seeding on databases that temporarily contain both enum labels
+    after partial/older migrations.
+    """
+    dialect = db.bind.dialect.name
+    if dialect == "postgresql":
+        db.execute(text("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_enum e ON e.enumtypid = t.oid
+                    WHERE t.typname = 'userrole' AND e.enumlabel = 'admin'
+                ) AND EXISTS (
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_enum e ON e.enumtypid = t.oid
+                    WHERE t.typname = 'userrole' AND e.enumlabel = 'super_admin'
+                ) THEN
+                    UPDATE users SET role = 'super_admin' WHERE role = 'admin';
+                END IF;
+            END $$;
+        """))
+    else:
+        db.execute(text("UPDATE users SET role = 'super_admin' WHERE role = 'admin'"))
+    db.flush()
 
 
 def _upsert_user(db, *, name: str, email: str, role: UserRole, password: str) -> tuple[User, bool]:
@@ -144,6 +176,9 @@ def seed():
 
     db = SessionLocal()
     try:
+        _normalize_legacy_admin_role(db)
+        db.commit()
+
         # ------------------------------------------------------------------
         # 1. Classes
         # ------------------------------------------------------------------
