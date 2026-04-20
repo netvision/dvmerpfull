@@ -88,8 +88,14 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
     subject = chapter.subject
     cls = subject.cls
 
+    def _sno_key(c):
+        try:
+            return (0, int(c.s_no))
+        except (TypeError, ValueError):
+            return (1, c.s_no or "")
+
     concepts_out = []
-    for concept in chapter.concepts:
+    for concept in sorted(chapter.concepts, key=_sno_key):
         ordered_exhibits = (
             db.query(Exhibit)
             .filter(Exhibit.concept_id == concept.id)
