@@ -137,14 +137,20 @@
     <!-- C) Exhibit Modal -->
     <transition name="modal-fade">
       <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-        <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-card" role="dialog" aria-modal="true" :style="{ '--accent': accentColor }">
           <!-- Modal Header -->
           <div class="modal-header">
+            <div class="modal-header-icon" aria-hidden="true">📋</div>
             <div class="modal-header-text">
-              <h3 class="modal-title">{{ modalConcept?.title }}</h3>
               <p class="modal-subtitle">Exhibit Details</p>
+              <h3 class="modal-title">{{ modalConcept?.title }}</h3>
             </div>
             <button class="modal-close" @click="closeModal" aria-label="Close">✕</button>
+          </div>
+
+          <!-- Exhibit count strip -->
+          <div class="modal-count-strip" v-if="modalConcept?.exhibits?.length">
+            {{ modalConcept.exhibits.length }} exhibit{{ modalConcept.exhibits.length !== 1 ? 's' : '' }}
           </div>
 
           <!-- Modal Body -->
@@ -156,8 +162,11 @@
                 class="exhibit-entry"
               >
                 <div class="exhibit-header">
-                  <p class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</p>
-                  <span v-if="exhibit.field_type" class="exhibit-type-badge" :class="exhibit.field_type">{{ exhibit.field_type }}</span>
+                  <div class="exhibit-label-row">
+                    <span class="exhibit-index">{{ idx + 1 }}</span>
+                    <p class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</p>
+                  </div>
+                  <span v-if="exhibit.field_type" class="exhibit-type-badge" :class="exhibit.field_type">{{ typeIcon(exhibit.field_type) }} {{ exhibit.field_type }}</span>
                 </div>
                 
                 <div class="exhibit-value">
@@ -312,6 +321,9 @@ function formatFieldKey(key) {
   if (!key) return ''
   return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
+
+const typeIconMap = { string: '📝', link: '🔗', image: '🖼️', audio: '🎵', video: '🎬' }
+function typeIcon(t) { return typeIconMap[t] || '📄' }
 
 function getYoutubeId(text) {
   if (!text) return null
@@ -759,7 +771,8 @@ onMounted(fetchChapter)
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(15, 15, 30, 0.65);
+  backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -768,57 +781,66 @@ onMounted(fetchChapter)
 }
 
 .modal-card {
-  background: white;
-  border-radius: 16px;
+  background: #fff;
+  border-radius: 20px;
   width: 100%;
-  max-width: 640px;
-  max-height: 85vh;
+  max-width: 660px;
+  max-height: 88vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.35);
+  border-top: 4px solid var(--accent, #2563eb);
 }
 
 .modal-header {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 1rem;
-  padding: 1.4rem 1.5rem 1.2rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 1.5rem 1.5rem 1.2rem;
   position: sticky;
   top: 0;
-  background: white;
-  border-radius: 16px 16px 0 0;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
   z-index: 1;
+  border-bottom: 1px solid #f0f0f8;
+}
+
+.modal-header-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
 }
 
 .modal-header-text {
   flex: 1;
-}
-
-.modal-title {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: #1e1b4b;
-  margin: 0 0 0.2rem;
-  line-height: 1.3;
+  min-width: 0;
 }
 
 .modal-subtitle {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.68rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6b7280;
+  letter-spacing: 0.1em;
+  color: var(--accent, #2563eb);
+  margin: 0 0 0.25rem;
+  opacity: 0.8;
+}
+
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #18181b;
   margin: 0;
+  line-height: 1.3;
 }
 
 .modal-close {
-  background: #f3f4f6;
+  background: #f4f4f8;
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   cursor: pointer;
   font-size: 0.85rem;
@@ -827,48 +849,92 @@ onMounted(fetchChapter)
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
   font-family: inherit;
+  margin-top: 0.1rem;
 }
 
 .modal-close:hover {
   background: #e5e7eb;
+  transform: scale(1.1);
+}
+
+/* Count strip */
+.modal-count-strip {
+  background: color-mix(in srgb, var(--accent, #2563eb) 7%, white);
+  padding: 0.5rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent, #2563eb);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent, #2563eb) 12%, white);
 }
 
 .modal-body {
-  padding: 1.25rem 1.5rem 1.5rem;
+  padding: 1.25rem 1.5rem 1.75rem;
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
 .exhibit-entry {
-  padding: 1rem 0;
+  padding: 1.1rem 0;
 }
 
 .exhibit-entry:first-child {
-  padding-top: 0;
+  padding-top: 0.25rem;
+}
+
+/* Exhibit header row */
+.exhibit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.exhibit-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.exhibit-index {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent, #2563eb);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .exhibit-label {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6b7280;
-  margin: 0 0 0.4rem;
+  letter-spacing: 0.07em;
+  color: #3f3f50;
+  margin: 0;
 }
 
 .exhibit-value {
   font-size: 0.93rem;
   color: #1f2937;
-  line-height: 1.6;
+  line-height: 1.65;
   word-break: break-word;
+  padding-left: 2rem;
 }
 
 .exhibit-divider {
   border: none;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f0f0f8;
   margin: 0;
 }
 
@@ -963,24 +1029,19 @@ onMounted(fetchChapter)
   .concept-body { padding: 1.1rem; gap: 1rem; }
   .card-watermark { font-size: 5.5rem; }
   .concept-list::before { left: 29px; }
-  .modal-card { max-height: 90vh; }
-  .modal-header { padding: 1.1rem 1.1rem 1rem; }
-  .modal-body { padding: 1rem 1.1rem 1.25rem; }
+  .modal-card { max-height: 92vh; border-radius: 16px; }
+  .modal-header { padding: 1rem 1rem 0.9rem; }
+  .modal-body { padding: 0.75rem 1rem 1.25rem; }
+  .exhibit-value { padding-left: 1.75rem; }
 }
 
 /* ---- Exhibit Type Badge ---- */
-.exhibit-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.6rem;
-}
-
 .exhibit-type-badge {
-  display: inline-block;
-  padding: 0.25rem 0.6rem;
-  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.22rem 0.65rem;
+  border-radius: 20px;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -989,36 +1050,17 @@ onMounted(fetchChapter)
   flex-shrink: 0;
 }
 
-.exhibit-type-badge.string {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.exhibit-type-badge.audio {
-  background: #fce7f3;
-  color: #be123c;
-}
-
-.exhibit-type-badge.image {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.exhibit-type-badge.video {
-  background: #fed7aa;
-  color: #92400e;
-}
-
-.exhibit-type-badge.link {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
+.exhibit-type-badge.string { background: #dbeafe; color: #1e40af; }
+.exhibit-type-badge.audio  { background: #fce7f3; color: #be123c; }
+.exhibit-type-badge.image  { background: #dcfce7; color: #166534; }
+.exhibit-type-badge.video  { background: #fed7aa; color: #92400e; }
+.exhibit-type-badge.link   { background: #f3e8ff; color: #6b21a8; }
 
 /* ---- Media Containers ---- */
 .media-container {
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  background: #f3f4f6;
+  background: #f4f4f8;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -43,7 +43,7 @@
           <div class="accent-bar"></div>
           <div class="card-body">
             <h2 class="chapter-title">{{ chapter.title }}</h2>
-            <p class="chapter-aim">{{ chapter.aim }}</p>
+            <div v-if="chapter.aim" class="chapter-aim ql-content" v-html="sanitize(chapter.aim)"></div>
             <div class="card-footer">
               <div class="badges">
                 <span class="badge badge-sessions">⏱ {{ chapter.sessions_total }} sessions</span>
@@ -69,9 +69,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import DOMPurify from 'dompurify'
 import api from '../api.js'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import ErrorBanner from '../components/ErrorBanner.vue'
+
+const sanitize = (html) => DOMPurify.sanitize(html || '')
 
 const router = useRouter()
 const route = useRoute()
@@ -258,6 +261,12 @@ onMounted(fetchChapters)
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.chapter-aim :deep(p) { margin: 0; display: inline; }
+.chapter-aim :deep(ul), .chapter-aim :deep(ol) { margin: 0; padding: 0; list-style: none; display: inline; }
+.chapter-aim :deep(li) { display: inline; }
+.chapter-aim :deep(li::before) { content: '· '; }
+.chapter-aim :deep(strong) { font-weight: 600; }
+.chapter-aim :deep(em) { font-style: italic; }
 
 .card-footer {
   display: flex;
