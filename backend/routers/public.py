@@ -111,7 +111,10 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
             ExhibitOut(
                 id=ex.id,
                 field_key=ex.field_key,
+                field_type=getattr(ex.field_type, "value", ex.field_type) or "string",
                 field_value=ex.field_value,
+                file_key=ex.file_key,
+                file_url=f"/uploads/{ex.file_key}" if ex.file_key else None,
                 sort_order=ex.sort_order,
             )
             for ex in ordered_exhibits
