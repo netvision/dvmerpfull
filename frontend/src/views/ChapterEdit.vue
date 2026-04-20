@@ -1330,7 +1330,8 @@ async function uploadXlsx() {
   padding: 1rem;
 }
 
-.modal-card {
+.modal-card,
+.modal-box {
   background: white;
   border-radius: 12px;
   max-width: 560px;
@@ -1875,6 +1876,44 @@ async function uploadXlsx() {
 /* ---- Exhibit Modal ---- */
 .exhibit-modal-box {
   max-width: 600px;
+}
+
+/* ---- Form Styling ---- */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+}
+
+.form-group input[type="text"],
+.form-group input[type="url"],
+.form-group input[type="number"],
+.form-group textarea {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: white;
+  color: #1f2937;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="url"]:focus,
+.form-group input[type="number"]:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .field-type-options {
