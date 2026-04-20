@@ -132,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api.js'
@@ -157,7 +157,8 @@ const createError = ref('')
 // For admin: filter subjects by selected class; teachers see all their assigned subjects
 const modalSubjects = computed(() => {
   if (auth.isAdmin && newChapter.value.class_id) {
-    return allModalSubjects.value.filter(s => s.class_id === newChapter.value.class_id)
+    const classId = Number(newChapter.value.class_id)
+    return allModalSubjects.value.filter(s => Number(s.class_id) === classId)
   }
   return allModalSubjects.value
 })
@@ -176,6 +177,7 @@ async function openAddModal() {
 onMounted(async () => {
   await ensureUser()
   await loadClasses()
+  await loadAllSubjects()
   await fetchChapters()
 })
 
@@ -200,8 +202,34 @@ async function onClassChange() {
       const res = await api.get(`/api/public/classes/${selectedClassId.value}/subjects`)
       subjects.value = res.data
     } catch (_) {}
+  } else {
+    await loadAllSubjects()
   }
   await fetchChapters()
+}
+
+async function loadAllSubjects() {
+  if (!classes.value.length) {
+    subjects.value = []
+    return
+  }
+
+  try {
+    const subjectResponses = await Promise.all(
+      classes.value.map(c => api.get(`/api/public/classes/${c.id}/subjects`))
+    )
+    const merged = []
+    for (const res of subjectResponses) {
+      for (const subject of res.data) {
+        if (!merged.find(s => s.id === subject.id)) {
+          merged.push(subject)
+        }
+      }
+    }
+    subjects.value = merged
+  } catch (_) {
+    subjects.value = []
+  }
 }
 
 async function fetchChapters() {
