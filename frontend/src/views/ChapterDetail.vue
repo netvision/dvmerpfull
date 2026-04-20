@@ -50,45 +50,54 @@
 
           <div class="concept-list">
             <div
-              v-for="concept in chapter.concepts"
+              v-for="(concept, idx) in chapter.concepts"
               :key="concept.id"
               class="concept-card"
+              :style="{ '--accent': accentColor }"
             >
+              <!-- Ghost watermark number -->
+              <div class="card-watermark" aria-hidden="true">{{ concept.s_no }}</div>
+
               <!-- Card Header -->
               <div class="concept-header">
-                <span class="concept-badge">{{ concept.s_no }}</span>
-                <span class="concept-title">{{ concept.title }}</span>
-                <span class="sessions-pill">{{ concept.sessions }} sess.</span>
+                <div class="concept-badge">{{ concept.s_no }}</div>
+                <div class="concept-header-text">
+                  <h3 class="concept-title">{{ concept.title }}</h3>
+                </div>
+                <div v-if="concept.sessions" class="sessions-pill">
+                  <span class="sessions-dot"></span>
+                  {{ concept.sessions }} sess.
+                </div>
               </div>
 
               <!-- Card Body -->
               <div class="concept-body">
-                <!-- Learning Outcomes -->
-                <div v-if="concept.learning_outcomes" class="concept-section">
-                  <p class="field-label">Learning Outcomes</p>
-                  <div class="ql-content field-content" v-html="sanitize(concept.learning_outcomes)"></div>
+                <!-- Learning Outcomes callout -->
+                <div v-if="concept.learning_outcomes" class="lo-callout">
+                  <p class="lo-label">🎯 Learning Outcomes</p>
+                  <div class="ql-content lo-content" v-html="sanitize(concept.learning_outcomes)"></div>
                 </div>
 
                 <!-- Extra Fields -->
-                <div class="extra-fields">
+                <div v-if="concept.integration_other_sub || concept.library || concept.activity || concept.life_lesson || concept.remarks" class="extra-fields">
                   <div v-if="concept.integration_other_sub" class="extra-field">
-                    <p class="field-label">Integration with Other Subjects</p>
+                    <p class="field-label">🔗 Integration with Other Subjects</p>
                     <div class="ql-content field-content" v-html="sanitize(concept.integration_other_sub)"></div>
                   </div>
                   <div v-if="concept.library" class="extra-field">
-                    <p class="field-label">Library</p>
+                    <p class="field-label">📚 Library</p>
                     <div class="ql-content field-content" v-html="sanitize(concept.library)"></div>
                   </div>
                   <div v-if="concept.activity" class="extra-field">
-                    <p class="field-label">Activity</p>
+                    <p class="field-label">✏️ Activity</p>
                     <div class="ql-content field-content" v-html="sanitize(concept.activity)"></div>
                   </div>
                   <div v-if="concept.life_lesson" class="extra-field">
-                    <p class="field-label">Life Lesson</p>
+                    <p class="field-label">💡 Life Lesson</p>
                     <div class="ql-content field-content" v-html="sanitize(concept.life_lesson)"></div>
                   </div>
                   <div v-if="concept.remarks" class="extra-field">
-                    <p class="field-label">Remarks</p>
+                    <p class="field-label">📝 Remarks</p>
                     <div class="ql-content field-content" v-html="sanitize(concept.remarks)"></div>
                   </div>
                 </div>
@@ -101,6 +110,7 @@
                     :href="buildAssetUrl(img.url)"
                     target="_blank"
                     rel="noopener"
+                    class="thumb-link"
                   >
                     <img
                       :src="buildAssetUrl(img.url)"
@@ -110,13 +120,11 @@
                   </a>
                 </div>
 
-                <!-- View Exhibit Button -->
+                <!-- Exhibit Button -->
                 <div class="concept-card-footer">
-                  <button
-                    class="exhibit-btn"
-                    @click="openModal(concept)"
-                  >
-                    View Exhibit →
+                  <button class="exhibit-btn" @click="openModal(concept)">
+                    <span>View Exhibit</span>
+                    <span class="btn-arrow">→</span>
                   </button>
                 </div>
               </div>
@@ -284,6 +292,8 @@ const heroGradient = computed(() => {
   if (!color) return 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
   return `linear-gradient(135deg, ${color} 0%, ${shiftColor(color)} 100%)`
 })
+
+const accentColor = computed(() => chapter.value?.subject?.color || '#2563eb')
 
 const totalSessions = computed(() => {
   if (!chapter.value?.concepts) return 0
@@ -480,84 +490,176 @@ onMounted(fetchChapter)
 .concept-list {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.75rem;
+  position: relative;
+}
+
+/* Vertical connector line behind cards */
+.concept-list::before {
+  content: '';
+  position: absolute;
+  left: 34px;
+  top: 52px;
+  bottom: 52px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--accent, #2563eb), transparent);
+  opacity: 0.12;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .concept-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  background: #fff;
+  border-radius: 20px;
+  border-left: 5px solid var(--accent, #2563eb);
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.05),
+    0 6px 24px rgba(0,0,0,0.06);
   overflow: hidden;
+  position: relative;
+  transition: transform 0.25s cubic-bezier(.22,.68,0,1.2), box-shadow 0.25s ease;
+  z-index: 1;
 }
 
-/* Concept Card Header */
+.concept-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.08),
+    0 16px 48px rgba(0,0,0,0.12);
+}
+
+/* Ghost watermark number */
+.card-watermark {
+  position: absolute;
+  top: -0.5rem;
+  right: 0.75rem;
+  font-size: 8rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--accent, #2563eb);
+  opacity: 0.04;
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: -0.04em;
+  z-index: 0;
+}
+
+/* Card Header */
 .concept-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1.1rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
-  background: #fafafa;
+  gap: 1rem;
+  padding: 1.2rem 1.5rem 1.1rem;
+  border-bottom: 1px solid #f0f0f8;
+  background: linear-gradient(to right, #fafafe 0%, #fff 55%);
+  position: relative;
+  z-index: 1;
 }
 
 .concept-badge {
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent, #2563eb);
   color: white;
-  background: #2563eb;
-  padding: 0.22rem 0.65rem;
-  border-radius: 20px;
+  font-size: 1rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  letter-spacing: -0.02em;
+}
+
+.concept-header-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .concept-title {
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   font-weight: 700;
-  color: #1e1b4b;
-  flex: 1;
-  line-height: 1.3;
+  color: #18181b;
+  margin: 0;
+  line-height: 1.35;
 }
 
 .sessions-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 0.78rem;
-  font-weight: 600;
-  color: #5b21b6;
-  background: #ede9fe;
-  padding: 0.2rem 0.65rem;
+  font-weight: 700;
+  color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--accent, #2563eb) 10%, white);
+  padding: 0.3rem 0.8rem 0.3rem 0.6rem;
   border-radius: 20px;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 20%, transparent);
+}
+
+.sessions-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent, #2563eb);
+  display: inline-block;
   flex-shrink: 0;
 }
 
-/* Concept Card Body */
+/* Card Body */
 .concept-body {
   padding: 1.4rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1.25rem;
+  position: relative;
+  z-index: 1;
 }
 
-.concept-section {
-  /* wrapper for learning outcomes */
+/* Learning Outcomes callout block */
+.lo-callout {
+  background: color-mix(in srgb, var(--accent, #2563eb) 6%, white);
+  border-left: 3px solid var(--accent, #2563eb);
+  border-radius: 0 10px 10px 0;
+  padding: 0.9rem 1.1rem;
 }
 
+.lo-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent, #2563eb);
+  margin: 0 0 0.5rem;
+  opacity: 0.85;
+}
+
+.lo-content {
+  font-size: 0.93rem;
+  color: #2d2d3a;
+  line-height: 1.7;
+}
+
+/* Extra Fields */
 .extra-fields {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding-top: 0.1rem;
 }
 
 .extra-field {
-  /* wrapper for each extra field */
+  /* no border — icon+label does the job */
 }
 
 .field-label {
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6b7280;
+  letter-spacing: 0.09em;
+  color: #8b8ba0;
   margin: 0 0 0.35rem;
 }
 
@@ -572,9 +674,9 @@ onMounted(fetchChapter)
   display: flex;
   gap: 0.75rem;
   overflow-x: auto;
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.3rem;
   scrollbar-width: thin;
-  scrollbar-color: #c4b5fd transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent, #2563eb) 40%, transparent) transparent;
 }
 
 .images-row::-webkit-scrollbar {
@@ -582,45 +684,67 @@ onMounted(fetchChapter)
 }
 
 .images-row::-webkit-scrollbar-thumb {
-  background: #c4b5fd;
+  background: color-mix(in srgb, var(--accent, #2563eb) 40%, transparent);
   border-radius: 4px;
 }
 
-.concept-thumbnail {
-  height: 90px;
-  width: auto;
-  border-radius: 8px;
-  object-fit: cover;
-  cursor: pointer;
+.thumb-link {
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-.concept-thumbnail:hover {
-  transform: scale(1.03);
+.concept-thumbnail {
+  height: 100px;
+  width: auto;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease, filter 0.25s ease;
+  filter: brightness(0.97);
+}
+
+.thumb-link:hover .concept-thumbnail {
+  transform: scale(1.05);
+  filter: brightness(1.03);
 }
 
 /* Exhibit Button */
 .concept-card-footer {
-  padding-top: 0.25rem;
+  padding-top: 0.1rem;
 }
 
 .exhibit-btn {
-  background: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--accent, #2563eb);
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 0.55rem 1.25rem;
+  border-radius: 10px;
+  padding: 0.55rem 1.3rem;
   font-size: 0.9rem;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.15);
 }
 
 .exhibit-btn:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+.btn-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.exhibit-btn:hover .btn-arrow {
+  transform: translateX(4px);
 }
 
 /* Quill content styles */
@@ -833,8 +957,12 @@ onMounted(fetchChapter)
   .hero { padding: 2rem 1rem 2rem; }
   .hero-title { font-size: 1.6rem; }
   .concepts-section { padding: 0 1rem; }
-  .concept-header { padding: 1rem 1.1rem; }
-  .concept-body { padding: 1.1rem; }
+  .concept-header { padding: 1rem 1.1rem; gap: 0.75rem; }
+  .concept-badge { width: 36px; height: 36px; font-size: 0.9rem; }
+  .concept-title { font-size: 1rem; }
+  .concept-body { padding: 1.1rem; gap: 1rem; }
+  .card-watermark { font-size: 5.5rem; }
+  .concept-list::before { left: 29px; }
   .modal-card { max-height: 90vh; }
   .modal-header { padding: 1.1rem 1.1rem 1rem; }
   .modal-body { padding: 1rem 1.1rem 1.25rem; }
