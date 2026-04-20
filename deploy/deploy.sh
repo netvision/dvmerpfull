@@ -18,6 +18,11 @@ echo "==> Running Alembic migrations..."
 cd "$BACKEND"
 "$BACKEND/venv/bin/alembic" upgrade head
 
+if [ "${RUN_SEED:-0}" = "1" ]; then
+echo "==> Running seed script..."
+"$BACKEND/venv/bin/python" seed.py
+fi
+
 echo "==> Restarting API service..."
 sudo systemctl restart dvmapi
 

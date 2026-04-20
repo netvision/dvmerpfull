@@ -62,7 +62,7 @@
               <td class="actions-cell">
                 <button class="btn-edit" @click="openEditModal(u)">Edit</button>
                 <button
-                  v-if="u.role === 'teacher'"
+                  v-if="['teacher', 'subject_head', 'mentor'].includes(u.role)"
                   class="btn-subjects"
                   @click="openSubjectsModal(u)"
                 >
@@ -96,7 +96,11 @@
             <label>Role *</label>
             <select v-model="newUser.role" required>
               <option value="teacher">Teacher</option>
-              <option value="admin">Admin</option>
+              <option value="subject_head">Subject Head</option>
+              <option value="mentor">Mentor</option>
+              <option value="hm">HM</option>
+              <option value="principal">Principal</option>
+              <option value="super_admin">Super Admin</option>
             </select>
           </div>
           <div v-if="addError" class="error-banner">{{ addError }}</div>
@@ -127,7 +131,11 @@
             <label>Role *</label>
             <select v-model="editUser.role" required>
               <option value="teacher">Teacher</option>
-              <option value="admin">Admin</option>
+              <option value="subject_head">Subject Head</option>
+              <option value="mentor">Mentor</option>
+              <option value="hm">HM</option>
+              <option value="principal">Principal</option>
+              <option value="super_admin">Super Admin</option>
             </select>
           </div>
           <div class="field">
@@ -422,13 +430,33 @@ async function saveSubjects() {
   border-radius: 20px;
 }
 
-.role-badge.admin {
+.role-badge.super_admin {
   background: #1d4ed8;
   color: white;
 }
 
 .role-badge.teacher {
   background: #2563eb;
+  color: white;
+}
+
+.role-badge.principal {
+  background: #0f766e;
+  color: white;
+}
+
+.role-badge.hm {
+  background: #0369a1;
+  color: white;
+}
+
+.role-badge.subject_head {
+  background: #4f46e5;
+  color: white;
+}
+
+.role-badge.mentor {
+  background: #7c3aed;
   color: white;
 }
 

@@ -12,8 +12,15 @@ class UserOut(BaseModel):
     id: int
     name: str
     email: str
-    role: str  # "admin" or "teacher"
+    role: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class RoleCapabilitiesOut(BaseModel):
+    role: str
+    capabilities: List[str]
+    is_admin: bool
+    is_subject_scoped: bool
 
 
 class ClassOut(BaseModel):
@@ -140,7 +147,7 @@ class UserCreateIn(BaseModel):
     name: str
     email: str
     password: str
-    role: str  # "admin" or "teacher"
+    role: str
 
 
 class UserUpdateIn(BaseModel):

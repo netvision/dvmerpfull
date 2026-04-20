@@ -16,7 +16,7 @@ Current deployment model:
 
 2. Portal for staff users
 - Secure login with JWT auth
-- Admin and teacher role support
+- Role support: teacher, subject_head, mentor, hm, principal, super_admin
 - Subject-wise chapter management
 - Concept and exhibit management
 - Chapter PDF upload and update
@@ -113,12 +113,22 @@ Backend (.env):
 Frontend (.env):
 - VITE_API_BASE_URL: public API base URL
 
-## Default Admin Account (Seed)
+## Default Super Admin Account (Seed)
 
 - Email: admin@dalmiatrusts.in
 - Password: admin123
 
 Change this immediately in production.
+
+Seed behavior notes:
+- `seed.py` creates/updates role metadata and ensures these roles exist in users: `teacher`, `subject_head`, `mentor`, `hm`, `principal`, `super_admin`
+- Existing user passwords are not reset unless `SEED_FORCE_PASSWORD_RESET=1`
+- Optional env vars:
+	- `SEED_SUPER_ADMIN_EMAIL`
+	- `SEED_SUPER_ADMIN_PASSWORD`
+	- `SEED_CREATE_ROLE_USERS` (`1` by default)
+	- `SEED_DEFAULT_USER_PASSWORD` (for optional role bootstrap users)
+	- `SEED_FORCE_PASSWORD_RESET` (`0` by default)
 
 ## Deployment (VPS + Netlify)
 
@@ -150,6 +160,9 @@ Use deploy/deploy.sh on VPS:
 3. Run migrations
 4. Restart API service
 
+To run seed during deploy:
+- `RUN_SEED=1 bash deploy/deploy.sh`
+
 ## API Overview
 
 Main router groups:
@@ -179,7 +192,7 @@ pytest
 1. Never commit real .env files.
 2. Use strong SECRET_KEY in production.
 3. Restrict ALLOWED_ORIGINS to actual frontend domains only.
-4. Replace default admin password after first login.
+4. Replace default super_admin password after first login.
 5. Keep server packages and Python dependencies updated.
 
 ## ERP Scale Roadmap (Next Phase)

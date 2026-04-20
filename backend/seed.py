@@ -46,8 +46,46 @@ FILE_MAP = [
     ("class6-maths-chapter1.xlsx",    "Class 6", "Mathematics",    1),
 ]
 
+DEFAULT_SUPER_ADMIN_EMAIL = os.getenv("SEED_SUPER_ADMIN_EMAIL", "admin@dalmiatrusts.in")
+DEFAULT_SUPER_ADMIN_PASSWORD = os.getenv("SEED_SUPER_ADMIN_PASSWORD", "admin123")
+DEFAULT_ROLE_USER_PASSWORD = os.getenv("SEED_DEFAULT_USER_PASSWORD", "welcome@123")
+CREATE_ROLE_USERS = os.getenv("SEED_CREATE_ROLE_USERS", "1").strip().lower() in {"1", "true", "yes"}
+FORCE_PASSWORD_RESET = os.getenv("SEED_FORCE_PASSWORD_RESET", "0").strip().lower() in {"1", "true", "yes"}
+
+ROLE_BOOTSTRAP_USERS = [
+    ("Teacher User", "teacher@dalmiatrusts.in", UserRole.teacher),
+    ("Subject Head User", "subjecthead@dalmiatrusts.in", UserRole.subject_head),
+    ("Mentor User", "mentor@dalmiatrusts.in", UserRole.mentor),
+    ("HM User", "hm@dalmiatrusts.in", UserRole.hm),
+    ("Principal User", "principal@dalmiatrusts.in", UserRole.principal),
+]
+
 def _hash_password(plain: str) -> str:
     return _bcrypt.hashpw(plain.encode(), _bcrypt.gensalt()).decode()
+
+
+def _upsert_user(db, *, name: str, email: str, role: UserRole, password: str) -> tuple[User, bool]:
+    """Create or update a user with the provided role and password."""
+    user = db.query(User).filter(User.email == email).first()
+    created = False
+    if user is None:
+        user = User(
+            name=name,
+            email=email,
+            hashed_password=_hash_password(password),
+            role=role,
+            is_active=True,
+        )
+        db.add(user)
+        created = True
+    else:
+        user.name = name
+        user.role = role
+        user.is_active = True
+        if FORCE_PASSWORD_RESET:
+            user.hashed_password = _hash_password(password)
+    db.flush()
+    return user, created
 
 
 # ---------------------------------------------------------------------------
@@ -205,23 +243,36 @@ def seed():
             print(f"  -> {concept_count} concepts, {exhibit_count} exhibit rows")
 
         # ------------------------------------------------------------------
-        # 4. Default admin user
+        # 4. User bootstrap
         # ------------------------------------------------------------------
-        admin = db.query(User).filter(User.email == "admin@dalmiatrusts.in").first()
-        if admin is None:
-            hashed = _hash_password("admin123")
-            admin = User(
-                name="Admin",
-                email="admin@dalmiatrusts.in",
-                hashed_password=hashed,
-                role=UserRole.admin,
-                is_active=True,
-            )
-            db.add(admin)
-            db.commit()
-            print("Created admin user: admin@dalmiatrusts.in / admin123")
+        super_admin, was_created = _upsert_user(
+            db,
+            name="Super Admin",
+            email=DEFAULT_SUPER_ADMIN_EMAIL,
+            role=UserRole.super_admin,
+            password=DEFAULT_SUPER_ADMIN_PASSWORD,
+        )
+        db.commit()
+        if was_created:
+            print(f"Created super_admin user: {super_admin.email} / {DEFAULT_SUPER_ADMIN_PASSWORD}")
         else:
-            print("Admin user already exists — skipping.")
+            print(f"Updated super_admin user: {super_admin.email}")
+
+        if CREATE_ROLE_USERS:
+            for name, email, role in ROLE_BOOTSTRAP_USERS:
+                _, created = _upsert_user(
+                    db,
+                    name=name,
+                    email=email,
+                    role=role,
+                    password=DEFAULT_ROLE_USER_PASSWORD,
+                )
+                msg = "Created" if created else "Updated"
+                print(f"{msg} {role.value} user: {email}")
+            db.commit()
+            print(f"Role users password: {DEFAULT_ROLE_USER_PASSWORD}")
+        else:
+            print("Skipped role user creation (SEED_CREATE_ROLE_USERS is false).")
 
         print("\nSeeding complete.")
 

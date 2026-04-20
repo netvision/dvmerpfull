@@ -326,6 +326,31 @@ async function deleteChapter(ch) {
   color: white;
 }
 
+.role-badge.super_admin {
+  background: #1d4ed8;
+  color: white;
+}
+
+.role-badge.principal {
+  background: #0f766e;
+  color: white;
+}
+
+.role-badge.hm {
+  background: #0369a1;
+  color: white;
+}
+
+.role-badge.subject_head {
+  background: #4f46e5;
+  color: white;
+}
+
+.role-badge.mentor {
+  background: #7c3aed;
+  color: white;
+}
+
 .logout-btn {
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.25);

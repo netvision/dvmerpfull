@@ -14,8 +14,12 @@ from database import Base
 
 
 class UserRole(enum.Enum):
-    admin = "admin"
     teacher = "teacher"
+    subject_head = "subject_head"
+    mentor = "mentor"
+    hm = "hm"
+    principal = "principal"
+    super_admin = "super_admin"
 
 
 class User(Base):

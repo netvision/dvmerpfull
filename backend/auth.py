@@ -18,6 +18,90 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8 hours
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/portal/auth/login")
 
+ADMIN_ROLES = {
+    UserRole.hm,
+    UserRole.principal,
+    UserRole.super_admin,
+}
+
+SUBJECT_SCOPED_ROLES = {
+    UserRole.teacher,
+    UserRole.subject_head,
+    UserRole.mentor,
+}
+
+ROLE_CAPABILITIES = {
+    UserRole.teacher: [
+        "subject_scope",
+        "chapter_edit",
+        "concept_edit",
+        "exhibit_edit",
+        "image_edit",
+        "pdf_upload",
+        "xlsx_upload",
+    ],
+    UserRole.subject_head: [
+        "subject_scope",
+        "chapter_edit",
+        "concept_edit",
+        "exhibit_edit",
+        "image_edit",
+        "pdf_upload",
+        "xlsx_upload",
+    ],
+    UserRole.mentor: [
+        "subject_scope",
+        "chapter_edit",
+        "concept_edit",
+        "exhibit_edit",
+        "image_edit",
+        "pdf_upload",
+        "xlsx_upload",
+    ],
+    UserRole.hm: [
+        "platform_admin",
+        "subject_scope_all",
+        "chapter_edit",
+        "chapter_delete",
+        "concept_edit",
+        "concept_delete",
+        "exhibit_edit",
+        "image_edit",
+        "pdf_upload",
+        "xlsx_upload",
+        "subject_management",
+        "user_management",
+    ],
+    UserRole.principal: [
+        "platform_admin",
+        "subject_scope_all",
+        "chapter_edit",
+        "chapter_delete",
+        "concept_edit",
+        "concept_delete",
+        "exhibit_edit",
+        "image_edit",
+        "pdf_upload",
+        "xlsx_upload",
+        "subject_management",
+        "user_management",
+    ],
+    UserRole.super_admin: [
+        "platform_admin",
+        "subject_scope_all",
+        "chapter_edit",
+        "chapter_delete",
+        "concept_edit",
+        "concept_delete",
+        "exhibit_edit",
+        "image_edit",
+        "pdf_upload",
+        "xlsx_upload",
+        "subject_management",
+        "user_management",
+    ],
+}
+
 
 # ---------------------------------------------------------------------------
 # Password hashing
@@ -85,10 +169,22 @@ def get_current_user(
     return user
 
 
+def has_admin_access(user: User) -> bool:
+    return user.role in ADMIN_ROLES
+
+
+def has_subject_scoped_access(user: User) -> bool:
+    return user.role in SUBJECT_SCOPED_ROLES
+
+
+def get_role_capabilities(user: User) -> list[str]:
+    return ROLE_CAPABILITIES.get(user.role, [])
+
+
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != UserRole.admin:
+    if not has_admin_access(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
+            detail="Privileged access required",
         )
     return current_user

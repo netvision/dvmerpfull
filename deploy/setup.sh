@@ -90,7 +90,8 @@ PY
 	fi
 fi
 
-echo "==> Running database seed (creates admin user)..."
+echo "==> Running database seed (creates super_admin + optional role users)..."
+echo "    Tip: set SEED_SUPER_ADMIN_EMAIL / SEED_SUPER_ADMIN_PASSWORD / SEED_CREATE_ROLE_USERS / SEED_FORCE_PASSWORD_RESET if needed"
 "$BACKEND/venv/bin/python" seed.py
 
 echo "==> Installing systemd service..."

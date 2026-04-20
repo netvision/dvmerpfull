@@ -16,6 +16,16 @@ from schemas import (
 
 router = APIRouter()
 
+SUBJECT_ASSIGNABLE_ROLES = {
+    UserRole.teacher,
+    UserRole.subject_head,
+    UserRole.mentor,
+}
+
+
+def _valid_role_names() -> str:
+    return ", ".join([role.value for role in UserRole])
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -68,7 +78,7 @@ def create_user(
     except KeyError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid role '{body.role}'. Must be 'admin' or 'teacher'.",
+            detail=f"Invalid role '{body.role}'. Must be one of: {_valid_role_names()}.",
         )
 
     user = User(
@@ -118,7 +128,7 @@ def update_user(
         except KeyError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid role '{body.role}'. Must be 'admin' or 'teacher'.",
+                detail=f"Invalid role '{body.role}'. Must be one of: {_valid_role_names()}.",
             )
 
     if body.is_active is not None:
@@ -145,10 +155,10 @@ def assign_subjects(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    if user.role != UserRole.teacher:
+    if user.role not in SUBJECT_ASSIGNABLE_ROLES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Subjects can only be assigned to teachers",
+            detail="Subjects can only be assigned to teacher, subject_head, or mentor roles",
         )
 
     # Validate all subject IDs exist

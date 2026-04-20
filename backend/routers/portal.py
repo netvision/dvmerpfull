@@ -9,7 +9,15 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from auth import create_access_token, get_current_user, require_admin, verify_password
+from auth import (
+    create_access_token,
+    get_current_user,
+    get_role_capabilities,
+    has_admin_access,
+    has_subject_scoped_access,
+    require_admin,
+    verify_password,
+)
 from config import UPLOADS_DIR
 from database import get_db
 from limiter import limiter
@@ -17,6 +25,7 @@ from models import User, UserRole, TeacherSubject, Subject, Class, Chapter, Conc
 from schemas import (
     TokenOut,
     UserOut,
+    RoleCapabilitiesOut,
     ChapterDetailOut,
     SubjectNestedOut,
     SubjectCreateIn,
@@ -46,8 +55,8 @@ router = APIRouter()
 
 def _check_subject_access(db: Session, user: User, subject_id: int):
     """Raise 403 if teacher doesn't have access to this subject."""
-    if user.role == UserRole.admin:
-        return  # admin has access to everything
+    if has_admin_access(user):
+        return
     access = db.query(TeacherSubject).filter(
         TeacherSubject.teacher_id == user.id,
         TeacherSubject.subject_id == subject_id,
@@ -169,6 +178,17 @@ def me(current_user: User = Depends(get_current_user)):
     )
 
 
+@router.get("/auth/capabilities", response_model=RoleCapabilitiesOut)
+def auth_capabilities(current_user: User = Depends(get_current_user)):
+    """Return the capability matrix for the authenticated role."""
+    return RoleCapabilitiesOut(
+        role=current_user.role.value,
+        capabilities=get_role_capabilities(current_user),
+        is_admin=has_admin_access(current_user),
+        is_subject_scoped=has_subject_scoped_access(current_user),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Teacher utility
 # ---------------------------------------------------------------------------
@@ -178,8 +198,8 @@ def my_subjects(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Return subjects assigned to the current teacher (or all subjects for admin)."""
-    if current_user.role == UserRole.admin:
+    """Return subjects assigned to the current user (or all subjects for privileged roles)."""
+    if has_admin_access(current_user):
         rows = db.query(Subject).join(Subject.cls).order_by(Subject.id).all()
     else:
         assigned_ids = [ts.subject_id for ts in current_user.teacher_subjects]
@@ -211,13 +231,13 @@ def list_chapters(
     db: Session = Depends(get_db),
 ):
     """
-    List chapters. Admin gets all; teacher gets only chapters in assigned subjects.
+    List chapters. Privileged roles get all; scoped roles get assigned subjects only.
     Optional query params: class_id, subject_id.
     """
     query = db.query(Chapter).join(Chapter.subject).join(Subject.cls)
 
-    if current_user.role == UserRole.teacher:
-        # Restrict to teacher's assigned subjects
+    if has_subject_scoped_access(current_user):
+        # Restrict scoped users to assigned subjects
         assigned_subject_ids = [
             ts.subject_id for ts in current_user.teacher_subjects
         ]
