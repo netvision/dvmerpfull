@@ -185,7 +185,7 @@
                   <template v-else-if="exhibit.field_type === 'image'">
                     <div class="media-container image-container">
                       <img 
-                        :src="`${API_BASE}${exhibit.file_url}`" 
+                        :src="`${apiBase}${exhibit.file_url}`" 
                         :alt="exhibit.field_key"
                         class="exhibit-image"
                       />
@@ -196,7 +196,7 @@
                   <template v-else-if="exhibit.field_type === 'audio'">
                     <div class="media-container audio-container">
                       <audio controls class="exhibit-audio">
-                        <source :src="`${API_BASE}${exhibit.file_url}`" />
+                        <source :src="`${apiBase}${exhibit.file_url}`" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
@@ -206,7 +206,7 @@
                   <template v-else-if="exhibit.field_type === 'video'">
                     <div class="media-container video-container">
                       <video controls class="exhibit-video">
-                        <source :src="`${API_BASE}${exhibit.file_url}`" />
+                        <source :src="`${apiBase}${exhibit.file_url}`" />
                         Your browser does not support the video element.
                       </video>
                     </div>
