@@ -1,5 +1,6 @@
 import tempfile
 import os
+import re
 import uuid
 import shutil
 from pathlib import Path
@@ -47,6 +48,14 @@ from schemas import (
 from xlsx_parser import parse_xlsx
 
 router = APIRouter()
+
+
+def _safe_upload_name(filename: Optional[str]) -> str:
+    original_name = filename or "upload"
+    suffix = Path(original_name).suffix.lower()
+    stem = Path(original_name).stem or "upload"
+    safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("._") or "upload"
+    return f"{uuid.uuid4()}_{safe_stem}{suffix}"
 
 
 # ---------------------------------------------------------------------------
@@ -736,7 +745,7 @@ async def update_exhibit(
                 os.remove(old_path)
         
         os.makedirs(UPLOADS_DIR, exist_ok=True)
-        unique_name = f"{uuid.uuid4()}_{file.filename}"
+        unique_name = _safe_upload_name(file.filename)
         dest_path = os.path.join(UPLOADS_DIR, unique_name)
         
         # Save new file
@@ -817,7 +826,7 @@ async def create_exhibit(
     file_key = None
     if file:
         os.makedirs(UPLOADS_DIR, exist_ok=True)
-        unique_name = f"{uuid.uuid4()}_{file.filename}"
+        unique_name = _safe_upload_name(file.filename)
         dest_path = os.path.join(UPLOADS_DIR, unique_name)
         
         # Save file

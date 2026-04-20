@@ -31,7 +31,7 @@
           </div>
           <a
             v-if="chapter.pdf_url"
-            :href="`${apiBase}${chapter.pdf_url}`"
+            :href="buildAssetUrl(chapter.pdf_url)"
             target="_blank"
             rel="noopener"
             class="pdf-download-btn"
@@ -98,12 +98,12 @@
                   <a
                     v-for="img in concept.images"
                     :key="img.id"
-                    :href="`${apiBase}${img.url}`"
+                    :href="buildAssetUrl(img.url)"
                     target="_blank"
                     rel="noopener"
                   >
                     <img
-                      :src="`${apiBase}${img.url}`"
+                      :src="buildAssetUrl(img.url)"
                       :alt="img.original_name"
                       class="concept-thumbnail"
                     />
@@ -185,7 +185,7 @@
                   <template v-else-if="exhibit.field_type === 'image'">
                     <div class="media-container image-container">
                       <img 
-                        :src="`${apiBase}${exhibit.file_url}`" 
+                        :src="buildAssetUrl(exhibit.file_url)"
                         :alt="exhibit.field_key"
                         class="exhibit-image"
                       />
@@ -196,7 +196,7 @@
                   <template v-else-if="exhibit.field_type === 'audio'">
                     <div class="media-container audio-container">
                       <audio controls class="exhibit-audio">
-                        <source :src="`${apiBase}${exhibit.file_url}`" />
+                        <source :src="buildAssetUrl(exhibit.file_url)" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
@@ -206,7 +206,7 @@
                   <template v-else-if="exhibit.field_type === 'video'">
                     <div class="media-container video-container">
                       <video controls class="exhibit-video">
-                        <source :src="`${apiBase}${exhibit.file_url}`" />
+                        <source :src="buildAssetUrl(exhibit.file_url)" />
                         Your browser does not support the video element.
                       </video>
                     </div>
@@ -261,6 +261,11 @@ import ErrorBanner from '../components/ErrorBanner.vue'
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const sanitize = (html) => DOMPurify.sanitize(html || '')
+
+function buildAssetUrl(path) {
+  if (!path) return ''
+  return encodeURI(`${apiBase}${path}`)
+}
 
 const router = useRouter()
 const route = useRoute()

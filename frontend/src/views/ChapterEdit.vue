@@ -44,7 +44,7 @@
             <div class="doc-section">
               <div class="doc-label">Chapter PDF</div>
               <div v-if="chapter.pdf_url" class="doc-current">
-                <a :href="`${API_BASE}${chapter.pdf_url}`" target="_blank" class="pdf-link">&#128196; View current PDF</a>
+                <a :href="buildAssetUrl(chapter.pdf_url)" target="_blank" class="pdf-link">&#128196; View current PDF</a>
               </div>
               <div class="doc-upload-row">
                 <label class="file-pick-btn">
@@ -280,7 +280,7 @@
               <div v-if="imageList.length" class="images-grid">
                 <div v-for="img in imageList" :key="img.id" class="image-item">
                   <img
-                    :src="`${API_BASE}${img.url}`"
+                    :src="buildAssetUrl(img.url)"
                     :alt="img.original_name"
                     class="image-thumb"
                   />
@@ -434,6 +434,11 @@ import { useAuthStore } from '../stores/auth.js'
 import RichTextEditor from '../components/RichTextEditor.vue'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+function buildAssetUrl(path) {
+  if (!path) return ''
+  return encodeURI(`${API_BASE}${path}`)
+}
 
 const router = useRouter()
 const route = useRoute()
