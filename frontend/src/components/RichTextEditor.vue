@@ -8,11 +8,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
-import QuillBetterTable from 'quill-better-table'
-import 'quill-better-table/dist/quill-better-table.css'
 import api from '../api.js'
-
-Quill.register({ 'modules/better-table': QuillBetterTable }, true)
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -60,29 +56,30 @@ onMounted(() => {
   }
 
   const insertTable = () => {
-    const tableModule = quill.getModule('better-table')
-    if (tableModule) {
-      tableModule.insertTable(3, 3)
-    }
+    const rowsInput = window.prompt('Number of rows', '3')
+    if (rowsInput === null) return
+
+    const colsInput = window.prompt('Number of columns', '3')
+    if (colsInput === null) return
+
+    const rows = Math.max(1, Math.min(10, Number.parseInt(rowsInput, 10) || 3))
+    const cols = Math.max(1, Math.min(10, Number.parseInt(colsInput, 10) || 3))
+
+    const tableRows = Array.from({ length: rows }, () => {
+      const cells = Array.from({ length: cols }, () => '<td><br></td>').join('')
+      return `<tr>${cells}</tr>`
+    }).join('')
+
+    const tableHtml = `<table><tbody>${tableRows}</tbody></table><p><br></p>`
+    const range = quill.getSelection(true)
+    const index = range ? range.index : quill.getLength()
+    quill.clipboard.dangerouslyPasteHTML(index, tableHtml, 'user')
   }
 
   quill = new Quill(editorEl.value, {
     theme: 'snow',
     placeholder: props.placeholder,
     modules: {
-      table: false,
-      'better-table': {
-        operationMenu: {
-          items: {
-            unmergeCells: {
-              text: 'Unmerge cells',
-            },
-          },
-        },
-      },
-      keyboard: {
-        bindings: QuillBetterTable.keyboardBindings,
-      },
       toolbar: {
         container: [
           ['bold', 'italic', 'underline'],
@@ -135,4 +132,7 @@ onBeforeUnmount(() => {
 .rte-wrapper :deep(.ql-container) { border: none; font-size: 14px; }
 .rte-wrapper :deep(.ql-editor) { padding: 10px 12px; }
 .rte-wrapper :deep(.ql-insertTable) { width: auto; min-width: 56px; font-size: 12px; font-weight: 600; }
+.rte-wrapper :deep(.ql-editor table) { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
+.rte-wrapper :deep(.ql-editor td),
+.rte-wrapper :deep(.ql-editor th) { border: 1px solid #cbd5e1; padding: 0.45rem 0.6rem; vertical-align: top; }
 </style>
