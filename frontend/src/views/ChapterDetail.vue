@@ -766,6 +766,12 @@ onMounted(fetchChapter)
 .ql-content :deep(em) { font-style: italic; }
 .ql-content :deep(a) { color: #2563eb; }
 .ql-content :deep(p:last-child) { margin-bottom: 0; }
+.ql-content :deep(img) {
+  max-width: 100%;
+  width: auto;
+  height: auto !important;
+  display: block;
+}
 .ql-content :deep(table) {
   width: 100%;
   border-collapse: collapse;
@@ -799,10 +805,13 @@ onMounted(fetchChapter)
 .modal-card {
   background: #fff;
   border-radius: 20px;
-  width: 100%;
-  max-width: 660px;
-  max-height: 88vh;
-  overflow-y: auto;
+  width: min(96vw, 660px);
+  max-width: 96vw;
+  max-height: 90vh;
+  min-width: 340px;
+  min-height: 280px;
+  overflow: auto;
+  resize: both;
   display: flex;
   flex-direction: column;
   box-shadow: 0 32px 80px rgba(0,0,0,0.35);
@@ -1045,7 +1054,14 @@ onMounted(fetchChapter)
   .concept-body { padding: 1.1rem; gap: 1rem; }
   .card-watermark { font-size: 5.5rem; }
   .concept-list::before { left: 29px; }
-  .modal-card { max-height: 92vh; border-radius: 16px; }
+  .modal-card {
+    max-height: 92vh;
+    border-radius: 16px;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    resize: none;
+  }
   .modal-header { padding: 1rem 1rem 0.9rem; }
   .modal-body { padding: 0.75rem 1rem 1.25rem; }
   .exhibit-value { padding-left: 1.75rem; }
@@ -1090,7 +1106,7 @@ onMounted(fetchChapter)
 .exhibit-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 

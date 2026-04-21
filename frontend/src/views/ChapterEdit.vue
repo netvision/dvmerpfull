@@ -1839,7 +1839,27 @@ async function uploadXlsx() {
 
 /* ---- Exhibit Modal ---- */
 .exhibit-modal-box {
-  max-width: 600px;
+  width: min(90vw, 760px);
+  max-width: 95vw;
+  max-height: 90vh;
+  min-width: 420px;
+  min-height: 360px;
+  resize: both;
+  overflow: auto;
+}
+
+.exhibit-modal-box .modal-body {
+  overflow: auto;
+}
+
+@media (max-width: 640px) {
+  .exhibit-modal-box {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-height: 92vh;
+    resize: none;
+  }
 }
 
 /* ---- Form Styling ---- */

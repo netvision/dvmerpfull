@@ -63,6 +63,13 @@ body {
   margin: 0.75rem 0;
 }
 
+.ql-content img {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+}
+
 .ql-content th,
 .ql-content td {
   border: 1px solid rgba(0, 0, 0, 0.32);
