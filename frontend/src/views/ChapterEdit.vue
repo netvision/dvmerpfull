@@ -268,66 +268,6 @@
               <button class="btn-add-field" @click="openExhibitModal(null)">+ Add Exhibit Field</button>
             </template>
           </div>
-
-
-          <!-- Tab 3: Images -->
-          <div v-if="activeTab === 2">
-            <div v-if="!selectedConcept?.id" class="tab-notice">
-              Save concept first to manage images.
-            </div>
-            <template v-else>
-              <!-- Existing images grid -->
-              <div v-if="imageList.length" class="images-grid">
-                <div v-for="img in imageList" :key="img.id" class="image-item">
-                  <img
-                    :src="buildAssetUrl(img.url)"
-                    :alt="img.original_name"
-                    class="image-thumb"
-                  />
-                  <div class="image-name">{{ img.original_name }}</div>
-                  <button class="btn-del-img" :disabled="img.deleting" @click="deleteImage(img)">
-                    <span v-if="img.deleting" class="spinner-sm"></span>
-                    <span v-else>Delete</span>
-                  </button>
-                </div>
-              </div>
-              <div v-else class="tab-notice">No images yet.</div>
-
-              <!-- Upload zone -->
-              <div
-                class="upload-zone"
-                :class="{ 'upload-zone--drag': isDragging }"
-                @dragover.prevent="isDragging = true"
-                @dragleave.prevent="isDragging = false"
-                @drop.prevent="onDrop"
-                @click="fileInputRef.click()"
-              >
-                <input
-                  ref="fileInputRef"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  style="display:none"
-                  @change="onFileChange"
-                />
-                <p v-if="!selectedFiles.length">Drag &amp; drop images here, or click to select</p>
-                <ul v-else class="selected-files-list">
-                  <li v-for="f in selectedFiles" :key="f.name">{{ f.name }}</li>
-                </ul>
-              </div>
-
-              <div v-if="uploadMsg.text" :class="['inline-msg', uploadMsg.type]">{{ uploadMsg.text }}</div>
-
-              <button
-                class="btn-upload"
-                :disabled="!selectedFiles.length || uploading"
-                @click="uploadImages"
-              >
-                <span v-if="uploading" class="spinner-sm"></span>
-                {{ uploading ? 'Uploading…' : 'Upload Images' }}
-              </button>
-            </template>
-          </div>
         </div>
 
         <div class="modal-footer">
@@ -484,7 +424,7 @@ const showConceptModal = ref(false)
 const isNewConcept = ref(false)
 const selectedConcept = ref(null)
 const activeTab = ref(0)
-const conceptTabs = ['Concept Info', 'Exhibit Fields', 'Images']
+const conceptTabs = ['Concept Info', 'Exhibit Fields']
 
 const conceptForm = ref({
   s_no: '',
@@ -530,14 +470,6 @@ const exhibitSaving = ref(false)
 const exhibitMsg = ref({ text: '', type: '' })
 const isDraggingExhibit = ref(false)
 
-// ---- Images ----
-const imageList = ref([])
-const selectedFiles = ref([])
-const isDragging = ref(false)
-const uploading = ref(false)
-const uploadMsg = ref({ text: '', type: '' })
-const fileInputRef = ref(null)
-
 // ---- Fetch ----
 async function fetchChapter() {
   loading.value = true
@@ -563,7 +495,6 @@ function openChapterModal() {
     class_id: classId,
     subject_id: subjectId,
   }
-  // Pre-load subjects for the chapter's current class
   if (classId) {
     api.get(`/api/public/classes/${classId}/subjects`)
       .then(res => { modalSubjects.value = res.data })
@@ -611,12 +542,7 @@ async function openConceptModal(concept) {
   }
   conceptMsg.value = { text: '', type: '' }
   activeTab.value = 0
-  // Populate exhibit rows
   exhibitRows.value = (concept.exhibits || []).map(ex => ({ ...ex, saving: false, deleting: false }))
-  // Populate image list
-  imageList.value = (concept.images || []).map(img => ({ ...img, deleting: false }))
-  selectedFiles.value = []
-  uploadMsg.value = { text: '', type: '' }
   showConceptModal.value = true
   await nextTick()
 }
@@ -639,9 +565,6 @@ async function openAddConceptModal() {
   conceptMsg.value = { text: '', type: '' }
   activeTab.value = 0
   exhibitRows.value = []
-  imageList.value = []
-  selectedFiles.value = []
-  uploadMsg.value = { text: '', type: '' }
   showConceptModal.value = true
   await nextTick()
 }
@@ -666,7 +589,6 @@ async function saveConcept() {
       isNewConcept.value = false
     } else {
       res = await api.put(`/api/portal/concepts/${selectedConcept.value.id}`, conceptForm.value)
-      // Update in chapter list
       const idx = chapter.value.concepts.findIndex(c => c.id === selectedConcept.value.id)
       if (idx >= 0) chapter.value.concepts[idx] = { ...chapter.value.concepts[idx], ...res.data }
       selectedConcept.value = { ...res.data }
@@ -816,55 +738,6 @@ async function deleteExhibit(ex, idx) {
   } catch (e) {
     alert(e.response?.data?.detail || 'Delete failed')
     ex.deleting = false
-  }
-}
-
-// ---- Images ----
-function onFileChange(e) {
-  selectedFiles.value = Array.from(e.target.files)
-}
-
-function onDrop(e) {
-  isDragging.value = false
-  selectedFiles.value = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))
-}
-
-async function uploadImages() {
-  if (!selectedConcept.value?.id || !selectedFiles.value.length) return
-  uploading.value = true
-  uploadMsg.value = { text: '', type: '' }
-  try {
-    const formData = new FormData()
-    for (const f of selectedFiles.value) {
-      formData.append('files', f)
-    }
-    const res = await api.post(
-      `/api/portal/concepts/${selectedConcept.value.id}/images`,
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
-    )
-    const newImgs = Array.isArray(res.data) ? res.data : [res.data]
-    imageList.value.push(...newImgs.map(img => ({ ...img, deleting: false })))
-    selectedFiles.value = []
-    if (fileInputRef.value) fileInputRef.value.value = ''
-    uploadMsg.value = { text: 'Upload successful!', type: 'success' }
-    setTimeout(() => { uploadMsg.value = { text: '', type: '' } }, 1500)
-  } catch (e) {
-    uploadMsg.value = { text: e.response?.data?.detail || 'Upload failed', type: 'error' }
-  } finally {
-    uploading.value = false
-  }
-}
-
-async function deleteImage(img) {
-  if (!confirm('Delete this image?')) return
-  img.deleting = true
-  try {
-    await api.delete(`/api/portal/images/${img.id}`)
-    imageList.value = imageList.value.filter(i => i.id !== img.id)
-  } catch (e) {
-    alert(e.response?.data?.detail || 'Delete failed')
-    img.deleting = false
   }
 }
 
