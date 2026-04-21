@@ -10,8 +10,16 @@ import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import QuillBetterTable from 'quill-better-table'
 import 'quill-better-table/dist/quill-better-table.css'
+import api from '../api.js'
 
 Quill.register({ 'modules/better-table': QuillBetterTable }, true)
+
+const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+function buildAssetUrl(path) {
+  if (!path) return ''
+  return encodeURI(`${apiBase}${path}`)
+}
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -30,17 +38,24 @@ onMounted(() => {
     input.setAttribute('accept', 'image/*')
     input.click()
 
-    input.onchange = () => {
+    input.onchange = async () => {
       const file = input.files?.[0]
       if (!file) return
-      const reader = new FileReader()
-      reader.onload = () => {
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await api.post('/api/portal/editor-images', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+
         const range = quill.getSelection(true)
         const index = range ? range.index : quill.getLength()
-        quill.insertEmbed(index, 'image', reader.result, 'user')
+        quill.insertEmbed(index, 'image', buildAssetUrl(res.data?.url), 'user')
         quill.setSelection(index + 1, 0)
+      } catch (error) {
+        alert(error.response?.data?.detail || 'Image upload failed')
       }
-      reader.readAsDataURL(file)
     }
   }
 

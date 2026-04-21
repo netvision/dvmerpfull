@@ -428,6 +428,32 @@ async def upload_chapter_pdf(
 # Upload route
 # ---------------------------------------------------------------------------
 
+@router.post("/editor-images")
+async def upload_editor_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload an inline editor image and return its public uploads URL."""
+    del current_user
+
+    if not (file.content_type or "").startswith("image/"):
+        raise HTTPException(status_code=422, detail="Only image files are allowed")
+
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+    unique_name = _safe_upload_name(file.filename)
+    dest_path = os.path.join(UPLOADS_DIR, unique_name)
+
+    contents = await file.read()
+    max_bytes = 5 * 1024 * 1024
+    if len(contents) > max_bytes:
+        raise HTTPException(status_code=413, detail="Image exceeds 5 MB limit")
+
+    with open(dest_path, "wb") as output:
+        output.write(contents)
+
+    return {"url": f"/uploads/{unique_name}"}
+
 @router.post("/upload", response_model=UploadResultOut)
 async def upload_xlsx(
     file: UploadFile = File(...),
