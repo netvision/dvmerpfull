@@ -210,6 +210,10 @@
               <RichTextEditor v-model="conceptForm.integration_other_sub" placeholder="Integration with other subjects…" />
             </div>
             <div class="field">
+              <label>Teaching Materials/Methods</label>
+              <RichTextEditor v-model="conceptForm.teaching_materials_methods" placeholder="Teaching materials/methods…" />
+            </div>
+            <div class="field">
               <label>Library</label>
               <RichTextEditor v-model="conceptForm.library" placeholder="Library resources…" />
             </div>
@@ -433,6 +437,7 @@ const conceptForm = ref({
   exhibit_ref: '',
   learning_outcomes: '',
   integration_other_sub: '',
+  teaching_materials_methods: '',
   library: '',
   activity: '',
   life_lesson: '',
@@ -535,6 +540,7 @@ async function openConceptModal(concept) {
     exhibit_ref: concept.exhibit_ref || '',
     learning_outcomes: concept.learning_outcomes || '',
     integration_other_sub: concept.integration_other_sub || '',
+    teaching_materials_methods: concept.teaching_materials_methods || '',
     library: concept.library || '',
     activity: concept.activity || '',
     life_lesson: concept.life_lesson || '',
@@ -557,6 +563,7 @@ async function openAddConceptModal() {
     exhibit_ref: '',
     learning_outcomes: '',
     integration_other_sub: '',
+    teaching_materials_methods: '',
     library: '',
     activity: '',
     life_lesson: '',
