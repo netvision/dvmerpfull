@@ -539,6 +539,7 @@ async def upload_xlsx(
             sessions=concept_data.get("sessions"),
             learning_outcomes=concept_data.get("learning_outcomes"),
             integration_other_sub=concept_data.get("integration_other_sub"),
+            teaching_materials_methods=concept_data.get("teaching_materials_methods"),
             library=concept_data.get("library"),
             activity=concept_data.get("activity"),
             life_lesson=concept_data.get("life_lesson"),
@@ -619,6 +620,7 @@ def _build_concept_out(db: Session, concept: Concept) -> ConceptOut:
         sessions=concept.sessions,
         learning_outcomes=concept.learning_outcomes,
         integration_other_sub=concept.integration_other_sub,
+        teaching_materials_methods=concept.teaching_materials_methods,
         library=concept.library,
         activity=concept.activity,
         life_lesson=concept.life_lesson,
@@ -665,6 +667,8 @@ def update_concept(
         concept.learning_outcomes = body.learning_outcomes
     if body.integration_other_sub is not None:
         concept.integration_other_sub = body.integration_other_sub
+    if body.teaching_materials_methods is not None:
+        concept.teaching_materials_methods = body.teaching_materials_methods
     if body.library is not None:
         concept.library = body.library
     if body.activity is not None:
@@ -718,6 +722,7 @@ def create_concept(
         sessions=body.sessions,
         learning_outcomes=body.learning_outcomes,
         integration_other_sub=body.integration_other_sub,
+        teaching_materials_methods=body.teaching_materials_methods,
         library=body.library,
         activity=body.activity,
         life_lesson=body.life_lesson,

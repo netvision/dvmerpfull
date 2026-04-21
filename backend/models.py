@@ -102,6 +102,7 @@ class Concept(Base):
     sessions = Column(String, nullable=True)
     learning_outcomes = Column(Text, nullable=True)
     integration_other_sub = Column(Text, nullable=True)
+    teaching_materials_methods = Column(Text, nullable=True)
     library = Column(Text, nullable=True)
     activity = Column(Text, nullable=True)
     life_lesson = Column(Text, nullable=True)

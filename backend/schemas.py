@@ -66,6 +66,7 @@ class ConceptOut(BaseModel):
     sessions: Optional[str]
     learning_outcomes: Optional[str]
     integration_other_sub: Optional[str]
+    teaching_materials_methods: Optional[str]
     library: Optional[str]
     activity: Optional[str]
     life_lesson: Optional[str]
@@ -180,6 +181,7 @@ class ConceptUpdateIn(BaseModel):
     sessions: Optional[str] = None
     learning_outcomes: Optional[str] = None
     integration_other_sub: Optional[str] = None
+    teaching_materials_methods: Optional[str] = None
     library: Optional[str] = None
     activity: Optional[str] = None
     life_lesson: Optional[str] = None
@@ -194,6 +196,7 @@ class ConceptCreateIn(BaseModel):
     sessions: Optional[str] = None
     learning_outcomes: Optional[str] = None
     integration_other_sub: Optional[str] = None
+    teaching_materials_methods: Optional[str] = None
     library: Optional[str] = None
     activity: Optional[str] = None
     life_lesson: Optional[str] = None

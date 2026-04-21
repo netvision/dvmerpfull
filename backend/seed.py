@@ -247,6 +247,7 @@ def seed():
                     sessions=concept_data.get("sessions"),
                     learning_outcomes=concept_data.get("learning_outcomes"),
                     integration_other_sub=concept_data.get("integration_other_sub"),
+                    teaching_materials_methods=concept_data.get("teaching_materials_methods"),
                     library=concept_data.get("library"),
                     activity=concept_data.get("activity"),
                     life_lesson=concept_data.get("life_lesson"),
