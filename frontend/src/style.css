@@ -56,6 +56,29 @@ body {
   margin: 0;
 }
 
+.ql-content table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 0.75rem 0;
+}
+
+.ql-content th,
+.ql-content td {
+  border: 1px solid rgba(0, 0, 0, 0.32);
+  padding: 0.5rem 0.65rem;
+  vertical-align: top;
+}
+
+.ql-content th {
+  background: rgba(148, 163, 184, 0.12);
+  font-weight: 700;
+}
+
+.ql-content .tableWrapper {
+  overflow-x: auto;
+}
+
 h1,
 h2 {
   font-family: var(--heading);

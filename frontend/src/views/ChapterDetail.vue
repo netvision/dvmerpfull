@@ -766,6 +766,22 @@ onMounted(fetchChapter)
 .ql-content :deep(em) { font-style: italic; }
 .ql-content :deep(a) { color: #2563eb; }
 .ql-content :deep(p:last-child) { margin-bottom: 0; }
+.ql-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 0.6rem 0;
+}
+.ql-content :deep(th),
+.ql-content :deep(td) {
+  border: 1px solid rgba(0, 0, 0, 0.38) !important;
+  padding: 0.45rem 0.6rem;
+  vertical-align: top;
+}
+.ql-content :deep(th) {
+  background: #f8fafc;
+  font-weight: 700;
+}
 
 /* Modal */
 .modal-backdrop {
