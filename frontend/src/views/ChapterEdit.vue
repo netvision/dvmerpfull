@@ -245,7 +245,7 @@
                     <th>Field Key</th>
                     <th>Type</th>
                     <th>Value/File</th>
-                    <th style="width: 80px">Actions</th>
+                    <th style="width: 130px">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -260,6 +260,18 @@
                       <span v-else class="value-preview">{{ ex.file_key ? '✓ File' : '(no file)' }}</span>
                     </td>
                     <td class="cell-actions">
+                      <button
+                        class="btn-order-ex"
+                        :disabled="idx === 0 || ex.saving || ex.deleting"
+                        @click="moveExhibit(idx, -1)"
+                        title="Move up"
+                      >↑</button>
+                      <button
+                        class="btn-order-ex"
+                        :disabled="idx === exhibitRows.length - 1 || ex.saving || ex.deleting"
+                        @click="moveExhibit(idx, 1)"
+                        title="Move down"
+                      >↓</button>
                       <button class="btn-edit-ex" :disabled="ex.saving" @click="openExhibitModal(ex, idx)" title="Edit">✎</button>
                       <button class="btn-del-ex" :disabled="ex.deleting" @click="deleteExhibit(ex, idx)" title="Delete">
                         <span v-if="ex.deleting" class="spinner-sm"></span>
@@ -700,6 +712,7 @@ async function saveExhibit() {
     
     let res
     if (isNewExhibit.value) {
+      formData.append('sort_order', String(exhibitRows.value.length))
       res = await api.post(`/api/portal/concepts/${selectedConcept.value.id}/exhibits`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
@@ -742,9 +755,53 @@ async function deleteExhibit(ex, idx) {
   try {
     await api.delete(`/api/portal/exhibits/${ex.id}`)
     exhibitRows.value.splice(idx, 1)
+    await persistExhibitOrder()
   } catch (e) {
     alert(e.response?.data?.detail || 'Delete failed')
     ex.deleting = false
+  }
+}
+
+async function persistExhibitOrder() {
+  const updates = exhibitRows.value
+    .map((ex, idx) => ({ ex, idx }))
+    .filter(({ ex, idx }) => ex.id && ex.sort_order !== idx)
+
+  if (!updates.length) return
+
+  await Promise.all(updates.map(async ({ ex, idx }) => {
+    ex.saving = true
+    try {
+      const formData = new FormData()
+      formData.append('sort_order', String(idx))
+      const res = await api.put(`/api/portal/exhibits/${ex.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      Object.assign(ex, {
+        ...res.data,
+        saving: false,
+        deleting: false,
+      })
+    } catch (e) {
+      ex.saving = false
+      throw e
+    }
+  }))
+}
+
+async function moveExhibit(idx, direction) {
+  const newIdx = idx + direction
+  if (newIdx < 0 || newIdx >= exhibitRows.value.length) return
+
+  const snapshot = exhibitRows.value.map(ex => ({ ...ex }))
+  const [moved] = exhibitRows.value.splice(idx, 1)
+  exhibitRows.value.splice(newIdx, 0, moved)
+
+  try {
+    await persistExhibitOrder()
+  } catch (e) {
+    exhibitRows.value = snapshot
+    alert(e.response?.data?.detail || 'Failed to reorder exhibit fields')
   }
 }
 
@@ -1694,6 +1751,28 @@ async function uploadXlsx() {
 .cell-actions {
   text-align: right;
   white-space: nowrap;
+}
+
+.btn-order-ex {
+  padding: 0.3rem 0.45rem;
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.15s;
+  margin-right: 0.25rem;
+}
+
+.btn-order-ex:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.btn-order-ex:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .btn-edit-ex {

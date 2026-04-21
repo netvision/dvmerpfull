@@ -746,6 +746,7 @@ async def update_exhibit(
     field_key: Optional[str] = Form(None),
     field_type: Optional[str] = Form(None),
     field_value: Optional[str] = Form(None),
+    sort_order: Optional[int] = Form(None),
     file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -773,6 +774,8 @@ async def update_exhibit(
         exhibit.field_key = field_key
     if field_value is not None:
         exhibit.field_value = field_value
+    if sort_order is not None:
+        exhibit.sort_order = sort_order
 
     # Handle file replacement
     if file:
