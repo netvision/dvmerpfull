@@ -1051,41 +1051,6 @@ def create_subject(
     return _subject_to_out(subject)
 
 
-@router.post("/subjects/seed-all-classes", status_code=200)
-def seed_subjects_all_classes(
-    current_user: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    """Create the standard set of subjects for every class that does not already have them. Admin only."""
-    STANDARD_SUBJECTS = [
-        {"name": "English",        "icon": "📖", "color": "#4f46e5"},
-        {"name": "Mathematics",    "icon": "➗", "color": "#10b981"},
-        {"name": "Science",        "icon": "🔬", "color": "#f59e0b"},
-        {"name": "Social Science", "icon": "🌍", "color": "#ef4444"},
-        {"name": "Hindi",          "icon": "🔤", "color": "#8b5cf6"},
-    ]
-    classes = db.query(Class).order_by(Class.id).all()
-    created = 0
-    skipped = 0
-    for cls in classes:
-        existing_names = {
-            s.name for s in db.query(Subject).filter(Subject.class_id == cls.id).all()
-        }
-        for meta in STANDARD_SUBJECTS:
-            if meta["name"] in existing_names:
-                skipped += 1
-                continue
-            db.add(Subject(
-                name=meta["name"],
-                icon=meta["icon"],
-                color=meta["color"],
-                class_id=cls.id,
-            ))
-            created += 1
-    db.commit()
-    return {"created": created, "skipped": skipped}
-
-
 @router.put("/subjects/{subject_id}", response_model=SubjectFullOut)
 def update_subject(
     subject_id: int,
