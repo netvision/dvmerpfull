@@ -1,9 +1,9 @@
-"""
+r"""
 Add or update teacher user accounts.
 
 Usage:
   cd backend
-  venv\Scripts\python add_teachers.py
+    venv/Scripts/python add_teachers.py
 
 This script is idempotent: running it multiple times will keep the same users
 and reset their password to the configured common password.
@@ -18,6 +18,10 @@ from dotenv import load_dotenv
 
 # Ensure imports resolve relative to this file's directory
 sys.path.insert(0, os.path.dirname(__file__))
+
+# Load backend/.env before importing database/session so DATABASE_URL is correct.
+env_path = Path(__file__).parent / ".env"
+load_dotenv(env_path)
 
 from database import SessionLocal
 from models import User, UserRole
@@ -54,10 +58,6 @@ def _title_name_from_username(username: str) -> str:
 
 
 def main() -> None:
-    # Load backend/.env if present so DATABASE_URL is picked up.
-    env_path = Path(__file__).parent / ".env"
-    load_dotenv(env_path)
-
     db = SessionLocal()
     created = 0
     updated = 0
