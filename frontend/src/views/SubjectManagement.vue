@@ -24,7 +24,10 @@
             <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
         </div>
-        <button class="add-btn" @click="openAddModal">+ Add Subject</button>
+        <div style="display:flex;gap:0.6rem">
+          <button class="add-btn" @click="openAddModal">+ Add Subject</button>
+          <button class="seed-btn" :disabled="seeding" @click="seedAllClasses">{{ seeding ? 'Creating…' : '⚡ Create Subjects for All Classes' }}</button>
+        </div>
       </div>
 
       <!-- Loading -->
@@ -179,6 +182,21 @@ const editId = ref(null)
 const form = ref({ class_id: '', name: '', icon: '', color: '#2563eb' })
 const saving = ref(false)
 const formError = ref('')
+const seeding = ref(false)
+
+async function seedAllClasses() {
+  if (!confirm('This will create English, Mathematics, Science, Social Science and Hindi for every class that does not already have them. Proceed?')) return
+  seeding.value = true
+  try {
+    const res = await api.post('/api/portal/subjects/seed-all-classes')
+    alert(`Done! Created ${res.data.created} subject(s). Skipped ${res.data.skipped} that already existed.`)
+    await fetchSubjects()
+  } catch (e) {
+    alert(e.response?.data?.detail || 'Failed to seed subjects.')
+  } finally {
+    seeding.value = false
+  }
+}
 
 function openAddModal() {
   isEdit.value = false
@@ -288,6 +306,8 @@ async function doDelete() {
 .page-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin: 0; }
 .class-filter { padding: 0.4rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; background: white; }
 .add-btn { background: #2563eb; color: white; border: none; padding: 0.5rem 1.1rem; border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.seed-btn { background: #059669; color: white; border: none; padding: 0.5rem 1.1rem; border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.seed-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .add-btn:hover { background: #1d4ed8; }
 
 /* States */
