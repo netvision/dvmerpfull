@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DVM Lesson Plans - Teacher Demo Deck</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Sora:wght@600;700&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #05101d;
+      --bg-soft: #081624;
+      --surface: #0d1f36;
+      --surface-2: #122847;
+      --card: rgba(13, 31, 54, 0.82);
+      --line: rgba(96, 165, 250, 0.28);
+      --text: #f0f6ff;
+      --muted: #93b8df;
+      --accent: #3b82f6;
+      --accent-2: #60a5fa;
+      --gold: #f59e0b;
+      --warning: #f59e0b;
+      --danger: #f87171;
+      --ok: #34d399;
+      --shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 15% 10%, #0e2a4e 0%, #05101d 45%, #030d18 100%);
+      color: var(--text);
+      font-family: Manrope, "Segoe UI", sans-serif;
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .ambient-blob {
+      position: fixed;
+      border-radius: 999px;
+      filter: blur(55px);
+      opacity: 0.28;
+      pointer-events: none;
+      z-index: 0;
+      animation: drift 14s ease-in-out infinite;
+    }
+
+    .ambient-blob.one {
+      width: 340px;
+      height: 340px;
+      background: #1d4ed8;
+      left: -80px;
+      top: -60px;
+    }
+
+    .ambient-blob.two {
+      width: 300px;
+      height: 300px;
+      background: #1e40af;
+      right: -100px;
+      bottom: -70px;
+      animation-delay: 2.5s;
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(20px) scale(1.05); }
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 3.3rem 4.2rem 6rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1.3rem;
+      opacity: 0;
+      transform: translateY(26px) scale(0.995);
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      z-index: 1;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: all;
+    }
+
+    .eyebrow {
+      font-size: 0.74rem;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+
+    h1, h2, h3 {
+      font-family: Sora, Manrope, sans-serif;
+      letter-spacing: -0.015em;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 4.8vw, 4rem);
+      line-height: 1.06;
+      max-width: 950px;
+    }
+
+    h2 {
+      font-size: clamp(1.6rem, 2.7vw, 2.4rem);
+      line-height: 1.15;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 1rem;
+      max-width: 900px;
+    }
+
+    .hero-title {
+      background: linear-gradient(120deg, #e0f0ff 0%, #93c5fd 40%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      margin-top: 0.8rem;
+      font-size: 1.1rem;
+      max-width: 840px;
+    }
+
+    .meta-row {
+      margin-top: 0.9rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .chip {
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(17, 48, 47, 0.55);
+      color: #d8fff0;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .grid {
+      width: 100%;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      backdrop-filter: blur(4px);
+      box-shadow: var(--shadow);
+      padding: 1.05rem 1.1rem;
+    }
+
+    .card h3 {
+      font-size: 1.02rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .small {
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .list {
+      list-style: none;
+      display: grid;
+      gap: 0.5rem;
+      margin-top: 0.45rem;
+    }
+
+    .list li {
+      color: #d6f7ec;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+
+    .list li::before {
+      content: "•";
+      color: var(--accent);
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-weight: 700;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.35rem;
+    }
+
+    .flow-step {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 0.8rem;
+      background: rgba(16, 36, 36, 0.75);
+    }
+
+    .step-no {
+      display: inline-flex;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 999px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.4rem;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .flow-step h3 {
+      font-size: 0.92rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .flow-step p {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #b8ddd4;
+    }
+
+    .demo-script {
+      border-left: 4px solid var(--accent);
+      padding: 0.8rem 0.95rem;
+      background: rgba(29, 78, 216, 0.18);
+      border-radius: 10px;
+      margin-top: 0.45rem;
+    }
+
+    .demo-script p {
+      max-width: none;
+      font-size: 0.92rem;
+      color: #d6fff4;
+    }
+
+    .warn { color: #fde68a; }
+    .good { color: #86efac; }
+    .risk { color: #fca5a5; }
+
+    .footer-note {
+      margin-top: 0.6rem;
+      font-size: 0.84rem;
+      color: #9dcfc3;
+    }
+
+    .nav {
+      position: fixed;
+      left: 50%;
+      bottom: 1.15rem;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      z-index: 20;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(13, 29, 29, 0.9);
+      padding: 0.42rem 0.55rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .nav button {
+      border: none;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 0.38rem 0.8rem;
+      cursor: pointer;
+    }
+
+    .counter {
+      font-size: 0.78rem;
+      color: var(--muted);
+      min-width: 70px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .progress-track {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(59, 130, 246, 0.2);
+      z-index: 30;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #2563eb, #f59e0b);
+      transition: width 0.35s ease;
+    }
+
+    .kbd {
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      padding: 0.12rem 0.38rem;
+      font-size: 0.73rem;
+      font-weight: 700;
+      color: #ddfff4;
+      background: rgba(16, 38, 37, 0.8);
+    }
+
+    @media (max-width: 960px) {
+      .slide {
+        padding: 2rem 1.1rem 5.4rem;
+        justify-content: flex-start;
+        overflow-y: auto;
+      }
+
+      .grid-2, .grid-3, .flow {
+        grid-template-columns: 1fr;
+      }
+
+      h1 { font-size: 2rem; }
+      h2 { font-size: 1.35rem; }
+      p { font-size: 0.95rem; }
+
+      .nav {
+        width: calc(100% - 1rem);
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+
+  <div class="deck" id="deck">
+    <div class="ambient-blob one"></div>
+    <div class="ambient-blob two"></div>
+
+    <section class="slide active">
+      <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:0.3rem">
+        <img src="../frontend/public/dvm-logo.png" alt="DVM Logo" style="height:90px;width:auto;filter:drop-shadow(0 4px 18px rgba(245,158,11,0.45))" />
+        <div>
+          <div style="font-size:1.95rem;font-weight:900;letter-spacing:-0.01em;color:#f0f6ff;font-family:'Sora',sans-serif;">Dalmia Vidya Mandir</div>
+          <div style="font-size:0.88rem;color:#f59e0b;letter-spacing:0.06em;font-weight:700;margin-top:0.15rem;">From Living Standards to Life Standards</div>
+        </div>
+      </div>
+      <div class="eyebrow" style="margin-top:0.5rem">Teacher Orientation Deck</div>
+      <h1 class="hero-title">Digital Lesson Plans Platform</h1>
+      <p class="hero-sub">A classroom-ready demo for teachers — learn to browse chapter content, review concept exhibits, and manage lessons in minutes.</p>
+      <div class="meta-row">
+        <span class="chip">Audience: Teachers</span>
+        <span class="chip">Duration: 15–20 mins</span>
+        <span class="chip">Mode: Live System Demo</span>
+        <span class="chip">Includes Q&amp;A</span>
+      </div>
+      <p class="footer-note">Tip: Present in browser full-screen mode. Use ← → or Page Up/Down to navigate.</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Session Plan</div>
+      <h2>What We Will Cover</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>1) Public Learning Flow</h3>
+          <ul class="list">
+            <li>Home screen and class selection</li>
+            <li>Subject dashboard and chapter list</li>
+            <li>Chapter detail with concept cards and exhibits</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>2) Teacher Portal Flow</h3>
+          <ul class="list">
+            <li>Login and chapter management table</li>
+            <li>Concept editing with rich text and tables</li>
+            <li>Exhibit media fields and ordering</li>
+          </ul>
+        </div>
+      </div>
+      <div class="demo-script">
+        <p>Goal statement: "By the end of this demo, every teacher should be able to find chapter content in under 30 seconds and update concept content without technical help."</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">UI Journey</div>
+      <h2>Teacher/Student Navigation Path</h2>
+      <div class="flow">
+        <div class="flow-step">
+          <span class="step-no">1</span>
+          <h3>Home</h3>
+          <p>Colorful class cards help quick visual selection.</p>
+        </div>
+        <div class="flow-step">
+          <span class="step-no">2</span>
+          <h3>Subject Dashboard</h3>
+          <p>Subject cards show icon and chapter count per subject.</p>
+        </div>
+        <div class="flow-step">
+          <span class="step-no">3</span>
+          <h3>Chapter List</h3>
+          <p>Each card includes aim, session count, concept count, and PDF shortcut.</p>
+        </div>
+        <div class="flow-step">
+          <span class="step-no">4</span>
+          <h3>Chapter Detail</h3>
+          <p>Concept cards with learning outcomes and exhibit media support.</p>
+        </div>
+      </div>
+      <p class="footer-note">Live demo prompt: "Notice every screen uses breadcrumb navigation so nobody gets lost."</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Public UI Details</div>
+      <h2>Chapter and Concept Experience</h2>
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>Readable Chapter Aim</h3>
+          <p class="small">Chapter aims render as formatted HTML, so lists, emphasis, and structure remain clean for teachers and students.</p>
+        </div>
+        <div class="card">
+          <h3>Concept Card Content Blocks</h3>
+          <p class="small">Learning outcomes, library, activities, life lessons, and remarks appear as separate blocks for easier lesson planning.</p>
+        </div>
+        <div class="card">
+          <h3>PDF and Session Context</h3>
+          <p class="small">Session totals and downloadable chapter PDFs make it easy to align classroom pacing with planned teaching.</p>
+        </div>
+      </div>
+      <div class="demo-script">
+        <p>Demo line: "I can show chapter depth in one glance and open supporting PDF instantly without leaving the page."</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Exhibit UX</div>
+      <h2>Exhibit Modal Behavior Teachers Will Notice</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Rich Media Types</h3>
+          <ul class="list">
+            <li>Text exhibits with rich formatting</li>
+            <li>Image exhibits with responsive scaling</li>
+            <li>Audio and video playback inside modal</li>
+            <li>Links and YouTube embeds where relevant</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Recent UX Improvements</h3>
+          <ul class="list">
+            <li>Resizable exhibit modal for easier reading</li>
+            <li>Outside click does not close modal</li>
+            <li>Modal closes intentionally from the close button</li>
+            <li>Inline content images remain responsive on mobile</li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-note warn">Presenter tip: show this explicitly by clicking outside the popup and proving that it stays open.</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Portal Overview</div>
+      <h2>Teacher Portal for Content Management</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Chapter Table</h3>
+          <ul class="list">
+            <li>Filters by class and subject</li>
+            <li>Quick edit action per chapter</li>
+            <li>Session and concept counters</li>
+            <li>Add chapter modal for fast creation</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Role-Aware Access</h3>
+          <ul class="list">
+            <li>Teachers: manage their assigned content</li>
+            <li>Admin: extra controls for users and subjects</li>
+            <li>Protected routes behind login</li>
+            <li>Consistent top navigation and logout</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Editing Experience</div>
+      <h2>Concept and Exhibit Editing in Practice</h2>
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>Rich Text Editor</h3>
+          <p class="small">Icon-based toolbar supports bold/italic/lists, links, image upload, and table creation. Teachers can format content without HTML knowledge.</p>
+        </div>
+        <div class="card">
+          <h3>Table Support</h3>
+          <p class="small">Native table controls allow adding/removing rows and columns, with visible borders in rendered chapter content.</p>
+        </div>
+        <div class="card">
+          <h3>Exhibit Ordering</h3>
+          <p class="small">Exhibit fields can be moved up or down so teachers control presentation order exactly as they want students to consume it.</p>
+        </div>
+      </div>
+      <div class="demo-script">
+        <p>Demo line: "I will add a 3x3 table, upload an image, and reorder two exhibits to show this can be done in under a minute."</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Live Demo Script</div>
+      <h2>Step-by-Step (12 Minutes)</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Part A: Consumption Flow (5 min)</h3>
+          <ul class="list">
+            <li>Open Home and pick one class</li>
+            <li>Open one subject and one chapter</li>
+            <li>Read concept learning outcome block</li>
+            <li>Open Exhibit modal and test media</li>
+            <li>Resize modal and click outside to prove persistence</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Part B: Authoring Flow (7 min)</h3>
+          <ul class="list">
+            <li>Login to portal and open chapter edit</li>
+            <li>Edit one concept using rich text and table</li>
+            <li>Upload one inline image in editor</li>
+            <li>Add or reorder one exhibit field</li>
+            <li>Save and verify immediately in public view</li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-note good">Confidence close: "What you edit is what learners see, with no extra formatting work."</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Q and A Prep</div>
+      <h2>Likely Questions from Teachers</h2>
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>Can I paste from Word?</h3>
+          <p class="small">Yes. Most formatting is preserved. You can quickly clean styles using the clear-format option if needed.</p>
+        </div>
+        <div class="card">
+          <h3>Can I add teaching resources?</h3>
+          <p class="small">Yes. Add links, uploaded media exhibits, and structured text in concept sections, including teaching methods/materials fields.</p>
+        </div>
+        <div class="card">
+          <h3>What if media is large?</h3>
+          <p class="small">Images are responsive, and media plays inside the exhibit modal. Recommend compressed files for faster classroom loading.</p>
+        </div>
+      </div>
+      <p class="footer-note">Operational tip: keep one chapter preloaded before the meeting to avoid network delays during first demo click.</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Wrap Up</div>
+      <h2>Outcome for Teachers</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>What Improves Immediately</h3>
+          <ul class="list">
+            <li>Faster lesson prep from structured chapter pages</li>
+            <li>Better classroom presentation using exhibits and media</li>
+            <li>Cleaner collaboration with consistent lesson format</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Next Adoption Step</h3>
+          <ul class="list">
+            <li>Each department nominates one chapter owner</li>
+            <li>Build first 2-week content baseline</li>
+            <li>Collect teacher feedback and tune templates</li>
+          </ul>
+        </div>
+      </div>
+      <p class="hero-sub" style="margin-top: 0.4rem;">Thank you. Use <span class="kbd">←</span> <span class="kbd">→</span> keys for navigation during your presentation.</p>
+    </section>
+  </div>
+
+  <div class="nav">
+    <button id="prevBtn" type="button">Prev</button>
+    <div class="counter" id="counter">1 / 10</div>
+    <button id="nextBtn" type="button">Next</button>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')]
+    const counter = document.getElementById('counter')
+    const progress = document.getElementById('progress')
+    const prevBtn = document.getElementById('prevBtn')
+    const nextBtn = document.getElementById('nextBtn')
+
+    let index = 0
+
+    function render() {
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === index))
+      counter.textContent = `${index + 1} / ${slides.length}`
+      progress.style.width = `${((index + 1) / slides.length) * 100}%`
+      prevBtn.disabled = index === 0
+      nextBtn.disabled = index === slides.length - 1
+    }
+
+    function go(step) {
+      const next = index + step
+      if (next < 0 || next >= slides.length) return
+      index = next
+      render()
+    }
+
+    prevBtn.addEventListener('click', () => go(-1))
+    nextBtn.addEventListener('click', () => go(1))
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+        event.preventDefault()
+        go(1)
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        event.preventDefault()
+        go(-1)
+      }
+      if (event.key === 'Home') {
+        index = 0
+        render()
+      }
+      if (event.key === 'End') {
+        index = slides.length - 1
+        render()
+      }
+    })
+
+    render()
+  </script>
+</body>
+</html>

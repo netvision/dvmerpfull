@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DVM पाठ योजना — शिक्षक प्रस्तुति</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #05101d;
+      --surface: #0d1f36;
+      --card: rgba(13, 31, 54, 0.82);
+      --line: rgba(96, 165, 250, 0.28);
+      --text: #f0f6ff;
+      --muted: #93b8df;
+      --accent: #3b82f6;
+      --accent-2: #60a5fa;
+      --gold: #f59e0b;
+      --ok: #34d399;
+      --warning: #fde68a;
+      --danger: #fca5a5;
+      --shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 15% 10%, #0e2a4e 0%, #05101d 45%, #030d18 100%);
+      color: var(--text);
+      font-family: 'Hind', 'Noto Sans Devanagari', 'Segoe UI', sans-serif;
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .ambient-blob {
+      position: fixed;
+      border-radius: 999px;
+      filter: blur(55px);
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+      animation: drift 14s ease-in-out infinite;
+    }
+
+    .ambient-blob.one {
+      width: 340px;
+      height: 340px;
+      background: #1d4ed8;
+      left: -80px;
+      top: -60px;
+    }
+
+    .ambient-blob.two {
+      width: 300px;
+      height: 300px;
+      background: #b45309;
+      right: -100px;
+      bottom: -70px;
+      animation-delay: 2.5s;
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(20px) scale(1.05); }
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 3rem 4.2rem 6rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1.2rem;
+      opacity: 0;
+      transform: translateY(26px) scale(0.995);
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      z-index: 1;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: all;
+    }
+
+    .eyebrow {
+      font-size: 0.74rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    h1 {
+      font-family: 'Noto Sans Devanagari', 'Hind', sans-serif;
+      font-size: clamp(2rem, 4.2vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      max-width: 950px;
+      background: linear-gradient(120deg, #e0f0ff 0%, #93c5fd 40%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    h2 {
+      font-family: 'Noto Sans Devanagari', 'Hind', sans-serif;
+      font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    h3 {
+      font-family: 'Noto Sans Devanagari', 'Hind', sans-serif;
+      font-size: 1.02rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 0.97rem;
+      max-width: 900px;
+    }
+
+    .hero-sub {
+      margin-top: 0.8rem;
+      font-size: 1.08rem;
+      max-width: 840px;
+      color: #c3d9f5;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+    }
+
+    .chip {
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(13, 31, 54, 0.55);
+      color: #d8eeff;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .grid {
+      width: 100%;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      backdrop-filter: blur(4px);
+      box-shadow: var(--shadow);
+      padding: 1.05rem 1.1rem;
+    }
+
+    .small {
+      font-size: 0.9rem;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+
+    .list {
+      list-style: none;
+      display: grid;
+      gap: 0.5rem;
+      margin-top: 0.45rem;
+    }
+
+    .list li {
+      color: #d0e8ff;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+
+    .list li::before {
+      content: "•";
+      color: var(--gold);
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-weight: 700;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.35rem;
+    }
+
+    .flow-step {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 0.8rem;
+      background: rgba(10, 25, 47, 0.75);
+    }
+
+    .step-no {
+      display: inline-flex;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 999px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.4rem;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .flow-step h3 {
+      font-size: 0.9rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .flow-step p {
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: #9bbddc;
+    }
+
+    .demo-script {
+      border-left: 4px solid var(--gold);
+      padding: 0.8rem 0.95rem;
+      background: rgba(120, 80, 10, 0.18);
+      border-radius: 10px;
+      margin-top: 0.45rem;
+    }
+
+    .demo-script p {
+      max-width: none;
+      font-size: 0.93rem;
+      color: #fde68a;
+      line-height: 1.6;
+    }
+
+    .footer-note {
+      margin-top: 0.5rem;
+      font-size: 0.84rem;
+      color: #93b8df;
+    }
+
+    .warn  { color: #fde68a; }
+    .good  { color: #86efac; }
+
+    .nav {
+      position: fixed;
+      left: 50%;
+      bottom: 1.15rem;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      z-index: 20;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(8, 20, 36, 0.92);
+      padding: 0.42rem 0.55rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .nav button {
+      border: none;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.38rem 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .counter {
+      font-size: 0.78rem;
+      color: var(--muted);
+      min-width: 70px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .progress-track {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(59, 130, 246, 0.2);
+      z-index: 30;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #2563eb, #f59e0b);
+      transition: width 0.35s ease;
+    }
+
+    .kbd {
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      padding: 0.12rem 0.38rem;
+      font-size: 0.73rem;
+      font-weight: 700;
+      color: #ddeeff;
+      background: rgba(14, 30, 56, 0.8);
+    }
+
+    @media (max-width: 960px) {
+      .slide {
+        padding: 2rem 1.1rem 5.4rem;
+        justify-content: flex-start;
+        overflow-y: auto;
+      }
+      .grid-2, .grid-3, .flow { grid-template-columns: 1fr; }
+      h1 { font-size: 1.9rem; }
+      h2 { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+
+  <div class="deck" id="deck">
+    <div class="ambient-blob one"></div>
+    <div class="ambient-blob two"></div>
+
+    <!-- स्लाइड 1: टाइटल -->
+    <section class="slide active">
+      <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:0.4rem">
+        <img src="../frontend/public/dvm-logo.png" alt="DVM Logo" style="height:88px;width:auto;filter:drop-shadow(0 4px 18px rgba(245,158,11,0.5))" />
+        <div>
+          <div style="font-size:1.9rem;font-weight:900;color:#f0f6ff;font-family:'Noto Sans Devanagari',sans-serif;">दलमिया विद्या मन्दिर</div>
+          <div style="font-size:0.85rem;color:#f59e0b;letter-spacing:0.05em;font-weight:700;margin-top:0.15rem;">न्याय और स्वधर्म से समृद्धि</div>
+        </div>
+      </div>
+      <div class="eyebrow">शिक्षक प्रशिक्षण प्रस्तुति</div>
+      <h1>डिजिटल पाठ योजना मंच</h1>
+      <p class="hero-sub">इस प्रस्तुति में शिक्षकगण सीखेंगे कि अध्याय की सामग्री कैसे खोजें, अवधारणाएँ कैसे समझें और प्रदर्श सामग्री को कक्षा में कैसे उपयोग करें।</p>
+      <div class="meta-row">
+        <span class="chip">दर्शक: शिक्षकगण</span>
+        <span class="chip">अवधि: 15–20 मिनट</span>
+        <span class="chip">सत्र: लाइव डेमो</span>
+        <span class="chip">प्रश्नोत्तर सहित</span>
+      </div>
+      <p class="footer-note">सुझाव: ब्राउज़र को फ़ुल-स्क्रीन मोड में प्रस्तुत करें। ← → कुंजियों से नेविगेट करें।</p>
+    </section>
+
+    <!-- स्लाइड 2: सत्र योजना -->
+    <section class="slide">
+      <div class="eyebrow">सत्र योजना</div>
+      <h2>आज हम क्या देखेंगे</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>१) सार्वजनिक अध्ययन प्रवाह</h3>
+          <ul class="list">
+            <li>होम स्क्रीन और कक्षा का चयन</li>
+            <li>विषय डैशबोर्ड और अध्याय सूची</li>
+            <li>अध्याय विवरण, अवधारणाएँ और प्रदर्श</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>२) शिक्षक पोर्टल प्रवाह</h3>
+          <ul class="list">
+            <li>लॉगिन और अध्याय प्रबंधन तालिका</li>
+            <li>रिच टेक्स्ट और तालिका से अवधारणा संपादन</li>
+            <li>मीडिया प्रदर्श क्षेत्र और क्रम व्यवस्था</li>
+          </ul>
+        </div>
+      </div>
+      <div class="demo-script">
+        <p>लक्ष्य: "इस डेमो के बाद हर शिक्षक 30 सेकंड में अध्याय की सामग्री ढूंढ सकेंगे और बिना किसी तकनीकी सहायता के अवधारणाएँ अपडेट कर सकेंगे।"</p>
+      </div>
+    </section>
+
+    <!-- स्लाइड 3: नेविगेशन पथ -->
+    <section class="slide">
+      <div class="eyebrow">UI यात्रा</div>
+      <h2>शिक्षक / विद्यार्थी नेविगेशन पथ</h2>
+      <div class="flow">
+        <div class="flow-step">
+          <span class="step-no">१</span>
+          <h3>होम</h3>
+          <p>रंगीन कक्षा कार्डों से त्वरित चयन।</p>
+        </div>
+        <div class="flow-step">
+          <span class="step-no">२</span>
+          <h3>विषय डैशबोर्ड</h3>
+          <p>प्रत्येक विषय कार्ड पर आइकन और अध्याय गणना।</p>
+        </div>
+        <div class="flow-step">
+          <span class="step-no">३</span>
+          <h3>अध्याय सूची</h3>
+          <p>प्रत्येक कार्ड में उद्देश्य, सत्र संख्या, अवधारणा गणना और PDF।</p>
+        </div>
+        <div class="flow-step">
+          <span class="step-no">४</span>
+          <h3>अध्याय विवरण</h3>
+          <p>अवधारणा कार्ड, सीखने के परिणाम और प्रदर्श मीडिया।</p>
+        </div>
+      </div>
+      <p class="footer-note">डेमो संकेत: "हर स्क्रीन पर ब्रेडक्रम्ब नेविगेशन देखें — कोई खो नहीं सकता।"</p>
+    </section>
+
+    <!-- स्लाइड 4: अध्याय और अवधारणा अनुभव -->
+    <section class="slide">
+      <div class="eyebrow">सार्वजनिक UI विवरण</div>
+      <h2>अध्याय और अवधारणा का अनुभव</h2>
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>पठनीय अध्याय उद्देश्य</h3>
+          <p class="small">अध्याय उद्देश्य फ़ॉर्मेटेड HTML के रूप में प्रस्तुत होते हैं — सूचियाँ, जोर और संरचना स्पष्ट दिखती है।</p>
+        </div>
+        <div class="card">
+          <h3>अवधारणा कार्ड के ब्लॉक</h3>
+          <p class="small">सीखने के परिणाम, पुस्तकालय, गतिविधियाँ, जीवन पाठ और टिप्पणियाँ अलग-अलग ब्लॉक में दिखती हैं।</p>
+        </div>
+        <div class="card">
+          <h3>PDF और सत्र जानकारी</h3>
+          <p class="small">कुल सत्र संख्या और डाउनलोडेबल PDF बिना पृष्ठ छोड़े सीधे उपलब्ध है।</p>
+        </div>
+      </div>
+      <div class="demo-script">
+        <p>डेमो पंक्ति: "एक नजर में अध्याय की गहराई देखें और PDF तुरंत खोलें।"</p>
+      </div>
+    </section>
+
+    <!-- स्लाइड 5: प्रदर्श मोडल -->
+    <section class="slide">
+      <div class="eyebrow">प्रदर्श अनुभव</div>
+      <h2>प्रदर्श मोडल — शिक्षक क्या देखेंगे</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>समृद्ध मीडिया प्रकार</h3>
+          <ul class="list">
+            <li>फ़ॉर्मेटेड टेक्स्ट प्रदर्श</li>
+            <li>रेस्पॉन्सिव इमेज प्रदर्श</li>
+            <li>मोडल के भीतर ऑडियो और वीडियो प्लेबैक</li>
+            <li>लिंक और YouTube एम्बेड</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>हाल के UX सुधार</h3>
+          <ul class="list">
+            <li>मोडल को कोने से खींचकर बड़ा करें</li>
+            <li>बाहर क्लिक करने से मोडल बंद नहीं होगा</li>
+            <li>केवल × बटन से बंद होगा</li>
+            <li>सभी डिवाइस पर इमेज रेस्पॉन्सिव हैं</li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-note warn">प्रस्तुतकर्ता सुझाव: मोडल खुला हो तो बाहर क्लिक करके दिखाएँ — यह बंद नहीं होगा।</p>
+    </section>
+
+    <!-- स्लाइड 6: पोर्टल अवलोकन -->
+    <section class="slide">
+      <div class="eyebrow">पोर्टल अवलोकन</div>
+      <h2>शिक्षक पोर्टल — सामग्री प्रबंधन</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>अध्याय तालिका</h3>
+          <ul class="list">
+            <li>कक्षा और विषय के अनुसार फ़िल्टर</li>
+            <li>प्रत्येक अध्याय के लिए त्वरित संपादन</li>
+            <li>सत्र और अवधारणा गणक</li>
+            <li>नया अध्याय जोड़ने का मोडल</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>भूमिका-आधारित पहुँच</h3>
+          <ul class="list">
+            <li>शिक्षक: अपनी सामग्री प्रबंधित करें</li>
+            <li>एडमिन: उपयोगकर्ता और विषय नियंत्रण</li>
+            <li>लॉगिन से सुरक्षित मार्ग</li>
+            <li>शीर्ष नेविगेशन और लॉगआउट</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- स्लाइड 7: संपादन अनुभव -->
+    <section class="slide">
+      <div class="eyebrow">संपादन अनुभव</div>
+      <h2>अवधारणा और प्रदर्श संपादन</h2>
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>रिच टेक्स्ट संपादक</h3>
+          <p class="small">आइकन-आधारित टूलबार से बोल्ड, इटैलिक, सूची, लिंक, इमेज अपलोड और तालिका बनाएँ — HTML ज्ञान की आवश्यकता नहीं।</p>
+        </div>
+        <div class="card">
+          <h3>तालिका समर्थन</h3>
+          <p class="small">पंक्तियाँ और स्तंभ जोड़ें या हटाएँ। अध्याय में तालिका की सीमाएँ स्पष्ट दिखती हैं।</p>
+        </div>
+        <div class="card">
+          <h3>प्रदर्श क्रम व्यवस्था</h3>
+          <p class="small">↑ ↓ बटन से प्रदर्श क्षेत्रों का क्रम बदलें — विद्यार्थी ठीक उसी क्रम में सामग्री देखेंगे।</p>
+        </div>
+      </div>
+      <div class="demo-script">
+        <p>डेमो पंक्ति: "अब मैं एक 3×3 तालिका बनाऊँगा, इमेज अपलोड करूँगा और दो प्रदर्श का क्रम बदलूँगा — एक मिनट से कम में।"</p>
+      </div>
+    </section>
+
+    <!-- स्लाइड 8: लाइव डेमो स्क्रिप्ट -->
+    <section class="slide">
+      <div class="eyebrow">लाइव डेमो स्क्रिप्ट</div>
+      <h2>चरण-दर-चरण (12 मिनट)</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>भाग A: सामग्री देखना (5 मिनट)</h3>
+          <ul class="list">
+            <li>होम खोलें और एक कक्षा चुनें</li>
+            <li>एक विषय और एक अध्याय खोलें</li>
+            <li>अवधारणा के सीखने के परिणाम पढ़ें</li>
+            <li>प्रदर्श मोडल खोलें और मीडिया देखें</li>
+            <li>मोडल बाहर से क्लिक करके स्थिरता दिखाएँ</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>भाग B: सामग्री संपादन (7 मिनट)</h3>
+          <ul class="list">
+            <li>पोर्टल में लॉगिन करें</li>
+            <li>एक अध्याय खोलें और अवधारणा संपादित करें</li>
+            <li>संपादक में इनलाइन इमेज अपलोड करें</li>
+            <li>एक प्रदर्श जोड़ें या क्रम बदलें</li>
+            <li>सहेजें और सार्वजनिक दृश्य में तुरंत सत्यापित करें</li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-note good">आत्मविश्वास वाक्य: "आप जो संपादित करते हैं वही विद्यार्थी देखते हैं — कोई अतिरिक्त फ़ॉर्मेटिंग नहीं।"</p>
+    </section>
+
+    <!-- स्लाइड 9: प्रश्नोत्तर -->
+    <section class="slide">
+      <div class="eyebrow">प्रश्नोत्तर तैयारी</div>
+      <h2>शिक्षकों के संभावित प्रश्न</h2>
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>क्या Word से पेस्ट कर सकते हैं?</h3>
+          <p class="small">हाँ। अधिकांश फ़ॉर्मेटिंग बनी रहती है। ज़रूरत पड़ने पर क्लियर-फ़ॉर्मेट विकल्प से साफ़ करें।</p>
+        </div>
+        <div class="card">
+          <h3>क्या शिक्षण सामग्री जोड़ सकते हैं?</h3>
+          <p class="small">हाँ। लिंक, अपलोड मीडिया, तालिकाएँ और शिक्षण विधियों/सामग्री का क्षेत्र उपलब्ध है।</p>
+        </div>
+        <div class="card">
+          <h3>बड़ी मीडिया फ़ाइल हो तो?</h3>
+          <p class="small">इमेज रेस्पॉन्सिव हैं और वीडियो/ऑडियो मोडल में चलते हैं। तेज़ लोडिंग के लिए संपीड़ित फ़ाइलें अनुशंसित हैं।</p>
+        </div>
+      </div>
+      <p class="footer-note">व्यावहारिक सुझाव: बैठक से पहले एक अध्याय खुला रखें ताकि नेटवर्क विलंब न हो।</p>
+    </section>
+
+    <!-- स्लाइड 10: समापन -->
+    <section class="slide">
+      <div class="eyebrow">समापन</div>
+      <h2>शिक्षकों के लिए परिणाम</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>तुरंत क्या सुधरेगा</h3>
+          <ul class="list">
+            <li>संरचित अध्याय पृष्ठों से पाठ तैयारी तेज़ होगी</li>
+            <li>प्रदर्श और मीडिया से कक्षा प्रस्तुति बेहतर होगी</li>
+            <li>एक समान पाठ प्रारूप से सहयोग सरल होगा</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>अगला कदम</h3>
+          <ul class="list">
+            <li>प्रत्येक विभाग एक अध्याय प्रभारी नामित करे</li>
+            <li>पहले 2 सप्ताह की सामग्री तैयार करें</li>
+            <li>शिक्षकों की प्रतिक्रिया लें और टेम्पलेट सुधारें</li>
+          </ul>
+        </div>
+      </div>
+      <p class="hero-sub" style="margin-top:0.5rem;color:#c3d9f5;">धन्यवाद। नेविगेशन के लिए <span class="kbd">←</span> <span class="kbd">→</span> कुंजियों का उपयोग करें।</p>
+    </section>
+  </div>
+
+  <div class="nav">
+    <button id="prevBtn" type="button">पीछे</button>
+    <div class="counter" id="counter">१ / १०</div>
+    <button id="nextBtn" type="button">आगे</button>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')]
+    const counter = document.getElementById('counter')
+    const progress = document.getElementById('progress')
+    const prevBtn = document.getElementById('prevBtn')
+    const nextBtn = document.getElementById('nextBtn')
+
+    const devanagariNums = ['०','१','२','३','४','५','६','७','८','९','१०']
+
+    function toDevanagari(n) {
+      return String(n).split('').map(d => d === '1' && n === 10 ? '' : devanagariNums[+d] ?? d).join('') || devanagariNums[n]
+    }
+
+    let index = 0
+
+    function render() {
+      slides.forEach((s, i) => s.classList.toggle('active', i === index))
+      counter.textContent = `${toDevanagari(index + 1)} / ${toDevanagari(slides.length)}`
+      progress.style.width = `${((index + 1) / slides.length) * 100}%`
+      prevBtn.disabled = index === 0
+      nextBtn.disabled = index === slides.length - 1
+    }
+
+    function go(step) {
+      const next = index + step
+      if (next < 0 || next >= slides.length) return
+      index = next
+      render()
+    }
+
+    prevBtn.addEventListener('click', () => go(-1))
+    nextBtn.addEventListener('click', () => go(1))
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(1) }
+      if (e.key === 'ArrowLeft'  || e.key === 'PageUp')  { e.preventDefault(); go(-1) }
+      if (e.key === 'Home') { index = 0; render() }
+      if (e.key === 'End')  { index = slides.length - 1; render() }
+    })
+
+    render()
+  </script>
+</body>
+</html>
