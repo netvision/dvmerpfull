@@ -136,7 +136,7 @@
 
     <!-- C) Exhibit Modal -->
     <transition name="modal-fade">
-      <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
+      <div v-if="showModal" class="modal-backdrop">
         <div class="modal-card" role="dialog" aria-modal="true" :style="{ '--accent': accentColor }">
           <!-- Modal Header -->
           <div class="modal-header">

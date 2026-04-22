@@ -311,7 +311,7 @@
     </div>
 
     <!-- Exhibit Modal -->
-    <div v-if="showExhibitModal" class="modal-backdrop" @click.self="showExhibitModal = false">
+    <div v-if="showExhibitModal" class="modal-backdrop">
       <div class="modal-box exhibit-modal-box">
         <div class="modal-header">
           <h2>{{ isNewExhibit ? 'Add Exhibit Field' : 'Edit Exhibit Field' }}</h2>
