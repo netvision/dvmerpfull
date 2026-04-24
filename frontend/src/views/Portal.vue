@@ -104,11 +104,11 @@
             <label>Aim</label>
             <textarea v-model="newChapter.aim" rows="3" placeholder="Chapter aim / objective"></textarea>
           </div>
-          <div v-if="auth.isAdmin" class="field">
+          <div class="field">
             <label>Class *</label>
             <select v-model="newChapter.class_id" required @change="newChapter.subject_id = ''">
-              <option value="">Select class</option>
-              <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
+              <option value="">{{ modalClassOptions.length ? 'Select class' : 'No classes available' }}</option>
+              <option v-for="c in modalClassOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </div>
           <div class="field">
@@ -154,6 +154,24 @@ const newChapter = ref({ title: '', aim: '', class_id: '', subject_id: '' })
 const creating = ref(false)
 const createError = ref('')
 
+const modalClassOptions = computed(() => {
+  if (auth.isAdmin) return classes.value
+
+  const seen = new Set()
+  const scoped = []
+  for (const subject of allModalSubjects.value) {
+    const classId = Number(subject.class_id)
+    if (!classId || seen.has(classId)) continue
+    seen.add(classId)
+    const fallback = classes.value.find(c => Number(c.id) === classId)
+    scoped.push({
+      id: classId,
+      name: subject.class_name || fallback?.name || `Class ${classId}`,
+    })
+  }
+  return scoped
+})
+
 // Always show only subjects for the selected class in Add Chapter modal.
 const modalSubjects = computed(() => {
   if (!newChapter.value.class_id) return []
@@ -168,6 +186,9 @@ async function openAddModal() {
   try {
     const res = await api.get('/api/portal/my-subjects')
     allModalSubjects.value = res.data
+    if (!auth.isAdmin && modalClassOptions.value.length === 1) {
+      newChapter.value.class_id = String(modalClassOptions.value[0].id)
+    }
   } catch (_) {}
   showAddModal.value = true
 }
