@@ -143,7 +143,7 @@
             <label>Subject</label>
             <select v-model="chapterForm.subject_id" :disabled="!modalSubjects.length">
               <option value="">{{ chapterForm.class_id ? 'Select subject' : 'Select a class first' }}</option>
-              <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+              <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ formatModalSubjectLabel(s) }}</option>
             </select>
           </div>
           <div class="field">
@@ -427,6 +427,11 @@ async function onModalClassChange() {
       modalSubjects.value = res.data
     } catch (_) {}
   }
+}
+
+function formatModalSubjectLabel(subject) {
+  const className = classes.value.find(c => Number(c.id) === Number(chapterForm.value.class_id))?.name
+  return className ? `${className} - ${subject.name}` : subject.name
 }
 
 // ---- Chapter Modal ----

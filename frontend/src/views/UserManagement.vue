@@ -187,7 +187,10 @@
               class="subject-checkbox"
             />
             <span v-if="s.icon" class="subject-icon">{{ s.icon }}</span>
-            <span class="subject-name">{{ s.name }}</span>
+            <span class="subject-text">
+              <span class="subject-name">{{ s.name }}</span>
+              <span class="subject-class">{{ s.class_name }}</span>
+            </span>
           </label>
         </div>
 
@@ -318,7 +321,13 @@ async function loadAllSubjects() {
       api.get(`/api/public/classes/${cls.id}/subjects`)
     )
     const results = await Promise.all(fetches)
-    allSubjects.value = results.flatMap(r => r.data)
+    allSubjects.value = results.flatMap((r, idx) =>
+      r.data.map(s => ({
+        ...s,
+        class_id: classesRes.data[idx]?.id,
+        class_name: classesRes.data[idx]?.name || '',
+      }))
+    )
   } catch (_) {}
 }
 
@@ -873,12 +882,26 @@ async function saveSubjects() {
   line-height: 1;
 }
 
-.subject-name {
+.subject-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   flex: 1;
+}
+
+.subject-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.subject-class {
+  font-size: 0.72rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */

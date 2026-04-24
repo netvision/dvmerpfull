@@ -26,7 +26,7 @@
           <label>Subject</label>
           <select v-model="selectedSubjectId" @change="fetchChapters">
             <option value="">All Subjects</option>
-            <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+            <option v-for="s in subjects" :key="s.id" :value="s.id">{{ formatSubjectLabel(s) }}</option>
           </select>
         </div>
         <button class="add-btn" @click="openAddModal">
@@ -115,7 +115,7 @@
             <label>Subject *</label>
             <select v-model="newChapter.subject_id" required>
               <option value="">Select subject</option>
-              <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ s.name }} ({{ s.class_name }})</option>
+              <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ formatSubjectLabel(s) }}</option>
             </select>
           </div>
           <div v-if="createError" class="error-banner">{{ createError }}</div>
@@ -200,7 +200,8 @@ async function onClassChange() {
   if (selectedClassId.value) {
     try {
       const res = await api.get(`/api/public/classes/${selectedClassId.value}/subjects`)
-      subjects.value = res.data
+      const cls = classes.value.find(c => Number(c.id) === Number(selectedClassId.value))
+      subjects.value = res.data.map(s => ({ ...s, class_id: cls?.id, class_name: cls?.name }))
     } catch (_) {}
   } else {
     await loadAllSubjects()
@@ -219,10 +220,12 @@ async function loadAllSubjects() {
       classes.value.map(c => api.get(`/api/public/classes/${c.id}/subjects`))
     )
     const merged = []
-    for (const res of subjectResponses) {
+    for (let i = 0; i < subjectResponses.length; i += 1) {
+      const res = subjectResponses[i]
+      const cls = classes.value[i]
       for (const subject of res.data) {
         if (!merged.find(s => s.id === subject.id)) {
-          merged.push(subject)
+          merged.push({ ...subject, class_id: cls?.id, class_name: cls?.name })
         }
       }
     }
@@ -259,6 +262,11 @@ function handleLogout() {
 
 async function loadModalSubjects() {
   // no-op: handled by openAddModal
+}
+
+function formatSubjectLabel(subject) {
+  const className = subject.class_name || classes.value.find(c => Number(c.id) === Number(subject.class_id))?.name
+  return className ? `${className} - ${subject.name}` : subject.name
 }
 
 async function createChapter() {

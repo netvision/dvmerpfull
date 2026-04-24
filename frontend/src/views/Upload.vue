@@ -23,7 +23,7 @@
             <label>Subject *</label>
             <select v-model="selectedSubjectId" :disabled="!selectedClassId">
               <option value="">Select subject</option>
-              <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+              <option v-for="s in subjects" :key="s.id" :value="s.id">{{ formatSubjectLabel(s) }}</option>
             </select>
           </div>
         </div>
@@ -154,7 +154,7 @@ async function preselectSubject(subjectId) {
       const found = res.data.find(s => s.id === subjectId)
       if (found) {
         selectedClassId.value = cls.id
-        subjects.value = res.data
+        subjects.value = res.data.map(s => ({ ...s, class_id: cls.id, class_name: cls.name }))
         selectedSubjectId.value = subjectId
         break
       }
@@ -168,9 +168,15 @@ async function onClassChange() {
   if (selectedClassId.value) {
     try {
       const res = await api.get(`/api/public/classes/${selectedClassId.value}/subjects`)
-      subjects.value = res.data
+      const cls = classes.value.find(c => Number(c.id) === Number(selectedClassId.value))
+      subjects.value = res.data.map(s => ({ ...s, class_id: cls?.id, class_name: cls?.name }))
     } catch (_) {}
   }
+}
+
+function formatSubjectLabel(subject) {
+  if (!subject.class_name) return subject.name
+  return `${subject.class_name} - ${subject.name}`
 }
 
 function onFileChange(e) {
