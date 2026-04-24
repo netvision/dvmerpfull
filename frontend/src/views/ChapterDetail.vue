@@ -161,7 +161,6 @@
                     <span class="exhibit-index">{{ idx + 1 }}</span>
                     <p class="exhibit-label">{{ formatFieldKey(exhibit.field_key) }}</p>
                   </div>
-                  <span v-if="exhibit.field_type" class="exhibit-type-badge" :class="exhibit.field_type">{{ typeIcon(exhibit.field_type) }} {{ exhibit.field_type }}</span>
                 </div>
                 
                 <div class="exhibit-value">
@@ -316,9 +315,6 @@ function formatFieldKey(key) {
   if (!key) return ''
   return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
-
-const typeIconMap = { string: '📝', link: '🔗', image: '🖼️', audio: '🎵', video: '🎬' }
-function typeIcon(t) { return typeIconMap[t] || '📄' }
 
 function getYoutubeId(text) {
   if (!text) return null
@@ -1049,27 +1045,6 @@ onMounted(fetchChapter)
   .modal-body { padding: 0.75rem 1rem 1.25rem; }
   .exhibit-value { padding-left: 1.75rem; }
 }
-
-/* ---- Exhibit Type Badge ---- */
-.exhibit-type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3em;
-  padding: 0.22rem 0.65rem;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.exhibit-type-badge.string { background: #dbeafe; color: #1e40af; }
-.exhibit-type-badge.audio  { background: #fce7f3; color: #be123c; }
-.exhibit-type-badge.image  { background: #dcfce7; color: #166534; }
-.exhibit-type-badge.video  { background: #fed7aa; color: #92400e; }
-.exhibit-type-badge.link   { background: #f3e8ff; color: #6b21a8; }
 
 /* ---- Media Containers ---- */
 .media-container {
