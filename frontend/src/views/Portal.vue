@@ -113,8 +113,8 @@
           </div>
           <div class="field">
             <label>Subject *</label>
-            <select v-model="newChapter.subject_id" required>
-              <option value="">Select subject</option>
+            <select v-model="newChapter.subject_id" required :disabled="!newChapter.class_id">
+              <option value="">{{ newChapter.class_id ? 'Select subject' : 'Select class first' }}</option>
               <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ formatSubjectLabel(s) }}</option>
             </select>
           </div>
@@ -154,13 +154,11 @@ const newChapter = ref({ title: '', aim: '', class_id: '', subject_id: '' })
 const creating = ref(false)
 const createError = ref('')
 
-// For admin: filter subjects by selected class; teachers see all their assigned subjects
+// Always show only subjects for the selected class in Add Chapter modal.
 const modalSubjects = computed(() => {
-  if (auth.isAdmin && newChapter.value.class_id) {
-    const classId = Number(newChapter.value.class_id)
-    return allModalSubjects.value.filter(s => Number(s.class_id) === classId)
-  }
-  return allModalSubjects.value
+  if (!newChapter.value.class_id) return []
+  const classId = Number(newChapter.value.class_id)
+  return allModalSubjects.value.filter(s => Number(s.class_id) === classId)
 })
 
 async function openAddModal() {
