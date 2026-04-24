@@ -61,21 +61,21 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Chapter Title</th>
               <th>Class</th>
               <th>Subject</th>
-              <th>Sessions</th>
+              <th>Chapter Title</th>
               <th>Concepts</th>
-              <th>Actions</th>
+              <th>Total Sessions</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="ch in chapters" :key="ch.id">
-              <td class="title-cell">{{ ch.title }}</td>
               <td>{{ ch.class_name }}</td>
               <td>{{ ch.subject_name }}</td>
-              <td class="center">{{ ch.sessions_total }}</td>
+              <td class="title-cell">{{ ch.title }}</td>
               <td class="center">{{ ch.concept_count }}</td>
+              <td class="center">{{ ch.sessions_total }}</td>
               <td class="actions-cell">
                 <button class="btn-edit" @click="router.push(`/portal/chapter/${ch.id}/edit`)">
                   Edit
