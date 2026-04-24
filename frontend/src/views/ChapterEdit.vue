@@ -329,7 +329,7 @@
             <div class="field-type-options">
               <label class="type-option" v-for="type in ['string', 'audio', 'image', 'video', 'link']" :key="type">
                 <input v-model="exhibitForm.field_type" type="radio" :value="type" />
-                <span class="type-label">{{ type.charAt(0).toUpperCase() + type.slice(1) }}</span>
+                <span class="type-label">{{ type === 'string' ? 'Rich Text' : type.charAt(0).toUpperCase() + type.slice(1) }}</span>
               </label>
             </div>
           </div>
