@@ -148,11 +148,6 @@
             <button class="modal-close" @click="closeModal" aria-label="Close">✕</button>
           </div>
 
-          <!-- Exhibit count strip -->
-          <div class="modal-count-strip" v-if="modalConcept?.exhibits?.length">
-            {{ modalConcept.exhibits.length }} exhibit{{ modalConcept.exhibits.length !== 1 ? 's' : '' }}
-          </div>
-
           <!-- Modal Body -->
           <div class="modal-body">
             <template v-if="modalConcept?.exhibits?.length">
@@ -882,18 +877,6 @@ onMounted(fetchChapter)
 .modal-close:hover {
   background: #e5e7eb;
   transform: scale(1.1);
-}
-
-/* Count strip */
-.modal-count-strip {
-  background: color-mix(in srgb, var(--accent, #2563eb) 7%, white);
-  padding: 0.5rem 1.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--accent, #2563eb);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent, #2563eb) 12%, white);
 }
 
 .modal-body {
