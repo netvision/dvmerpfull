@@ -3,6 +3,7 @@ import os
 import re
 import uuid
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -83,6 +84,31 @@ def _delete_chapter_cascade(db: Session, chapter: Chapter):
         db.delete(concept)
     db.delete(chapter)
     db.flush()
+
+
+def _requires_verification(user: User) -> bool:
+    """Only teacher-originated content changes require HM/Principal verification."""
+    return user.role == UserRole.teacher
+
+
+def _can_verify_changes(user: User) -> bool:
+    return user.role in {UserRole.hm, UserRole.principal, UserRole.super_admin}
+
+
+def _mark_chapter_approval_state(chapter: Chapter, actor: User):
+    """Apply approval rules after content changes."""
+    if _requires_verification(actor):
+        chapter.is_approved = False
+        chapter.approval_requested_by_id = actor.id
+        chapter.approved_by_id = None
+        chapter.approved_at = None
+        return
+
+    chapter.is_approved = True
+    chapter.approval_requested_by_id = None
+    if actor.role == UserRole.super_admin:
+        chapter.approved_by_id = actor.id
+        chapter.approved_at = datetime.now(timezone.utc)
 
 
 def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
@@ -310,6 +336,7 @@ def list_chapters(
                 aim=chapter.aim,
                 sessions_total=sessions_total,
                 concept_count=concept_count,
+                is_approved=chapter.is_approved,
                 subject_id=chapter.subject.id,
                 subject_name=chapter.subject.name,
                 class_id=chapter.subject.cls.id,
@@ -362,6 +389,8 @@ def update_chapter(
         _check_subject_access(db, current_user, body.subject_id)
         chapter.subject_id = body.subject_id
 
+    _mark_chapter_approval_state(chapter, current_user)
+
     db.commit()
     db.refresh(chapter)
     return _build_chapter_detail(db, chapter)
@@ -385,7 +414,31 @@ def create_chapter(
         subject_id=body.subject_id,
         order_index=body.order_index if body.order_index is not None else 0,
     )
+    _mark_chapter_approval_state(chapter, current_user)
     db.add(chapter)
+    db.commit()
+    db.refresh(chapter)
+    return _build_chapter_detail(db, chapter)
+
+
+@router.post("/chapters/{chapter_id}/approve", response_model=ChapterDetailOut)
+def approve_chapter_changes(
+    chapter_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Approve pending chapter changes. HM/Principal/Super Admin only."""
+    if not _can_verify_changes(current_user):
+        raise HTTPException(status_code=403, detail="Only HM or Principal can verify pending changes")
+
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    chapter.is_approved = True
+    chapter.approval_requested_by_id = None
+    chapter.approved_by_id = current_user.id
+    chapter.approved_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(chapter)
     return _build_chapter_detail(db, chapter)
@@ -444,6 +497,7 @@ async def upload_chapter_pdf(
         f.write(contents)
 
     chapter.pdf_filename = unique_name
+    _mark_chapter_approval_state(chapter, current_user)
     db.commit()
     return {"pdf_url": f"/uploads/{unique_name}"}
 
@@ -545,6 +599,7 @@ async def upload_xlsx(
         subject_id=subject_id,
         order_index=1,
     )
+    _mark_chapter_approval_state(chapter, current_user)
     db.add(chapter)
     db.flush()
 
@@ -666,6 +721,16 @@ def _get_concept_subject_id(db: Session, concept_id: int) -> int:
     return chapter.subject_id
 
 
+def _get_chapter_by_concept_id(db: Session, concept_id: int) -> Chapter:
+    concept = db.query(Concept).filter(Concept.id == concept_id).first()
+    if concept is None:
+        raise HTTPException(status_code=404, detail="Concept not found")
+    chapter = db.query(Chapter).filter(Chapter.id == concept.chapter_id).first()
+    if chapter is None:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    return chapter
+
+
 @router.put("/concepts/{concept_id}", response_model=ConceptOut)
 def update_concept(
     concept_id: int,
@@ -703,6 +768,9 @@ def update_concept(
         concept.remarks = body.remarks
     if body.exhibit_ref is not None:
         concept.exhibit_ref = body.exhibit_ref
+
+    chapter = _get_chapter_by_concept_id(db, concept_id)
+    _mark_chapter_approval_state(chapter, current_user)
 
     db.commit()
     db.refresh(concept)
@@ -754,6 +822,7 @@ def create_concept(
         exhibit_ref=body.exhibit_ref,
     )
     db.add(concept)
+    _mark_chapter_approval_state(chapter, current_user)
     db.commit()
     db.refresh(concept)
     return _build_concept_out(db, concept)
@@ -785,6 +854,7 @@ async def update_exhibit(
 
     subject_id = _get_concept_subject_id(db, exhibit.concept_id)
     _check_subject_access(db, current_user, subject_id)
+    chapter = _get_chapter_by_concept_id(db, exhibit.concept_id)
 
     # Validate field_type if provided
     if field_type:
@@ -818,6 +888,8 @@ async def update_exhibit(
         
         exhibit.file_key = unique_name
 
+    _mark_chapter_approval_state(chapter, current_user)
+
     db.commit()
     db.refresh(exhibit)
     
@@ -846,6 +918,7 @@ def delete_exhibit(
 
     subject_id = _get_concept_subject_id(db, exhibit.concept_id)
     _check_subject_access(db, current_user, subject_id)
+    chapter = _get_chapter_by_concept_id(db, exhibit.concept_id)
 
     # Delete associated file if exists
     if exhibit.file_key:
@@ -854,6 +927,7 @@ def delete_exhibit(
             os.remove(file_path)
 
     db.delete(exhibit)
+    _mark_chapter_approval_state(chapter, current_user)
     db.commit()
     return {"ok": True}
 
@@ -880,6 +954,7 @@ async def create_exhibit(
 
     subject_id = _get_concept_subject_id(db, concept_id)
     _check_subject_access(db, current_user, subject_id)
+    chapter = _get_chapter_by_concept_id(db, concept_id)
 
     # Validate field_type
     valid_types = ["string", "audio", "image", "video", "link"]
@@ -908,6 +983,7 @@ async def create_exhibit(
         sort_order=sort_order if sort_order is not None else 0,
     )
     db.add(exhibit)
+    _mark_chapter_approval_state(chapter, current_user)
     db.commit()
     db.refresh(exhibit)
     
@@ -941,6 +1017,7 @@ async def upload_concept_images(
 
     subject_id = _get_concept_subject_id(db, concept_id)
     _check_subject_access(db, current_user, subject_id)
+    chapter = _get_chapter_by_concept_id(db, concept_id)
 
     os.makedirs(UPLOADS_DIR, exist_ok=True)
 
@@ -974,6 +1051,7 @@ async def upload_concept_images(
         db.flush()
         created.append(_build_image_out(img))
 
+    _mark_chapter_approval_state(chapter, current_user)
     db.commit()
     return created
 
@@ -991,6 +1069,7 @@ def delete_concept_image(
 
     subject_id = _get_concept_subject_id(db, img.concept_id)
     _check_subject_access(db, current_user, subject_id)
+    chapter = _get_chapter_by_concept_id(db, img.concept_id)
 
     # Remove file from disk (ignore if already missing)
     file_path = os.path.join(UPLOADS_DIR, img.filename)
@@ -998,6 +1077,7 @@ def delete_concept_image(
         os.remove(file_path)
 
     db.delete(img)
+    _mark_chapter_approval_state(chapter, current_user)
     db.commit()
     return {"ok": True}
 
@@ -1016,8 +1096,10 @@ def update_concept_image(
 
     subject_id = _get_concept_subject_id(db, img.concept_id)
     _check_subject_access(db, current_user, subject_id)
+    chapter = _get_chapter_by_concept_id(db, img.concept_id)
 
     img.sort_order = sort_order
+    _mark_chapter_approval_state(chapter, current_user)
     db.commit()
     db.refresh(img)
     return _build_image_out(img)

@@ -4,6 +4,7 @@ from sqlalchemy import (
     Integer,
     String,
     Boolean,
+    DateTime,
     Enum,
     ForeignKey,
     Text,
@@ -87,6 +88,10 @@ class Chapter(Base):
     pdf_filename = Column(String, nullable=True)
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
     order_index = Column(Integer, nullable=False, default=0)
+    is_approved = Column(Boolean, nullable=False, default=True)
+    approval_requested_by_id = Column(Integer, nullable=True)
+    approved_by_id = Column(Integer, nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
 
     subject = relationship("Subject", back_populates="chapters")
     concepts = relationship("Concept", back_populates="chapter")

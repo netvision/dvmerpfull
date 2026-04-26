@@ -78,8 +78,20 @@
               <td class="center">{{ ch.concept_count }}</td>
               <td class="center">{{ ch.sessions_total }}</td>
               <td class="actions-cell">
+                <span class="approval-badge" :class="ch.is_approved ? 'approved' : 'pending'">
+                  {{ ch.is_approved ? 'Approved' : 'Pending Approval' }}
+                </span>
                 <button class="btn-edit" @click="router.push(`/portal/chapter/${ch.id}/edit`)">
                   Edit
+                </button>
+                <button
+                  v-if="canVerifyChanges && !ch.is_approved"
+                  class="btn-approve"
+                  :disabled="ch.approving"
+                  @click="approveChapter(ch)"
+                >
+                  <span v-if="ch.approving" class="spinner-inline"></span>
+                  <span v-else>Approve</span>
                 </button>
                 <button v-if="auth.isAdmin" class="btn-delete" :disabled="ch.deleting" @click="deleteChapter(ch)">
                   <span v-if="ch.deleting" class="spinner-inline"></span>
@@ -188,6 +200,8 @@ const passwordForm = ref({ current_password: '', new_password: '', confirm_passw
 const changingPassword = ref(false)
 const passwordError = ref('')
 const passwordSuccess = ref('')
+
+const canVerifyChanges = computed(() => ['hm', 'principal'].includes(auth.user?.role))
 
 const modalClassOptions = computed(() => {
   if (auth.isAdmin) return classes.value
@@ -302,6 +316,18 @@ async function fetchChapters() {
     error.value = e.response?.data?.detail || 'Failed to load chapters.'
   } finally {
     loading.value = false
+  }
+}
+
+async function approveChapter(ch) {
+  ch.approving = true
+  try {
+    await api.post(`/api/portal/chapters/${ch.id}/approve`)
+    await fetchChapters()
+  } catch (e) {
+    alert(e.response?.data?.detail || 'Failed to approve chapter changes.')
+  } finally {
+    ch.approving = false
   }
 }
 
@@ -665,6 +691,50 @@ async function deleteChapter(ch) {
 
 .btn-edit:hover {
   background: #1d4ed8;
+}
+
+.approval-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.approval-badge.approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.approval-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.btn-approve {
+  padding: 0.35rem 0.85rem;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1.5px solid #fdba74;
+  border-radius: 6px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.btn-approve:hover {
+  background: #ffedd5;
+}
+
+.btn-approve:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .btn-upload {

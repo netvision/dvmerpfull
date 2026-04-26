@@ -120,6 +120,7 @@ class ChapterPortalSummaryOut(BaseModel):
     aim: Optional[str]
     sessions_total: int
     concept_count: int
+    is_approved: bool
     subject_id: int
     subject_name: str
     class_id: int

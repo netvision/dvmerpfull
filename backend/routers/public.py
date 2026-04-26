@@ -38,7 +38,7 @@ def list_subjects(class_id: int, db: Session = Depends(get_db)):
     result = []
     for subject in subjects:
         chapter_count = (
-            db.query(Chapter).filter(Chapter.subject_id == subject.id).count()
+            db.query(Chapter).filter(Chapter.subject_id == subject.id, Chapter.is_approved.is_(True)).count()
         )
         result.append(
             SubjectOut(
@@ -61,7 +61,7 @@ def list_chapters(subject_id: int, db: Session = Depends(get_db)):
 
     chapters = (
         db.query(Chapter)
-        .filter(Chapter.subject_id == subject_id)
+        .filter(Chapter.subject_id == subject_id, Chapter.is_approved.is_(True))
         .order_by(Chapter.order_index, Chapter.id)
         .all()
     )
@@ -92,7 +92,7 @@ def list_chapters(subject_id: int, db: Session = Depends(get_db)):
 @router.get("/chapters/{chapter_id}", response_model=ChapterDetailOut)
 def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
     """Return full detail for a chapter."""
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id, Chapter.is_approved.is_(True)).first()
     if chapter is None:
         raise HTTPException(status_code=404, detail="Chapter not found")
 
