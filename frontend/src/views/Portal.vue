@@ -74,7 +74,12 @@
             <tr v-for="ch in chapters" :key="ch.id">
               <td>{{ ch.class_name }}</td>
               <td>{{ ch.subject_name }}</td>
-              <td class="title-cell">{{ ch.title }}</td>
+              <td class="title-cell">
+                <div>{{ ch.title }}</div>
+                <div v-if="!ch.is_approved && ch.pending_change_summary" class="pending-change-note">
+                  Changed: {{ ch.pending_change_summary }}
+                </div>
+              </td>
               <td class="center">{{ ch.concept_count }}</td>
               <td class="center">{{ ch.sessions_total }}</td>
               <td class="actions-cell">
@@ -664,6 +669,14 @@ async function deleteChapter(ch) {
 .title-cell {
   font-weight: 600;
   max-width: 280px;
+}
+
+.pending-change-note {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #92400e;
+  line-height: 1.35;
 }
 
 .center {

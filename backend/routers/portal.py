@@ -95,16 +95,18 @@ def _can_verify_changes(user: User) -> bool:
     return user.role in {UserRole.hm, UserRole.principal, UserRole.super_admin}
 
 
-def _mark_chapter_approval_state(chapter: Chapter, actor: User):
+def _mark_chapter_approval_state(chapter: Chapter, actor: User, change_summary: Optional[str] = None):
     """Apply approval rules after content changes."""
     if _requires_verification(actor):
         chapter.is_approved = False
+        chapter.pending_change_summary = change_summary
         chapter.approval_requested_by_id = actor.id
         chapter.approved_by_id = None
         chapter.approved_at = None
         return
 
     chapter.is_approved = True
+    chapter.pending_change_summary = None
     chapter.approval_requested_by_id = None
     if actor.role == UserRole.super_admin:
         chapter.approved_by_id = actor.id
@@ -337,6 +339,7 @@ def list_chapters(
                 sessions_total=sessions_total,
                 concept_count=concept_count,
                 is_approved=chapter.is_approved,
+                pending_change_summary=chapter.pending_change_summary,
                 subject_id=chapter.subject.id,
                 subject_name=chapter.subject.name,
                 class_id=chapter.subject.cls.id,
@@ -389,7 +392,17 @@ def update_chapter(
         _check_subject_access(db, current_user, body.subject_id)
         chapter.subject_id = body.subject_id
 
-    _mark_chapter_approval_state(chapter, current_user)
+    changed_fields = []
+    if body.title is not None:
+        changed_fields.append("title")
+    if body.aim is not None:
+        changed_fields.append("aim")
+    if body.order_index is not None:
+        changed_fields.append("order")
+    if body.subject_id is not None:
+        changed_fields.append("subject")
+    summary = f"Chapter updated ({', '.join(changed_fields)})" if changed_fields else "Chapter updated"
+    _mark_chapter_approval_state(chapter, current_user, summary)
 
     db.commit()
     db.refresh(chapter)
@@ -414,7 +427,7 @@ def create_chapter(
         subject_id=body.subject_id,
         order_index=body.order_index if body.order_index is not None else 0,
     )
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, "New chapter created")
     db.add(chapter)
     db.commit()
     db.refresh(chapter)
@@ -436,6 +449,7 @@ def approve_chapter_changes(
         raise HTTPException(status_code=404, detail="Chapter not found")
 
     chapter.is_approved = True
+    chapter.pending_change_summary = None
     chapter.approval_requested_by_id = None
     chapter.approved_by_id = current_user.id
     chapter.approved_at = datetime.now(timezone.utc)
@@ -497,7 +511,7 @@ async def upload_chapter_pdf(
         f.write(contents)
 
     chapter.pdf_filename = unique_name
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, "Chapter PDF updated")
     db.commit()
     return {"pdf_url": f"/uploads/{unique_name}"}
 
@@ -599,7 +613,7 @@ async def upload_xlsx(
         subject_id=subject_id,
         order_index=1,
     )
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, "Chapter content re-uploaded from xlsx")
     db.add(chapter)
     db.flush()
 
@@ -770,7 +784,31 @@ def update_concept(
         concept.exhibit_ref = body.exhibit_ref
 
     chapter = _get_chapter_by_concept_id(db, concept_id)
-    _mark_chapter_approval_state(chapter, current_user)
+    changed_fields = []
+    if body.s_no is not None:
+        changed_fields.append("s_no")
+    if body.title is not None:
+        changed_fields.append("title")
+    if body.sessions is not None:
+        changed_fields.append("sessions")
+    if body.learning_outcomes is not None:
+        changed_fields.append("learning outcomes")
+    if body.integration_other_sub is not None:
+        changed_fields.append("integration")
+    if body.teaching_materials_methods is not None:
+        changed_fields.append("teaching methods")
+    if body.library is not None:
+        changed_fields.append("library")
+    if body.activity is not None:
+        changed_fields.append("activity")
+    if body.life_lesson is not None:
+        changed_fields.append("life lesson")
+    if body.remarks is not None:
+        changed_fields.append("remarks")
+    if body.exhibit_ref is not None:
+        changed_fields.append("exhibit ref")
+    summary = f"Concept '{concept.title}' updated ({', '.join(changed_fields)})" if changed_fields else f"Concept '{concept.title}' updated"
+    _mark_chapter_approval_state(chapter, current_user, summary)
 
     db.commit()
     db.refresh(concept)
@@ -822,7 +860,7 @@ def create_concept(
         exhibit_ref=body.exhibit_ref,
     )
     db.add(concept)
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, f"New concept added: {concept.title}")
     db.commit()
     db.refresh(concept)
     return _build_concept_out(db, concept)
@@ -888,7 +926,19 @@ async def update_exhibit(
         
         exhibit.file_key = unique_name
 
-    _mark_chapter_approval_state(chapter, current_user)
+    changed_fields = []
+    if field_key is not None:
+        changed_fields.append("field key")
+    if field_type is not None:
+        changed_fields.append("field type")
+    if field_value is not None:
+        changed_fields.append("field value")
+    if sort_order is not None:
+        changed_fields.append("order")
+    if file:
+        changed_fields.append("file")
+    summary = f"Exhibit '{exhibit.field_key}' updated ({', '.join(changed_fields)})" if changed_fields else f"Exhibit '{exhibit.field_key}' updated"
+    _mark_chapter_approval_state(chapter, current_user, summary)
 
     db.commit()
     db.refresh(exhibit)
@@ -926,8 +976,9 @@ def delete_exhibit(
         if os.path.exists(file_path):
             os.remove(file_path)
 
+    deleted_key = exhibit.field_key
     db.delete(exhibit)
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, f"Exhibit removed: {deleted_key}")
     db.commit()
     return {"ok": True}
 
@@ -983,7 +1034,7 @@ async def create_exhibit(
         sort_order=sort_order if sort_order is not None else 0,
     )
     db.add(exhibit)
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, f"New exhibit added: {field_key}")
     db.commit()
     db.refresh(exhibit)
     
@@ -1051,7 +1102,7 @@ async def upload_concept_images(
         db.flush()
         created.append(_build_image_out(img))
 
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, f"{len(created)} concept image(s) added")
     db.commit()
     return created
 
@@ -1076,8 +1127,9 @@ def delete_concept_image(
     if os.path.exists(file_path):
         os.remove(file_path)
 
+    deleted_name = img.original_name
     db.delete(img)
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, f"Concept image removed: {deleted_name}")
     db.commit()
     return {"ok": True}
 
@@ -1099,7 +1151,7 @@ def update_concept_image(
     chapter = _get_chapter_by_concept_id(db, img.concept_id)
 
     img.sort_order = sort_order
-    _mark_chapter_approval_state(chapter, current_user)
+    _mark_chapter_approval_state(chapter, current_user, "Concept image order updated")
     db.commit()
     db.refresh(img)
     return _build_image_out(img)

@@ -121,6 +121,7 @@ class ChapterPortalSummaryOut(BaseModel):
     sessions_total: int
     concept_count: int
     is_approved: bool
+    pending_change_summary: Optional[str] = None
     subject_id: int
     subject_name: str
     class_id: int

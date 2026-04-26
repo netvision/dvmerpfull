@@ -89,6 +89,7 @@ class Chapter(Base):
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
     order_index = Column(Integer, nullable=False, default=0)
     is_approved = Column(Boolean, nullable=False, default=True)
+    pending_change_summary = Column(Text, nullable=True)
     approval_requested_by_id = Column(Integer, nullable=True)
     approved_by_id = Column(Integer, nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
