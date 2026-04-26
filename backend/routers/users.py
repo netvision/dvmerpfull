@@ -7,6 +7,7 @@ from auth import hash_password, require_admin
 from database import get_db
 from models import Subject, TeacherSubject, User, UserRole
 from schemas import (
+    AdminResetPasswordIn,
     SubjectAssignIn,
     SubjectNestedOut,
     UserCreateIn,
@@ -212,3 +213,24 @@ def get_user_subjects(
         SubjectNestedOut(id=s.id, name=s.name, icon=s.icon, color=s.color)
         for s in subjects
     ]
+
+
+@router.post("/{user_id}/reset-password")
+def admin_reset_password(
+    user_id: int,
+    body: AdminResetPasswordIn,
+    _admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Reset/change any user's password. Admin only."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not body.new_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password is required")
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 6 characters")
+
+    user.hashed_password = hash_password(body.new_password)
+    db.commit()
+    return {"ok": True, "message": "Password reset successfully"}

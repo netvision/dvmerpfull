@@ -16,6 +16,7 @@ from auth import (
     get_role_capabilities,
     has_admin_access,
     has_subject_scoped_access,
+    hash_password,
     require_admin,
     verify_password,
 )
@@ -44,6 +45,7 @@ from schemas import (
     ConceptCreateIn,
     ExhibitUpdateIn,
     ExhibitCreateIn,
+    ChangePasswordIn,
 )
 from xlsx_parser import parse_xlsx
 
@@ -206,6 +208,27 @@ def auth_capabilities(current_user: User = Depends(get_current_user)):
         is_admin=has_admin_access(current_user),
         is_subject_scoped=has_subject_scoped_access(current_user),
     )
+
+
+@router.post("/auth/change-password")
+def change_password(
+    body: ChangePasswordIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Allow a logged-in user to change their own password."""
+    if not body.current_password or not body.new_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current and new password are required")
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 6 characters")
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+    if verify_password(body.new_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be different from current password")
+
+    current_user.hashed_password = hash_password(body.new_password)
+    db.commit()
+    return {"ok": True, "message": "Password updated successfully"}
 
 
 # ---------------------------------------------------------------------------

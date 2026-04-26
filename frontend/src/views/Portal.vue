@@ -8,6 +8,7 @@
           <span class="user-name">{{ auth.user.name }}</span>
           <span class="role-badge" :class="auth.user.role">{{ auth.user.role }}</span>
         </span>
+        <button class="change-pass-btn" @click="openChangePasswordModal">Change Password</button>
         <button class="logout-btn" @click="handleLogout">Logout</button>
       </div>
     </nav>
@@ -128,6 +129,35 @@
         </form>
       </div>
     </div>
+
+    <!-- Change Password Modal -->
+    <div v-if="showPasswordModal" class="modal-overlay" @click.self="closeChangePasswordModal">
+      <div class="modal">
+        <h2 class="modal-title">Change Password</h2>
+        <form @submit.prevent="changePassword">
+          <div class="field">
+            <label>Current Password *</label>
+            <input v-model="passwordForm.current_password" type="password" required autocomplete="current-password" />
+          </div>
+          <div class="field">
+            <label>New Password *</label>
+            <input v-model="passwordForm.new_password" type="password" required minlength="6" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label>Confirm New Password *</label>
+            <input v-model="passwordForm.confirm_password" type="password" required minlength="6" autocomplete="new-password" />
+          </div>
+          <div v-if="passwordError" class="error-banner">{{ passwordError }}</div>
+          <div v-if="passwordSuccess" class="success-banner">{{ passwordSuccess }}</div>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" @click="closeChangePasswordModal">Cancel</button>
+            <button type="submit" class="btn-save" :disabled="changingPassword">
+              {{ changingPassword ? 'Updating…' : 'Update Password' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -153,6 +183,11 @@ const allModalSubjects = ref([])
 const newChapter = ref({ title: '', aim: '', class_id: '', subject_id: '' })
 const creating = ref(false)
 const createError = ref('')
+const showPasswordModal = ref(false)
+const passwordForm = ref({ current_password: '', new_password: '', confirm_password: '' })
+const changingPassword = ref(false)
+const passwordError = ref('')
+const passwordSuccess = ref('')
 
 const modalClassOptions = computed(() => {
   if (auth.isAdmin) return classes.value
@@ -277,6 +312,40 @@ function goToUpload(ch) {
 function handleLogout() {
   auth.logout()
   router.replace('/login')
+}
+
+function openChangePasswordModal() {
+  passwordForm.value = { current_password: '', new_password: '', confirm_password: '' }
+  passwordError.value = ''
+  passwordSuccess.value = ''
+  showPasswordModal.value = true
+}
+
+function closeChangePasswordModal() {
+  showPasswordModal.value = false
+}
+
+async function changePassword() {
+  passwordError.value = ''
+  passwordSuccess.value = ''
+  if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
+    passwordError.value = 'New password and confirmation do not match.'
+    return
+  }
+
+  changingPassword.value = true
+  try {
+    const res = await api.post('/api/portal/auth/change-password', {
+      current_password: passwordForm.value.current_password,
+      new_password: passwordForm.value.new_password,
+    })
+    passwordSuccess.value = res.data?.message || 'Password updated successfully.'
+    passwordForm.value = { current_password: '', new_password: '', confirm_password: '' }
+  } catch (e) {
+    passwordError.value = e.response?.data?.detail || 'Failed to update password.'
+  } finally {
+    changingPassword.value = false
+  }
 }
 
 async function loadModalSubjects() {
@@ -419,6 +488,21 @@ async function deleteChapter(ch) {
 
 .logout-btn:hover {
   background: rgba(255,255,255,0.22);
+}
+
+.change-pass-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.change-pass-btn:hover {
+  background: rgba(255,255,255,0.18);
 }
 
 /* Content */
@@ -747,6 +831,16 @@ async function deleteChapter(ch) {
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #dc2626;
+  border-radius: 7px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.success-banner {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
   border-radius: 7px;
   padding: 0.6rem 0.9rem;
   font-size: 0.88rem;

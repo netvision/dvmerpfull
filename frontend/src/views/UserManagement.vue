@@ -61,6 +61,7 @@
               </td>
               <td class="actions-cell">
                 <button class="btn-edit" @click="openEditModal(u)">Edit</button>
+                <button class="btn-reset" @click="openResetPasswordModal(u)">Reset Password</button>
                 <button
                   v-if="['teacher', 'subject_head', 'mentor'].includes(u.role)"
                   class="btn-subjects"
@@ -159,6 +160,32 @@
             <button type="button" class="btn-cancel" @click="closeEditModal">Cancel</button>
             <button type="submit" class="btn-save" :disabled="saving">
               {{ saving ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div v-if="showResetModal" class="modal-overlay" @click.self="closeResetPasswordModal">
+      <div class="modal">
+        <h2 class="modal-title">Reset Password — {{ resetTarget?.name }}</h2>
+        <p class="modal-subtitle">Set a new password for this user.</p>
+        <form @submit.prevent="resetPassword">
+          <div class="field">
+            <label>New Password *</label>
+            <input v-model="resetForm.new_password" type="password" required minlength="6" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label>Confirm New Password *</label>
+            <input v-model="resetForm.confirm_password" type="password" required minlength="6" autocomplete="new-password" />
+          </div>
+          <div v-if="resetError" class="error-banner">{{ resetError }}</div>
+          <div v-if="resetSuccess" class="success-banner">{{ resetSuccess }}</div>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" @click="closeResetPasswordModal">Cancel</button>
+            <button type="submit" class="btn-save" :disabled="resettingPassword">
+              {{ resettingPassword ? 'Updating…' : 'Reset Password' }}
             </button>
           </div>
         </form>
@@ -275,6 +302,12 @@ const showEditModal = ref(false)
 const editUser = ref({ id: null, name: '', email: '', role: 'teacher', is_active: true })
 const saving = ref(false)
 const editError = ref('')
+const showResetModal = ref(false)
+const resetTarget = ref(null)
+const resetForm = ref({ new_password: '', confirm_password: '' })
+const resettingPassword = ref(false)
+const resetError = ref('')
+const resetSuccess = ref('')
 
 function openEditModal(u) {
   editUser.value = { id: u.id, name: u.name, email: u.email, role: u.role, is_active: u.is_active }
@@ -302,6 +335,42 @@ async function saveEdit() {
     editError.value = e.response?.data?.detail || 'Failed to save changes.'
   } finally {
     saving.value = false
+  }
+}
+
+function openResetPasswordModal(u) {
+  resetTarget.value = u
+  resetForm.value = { new_password: '', confirm_password: '' }
+  resetError.value = ''
+  resetSuccess.value = ''
+  showResetModal.value = true
+}
+
+function closeResetPasswordModal() {
+  showResetModal.value = false
+  resetTarget.value = null
+}
+
+async function resetPassword() {
+  resetError.value = ''
+  resetSuccess.value = ''
+
+  if (resetForm.value.new_password !== resetForm.value.confirm_password) {
+    resetError.value = 'New password and confirmation do not match.'
+    return
+  }
+
+  resettingPassword.value = true
+  try {
+    const res = await api.post(`/api/users/${resetTarget.value.id}/reset-password`, {
+      new_password: resetForm.value.new_password,
+    })
+    resetSuccess.value = res.data?.message || 'Password reset successfully.'
+    resetForm.value = { new_password: '', confirm_password: '' }
+  } catch (e) {
+    resetError.value = e.response?.data?.detail || 'Failed to reset password.'
+  } finally {
+    resettingPassword.value = false
   }
 }
 
@@ -613,6 +682,22 @@ async function saveSubjects() {
   background: #f0f9ff;
 }
 
+.btn-reset {
+  padding: 0.35rem 0.85rem;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1.5px solid #fdba74;
+  border-radius: 6px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-reset:hover {
+  background: #ffedd5;
+}
+
 /* ── States ───────────────────────────────────────────────────────────────── */
 .loading-state {
   display: flex;
@@ -730,6 +815,16 @@ async function saveSubjects() {
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #dc2626;
+  border-radius: 7px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.success-banner {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
   border-radius: 7px;
   padding: 0.6rem 0.9rem;
   font-size: 0.88rem;

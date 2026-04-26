@@ -162,6 +162,15 @@ class UserUpdateIn(BaseModel):
     is_active: Optional[bool] = None
 
 
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class AdminResetPasswordIn(BaseModel):
+    new_password: str
+
+
 class SubjectAssignIn(BaseModel):
     subject_ids: List[int]
 
