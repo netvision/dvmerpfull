@@ -33,6 +33,11 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }
   },
   {
+    path: '/portal/audit',
+    component: () => import('../views/AuditLogs.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     component: () => import('../views/NotFound.vue'),
   },

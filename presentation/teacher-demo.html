@@ -389,224 +389,227 @@
     </section>
 
     <section class="slide">
-      <div class="eyebrow">Session Plan</div>
-      <h2>What We Will Cover</h2>
+      <div class="eyebrow">Session Blueprint</div>
+      <h2>Theory First, Then Screens</h2>
       <div class="grid grid-2">
         <div class="card">
-          <h3>1) Public Learning Flow</h3>
+          <h3>Part 1: Academic Data Model</h3>
           <ul class="list">
-            <li>Home screen and class selection</li>
-            <li>Subject dashboard and chapter list</li>
-            <li>Chapter detail with concept cards and exhibits</li>
+            <li>What a Chapter is and what it stores</li>
+            <li>What a Concept is and why it is atomic</li>
+            <li>What an Exhibit is and how it supports evidence</li>
+            <li>Characteristics and quality checklist for each</li>
           </ul>
         </div>
         <div class="card">
-          <h3>2) Teacher Portal Flow</h3>
+          <h3>Part 2: Product Walkthrough</h3>
           <ul class="list">
-            <li>Login and chapter management table</li>
-            <li>Concept editing with rich text and tables</li>
-            <li>Exhibit media fields and ordering</li>
+            <li>Public view: how learners consume content</li>
+            <li>Portal view: how teachers and educators create and edit content</li>
+            <li>Round-trip check: edit in portal, verify in public</li>
           </ul>
         </div>
       </div>
       <div class="demo-script">
-        <p>Goal statement: "By the end of this demo, every teacher should be able to find chapter content in under 30 seconds and update concept content without technical help."</p>
+        <p>Goal statement: "Teachers should leave this session understanding both the pedagogy structure and the exact screen flow to maintain content independently."</p>
       </div>
     </section>
 
     <section class="slide">
-      <div class="eyebrow">UI Journey</div>
-      <h2>Teacher/Student Navigation Path</h2>
+      <div class="eyebrow">Core Theory</div>
+      <h2>Chapter, Concept, and Exhibit: Definitions</h2>
       <div class="flow">
         <div class="flow-step">
           <span class="step-no">1</span>
-          <h3>Home</h3>
-          <p>Colorful class cards help quick visual selection.</p>
+          <h3>Chapter</h3>
+          <p>The curriculum unit for a class and subject, with aim, sessions, and chapter-level identity.</p>
         </div>
         <div class="flow-step">
           <span class="step-no">2</span>
-          <h3>Subject Dashboard</h3>
-          <p>Subject cards show icon and chapter count per subject.</p>
+          <h3>Concept</h3>
+          <p>A teachable block inside a chapter that captures outcomes, methods, activities, and life connection.</p>
         </div>
         <div class="flow-step">
           <span class="step-no">3</span>
-          <h3>Chapter List</h3>
-          <p>Each card includes aim, session count, concept count, and PDF shortcut.</p>
+          <h3>Exhibit</h3>
+          <p>Supporting artifact linked to a concept: rich text, image, audio, video, or curated link.</p>
         </div>
         <div class="flow-step">
           <span class="step-no">4</span>
-          <h3>Chapter Detail</h3>
-          <p>Concept cards with learning outcomes and exhibit media support.</p>
+          <h3>Learning Delivery</h3>
+          <p>Teachers present concepts and exhibits in sequence to keep instruction focused and measurable.</p>
         </div>
       </div>
-      <p class="footer-note">Live demo prompt: "Notice every screen uses breadcrumb navigation so nobody gets lost."</p>
+      <p class="footer-note">Think of this as: Chapter = unit plan, Concept = lesson idea, Exhibit = evidence or learning aid.</p>
     </section>
 
     <section class="slide">
-      <div class="eyebrow">Public UI Details</div>
-      <h2>Chapter and Concept Experience</h2>
+      <div class="eyebrow">Quality Characteristics</div>
+      <h2>How to Judge Good Structure</h2>
       <div class="grid grid-3">
         <div class="card">
-          <h3>Readable Chapter Aim</h3>
-          <p class="small">Chapter aims render as formatted HTML, so lists, emphasis, and structure remain clean for teachers and students.</p>
+          <h3>Chapter Characteristics</h3>
+          <p class="small">Has clear title, class, subject, time estimate, and aim. Broad enough to frame a unit, specific enough to guide planning.</p>
         </div>
         <div class="card">
-          <h3>Concept Card Content Blocks</h3>
-          <p class="small">Learning outcomes, library, activities, life lessons, and remarks appear as separate blocks for easier lesson planning.</p>
+          <h3>Concept Characteristics</h3>
+          <p class="small">One concept should teach one core idea. Outcomes must be observable, and activities should map to outcomes directly.</p>
         </div>
         <div class="card">
-          <h3>PDF and Session Context</h3>
-          <p class="small">Session totals and downloadable chapter PDFs make it easy to align classroom pacing with planned teaching.</p>
+          <h3>Exhibit Characteristics</h3>
+          <p class="small">Every exhibit should have purpose: explain, demonstrate, reinforce, or assess. Keep media age-appropriate and classroom-ready.</p>
         </div>
       </div>
       <div class="demo-script">
-        <p>Demo line: "I can show chapter depth in one glance and open supporting PDF instantly without leaving the page."</p>
+        <p>Quality check line: "If an exhibit does not strengthen concept understanding, it should not be added."</p>
       </div>
     </section>
 
     <section class="slide">
-      <div class="eyebrow">Exhibit UX</div>
-      <h2>Exhibit Modal Behavior Teachers Will Notice</h2>
+      <div class="eyebrow">Inter-Relationships</div>
+      <h2>How Chapter, Concepts, and Exhibits Connect</h2>
       <div class="grid grid-2">
         <div class="card">
-          <h3>Rich Media Types</h3>
+          <h3>Hierarchy and Ownership</h3>
           <ul class="list">
-            <li>Text exhibits with rich formatting</li>
-            <li>Image exhibits with responsive scaling</li>
-            <li>Audio and video playback inside modal</li>
-            <li>Links and YouTube embeds where relevant</li>
+            <li>One chapter contains many concepts</li>
+            <li>One concept can contain many exhibits</li>
+            <li>Removing a chapter removes dependent concepts and exhibits</li>
+            <li>Reordering exhibits changes teaching sequence, not meaning</li>
           </ul>
         </div>
         <div class="card">
-          <h3>Recent UX Improvements</h3>
+          <h3>Pedagogy Mapping</h3>
           <ul class="list">
-            <li>Resizable exhibit modal for easier reading</li>
-            <li>Outside click does not close modal</li>
-            <li>Modal closes intentionally from the close button</li>
-            <li>Inline content images remain responsive on mobile</li>
+            <li>Chapter aim should be achieved through concept outcomes</li>
+            <li>Concept activities should reference relevant exhibits</li>
+            <li>Exhibits should appear near the concept where they are used</li>
+            <li>Session planning should align with concept complexity</li>
           </ul>
         </div>
       </div>
-      <p class="footer-note warn">Presenter tip: show this explicitly by clicking outside the popup and proving that it stays open.</p>
+      <p class="footer-note warn">Model formula: Chapter Goal = Sum of Concept Outcomes; Concept Clarity = Content + Right Exhibits.</p>
     </section>
 
     <section class="slide">
-      <div class="eyebrow">Portal Overview</div>
-      <h2>Teacher Portal for Content Management</h2>
+      <div class="eyebrow">Public View</div>
+      <h2>How Students and Teachers Consume Content</h2>
       <div class="grid grid-2">
         <div class="card">
-          <h3>Chapter Table</h3>
+          <h3>Navigation Path</h3>
           <ul class="list">
-            <li>Filters by class and subject</li>
-            <li>Quick edit action per chapter</li>
-            <li>Session and concept counters</li>
-            <li>Add chapter modal for fast creation</li>
+            <li>Home selects class, then subject dashboard opens</li>
+            <li>Chapter list shows chapter scope and session estimate</li>
+            <li>Chapter detail reveals concept-by-concept structure</li>
+            <li>Exhibits open as focused learning support in modal</li>
           </ul>
         </div>
         <div class="card">
-          <h3>Role-Aware Access</h3>
+          <h3>What Public View Communicates</h3>
           <ul class="list">
-            <li>Teachers: manage their assigned content</li>
-            <li>Admin: extra controls for users and subjects</li>
-            <li>Protected routes behind login</li>
-            <li>Consistent top navigation and logout</li>
+            <li>Clear chapter intent before detailed content</li>
+            <li>Concept blocks that match classroom flow</li>
+            <li>Exhibits that reduce explanation time in class</li>
+            <li>Consistent structure across all subjects and classes</li>
           </ul>
         </div>
       </div>
+      <p class="footer-note">Live demo cue: show one complete chain from chapter aim to concept outcome to exhibit evidence.</p>
     </section>
 
     <section class="slide">
-      <div class="eyebrow">Editing Experience</div>
-      <h2>Concept and Exhibit Editing in Practice</h2>
+      <div class="eyebrow">Portal for Educators</div>
+      <h2>How Teachers Edit and Maintain Content</h2>
       <div class="grid grid-3">
         <div class="card">
-          <h3>Rich Text Editor</h3>
-          <p class="small">Icon-based toolbar supports bold/italic/lists, links, image upload, and table creation. Teachers can format content without HTML knowledge.</p>
+          <h3>Chapter Operations</h3>
+          <p class="small">Teachers can create, filter, and edit chapters by class and subject. Session totals and concept counts help track coverage.</p>
         </div>
         <div class="card">
-          <h3>Table Support</h3>
-          <p class="small">Native table controls allow adding/removing rows and columns, with visible borders in rendered chapter content.</p>
+          <h3>Concept Authoring</h3>
+          <p class="small">Rich text editor supports lists, links, images, and tables. Teachers can express pedagogy clearly without writing HTML.</p>
         </div>
         <div class="card">
-          <h3>Exhibit Ordering</h3>
-          <p class="small">Exhibit fields can be moved up or down so teachers control presentation order exactly as they want students to consume it.</p>
+          <h3>Exhibit Management</h3>
+          <p class="small">Educators can add rich text and media exhibits, then reorder them to match lesson flow. Output appears directly in public view.</p>
         </div>
       </div>
       <div class="demo-script">
-        <p>Demo line: "I will add a 3x3 table, upload an image, and reorder two exhibits to show this can be done in under a minute."</p>
+        <p>Demo line: "Now we switch roles: same content model, but this interface is for teacher and educator creation with controlled updates."</p>
       </div>
     </section>
 
     <section class="slide">
       <div class="eyebrow">Live Demo Script</div>
-      <h2>Step-by-Step (12 Minutes)</h2>
+      <h2>Suggested Walkthrough (15 Minutes)</h2>
       <div class="grid grid-2">
         <div class="card">
-          <h3>Part A: Consumption Flow (5 min)</h3>
+          <h3>Part A: Theory to Public (7 min)</h3>
           <ul class="list">
-            <li>Open Home and pick one class</li>
-            <li>Open one subject and one chapter</li>
-            <li>Read concept learning outcome block</li>
-            <li>Open Exhibit modal and test media</li>
-            <li>Resize modal and click outside to prove persistence</li>
+            <li>Explain chapter, concept, exhibit model using one real chapter</li>
+            <li>Open public side and follow class → subject → chapter</li>
+            <li>Point out where concept outcomes appear</li>
+            <li>Open an exhibit and explain its instructional purpose</li>
+            <li>Connect exhibit back to concept and chapter aim</li>
           </ul>
         </div>
         <div class="card">
-          <h3>Part B: Authoring Flow (7 min)</h3>
+          <h3>Part B: Teacher Portal Editing (8 min)</h3>
           <ul class="list">
             <li>Login to portal and open chapter edit</li>
-            <li>Edit one concept using rich text and table</li>
-            <li>Upload one inline image in editor</li>
-            <li>Add or reorder one exhibit field</li>
+            <li>Edit one concept using rich text and structured sections</li>
+            <li>Add one exhibit with clear pedagogic intent</li>
+            <li>Reorder exhibits to improve teaching sequence</li>
             <li>Save and verify immediately in public view</li>
+            <li>Close with roles and ownership expectations</li>
           </ul>
         </div>
       </div>
-      <p class="footer-note good">Confidence close: "What you edit is what learners see, with no extra formatting work."</p>
+      <p class="footer-note good">Confidence close: "Model clarity plus easy editing leads to consistent classroom delivery."</p>
     </section>
 
     <section class="slide">
-      <div class="eyebrow">Q and A Prep</div>
-      <h2>Likely Questions from Teachers</h2>
+      <div class="eyebrow">Role Clarity</div>
+      <h2>Who Does What After Training</h2>
       <div class="grid grid-3">
         <div class="card">
-          <h3>Can I paste from Word?</h3>
-          <p class="small">Yes. Most formatting is preserved. You can quickly clean styles using the clear-format option if needed.</p>
+          <h3>Subject Teachers</h3>
+          <p class="small">Own concept quality, activity text, and exhibit relevance. Keep each concept instructional and measurable.</p>
         </div>
         <div class="card">
-          <h3>Can I add teaching resources?</h3>
-          <p class="small">Yes. Add links, uploaded media exhibits, and structured text in concept sections, including teaching methods/materials fields.</p>
+          <h3>Academic Leads</h3>
+          <p class="small">Review chapter-level alignment: aim, sessions, and concept sequence. Ensure depth and progression are balanced.</p>
         </div>
         <div class="card">
-          <h3>What if media is large?</h3>
-          <p class="small">Images are responsive, and media plays inside the exhibit modal. Recommend compressed files for faster classroom loading.</p>
+          <h3>Admins</h3>
+          <p class="small">Manage users, access, classes, and subjects. Support workflow but preserve academic ownership with teachers.</p>
         </div>
       </div>
-      <p class="footer-note">Operational tip: keep one chapter preloaded before the meeting to avoid network delays during first demo click.</p>
+      <p class="footer-note">Operational tip: use a monthly review cycle where one chapter per subject is quality-audited.</p>
     </section>
 
     <section class="slide">
       <div class="eyebrow">Wrap Up</div>
-      <h2>Outcome for Teachers</h2>
+      <h2>Expected Outcome</h2>
       <div class="grid grid-2">
         <div class="card">
-          <h3>What Improves Immediately</h3>
+          <h3>Instructional Benefits</h3>
           <ul class="list">
-            <li>Faster lesson prep from structured chapter pages</li>
-            <li>Better classroom presentation using exhibits and media</li>
-            <li>Cleaner collaboration with consistent lesson format</li>
+            <li>Common language for chapter, concept, and exhibit design</li>
+            <li>Higher quality lesson delivery with evidence-backed exhibits</li>
+            <li>Faster teacher onboarding due to consistent structure</li>
           </ul>
         </div>
         <div class="card">
-          <h3>Next Adoption Step</h3>
+          <h3>Implementation Next Step</h3>
           <ul class="list">
-            <li>Each department nominates one chapter owner</li>
-            <li>Build first 2-week content baseline</li>
-            <li>Collect teacher feedback and tune templates</li>
+            <li>Nominate chapter owners per subject for portal updates</li>
+            <li>Run one pilot chapter per class using this model</li>
+            <li>Review public view weekly and refine concept-exhibit fit</li>
           </ul>
         </div>
       </div>
-      <p class="hero-sub" style="margin-top: 0.4rem;">Thank you. Use <span class="kbd">←</span> <span class="kbd">→</span> keys for navigation during your presentation.</p>
+      <p class="hero-sub" style="margin-top: 0.4rem;">Thank you. First teach the model, then show the screens, then assign ownership.</p>
     </section>
   </div>
 

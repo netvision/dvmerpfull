@@ -1,8 +1,9 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from audit import write_audit_log
 from auth import hash_password, require_admin
 from database import get_db
 from models import Subject, TeacherSubject, User, UserRole
@@ -42,6 +43,16 @@ def _user_to_out(user: User) -> UserFullOut:
     )
 
 
+def _user_snapshot(user: User) -> dict:
+    return {
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "role": user.role.value if hasattr(user.role, "value") else str(user.role),
+        "is_active": user.is_active,
+    }
+
+
 # ---------------------------------------------------------------------------
 # GET /api/users/
 # ---------------------------------------------------------------------------
@@ -63,7 +74,8 @@ def list_users(
 @router.post("/", response_model=UserFullOut, status_code=status.HTTP_201_CREATED)
 def create_user(
     body: UserCreateIn,
-    _admin: User = Depends(require_admin),
+    request: Request,
+    admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Create a new user. Admin only. Returns 400 if email already exists."""
@@ -90,6 +102,19 @@ def create_user(
         is_active=True,
     )
     db.add(user)
+    db.flush()
+
+    write_audit_log(
+        db,
+        actor_user_id=admin_user.id,
+        entity_type="user",
+        entity_id=str(user.id),
+        action="create",
+        change_summary=f"User created: {user.email}",
+        after_payload=_user_snapshot(user),
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(user)
     return _user_to_out(user)
@@ -103,13 +128,16 @@ def create_user(
 def update_user(
     user_id: int,
     body: UserUpdateIn,
-    _admin: User = Depends(require_admin),
+    request: Request,
+    admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Update user fields. Admin only. Returns 404 if not found, 400 on email conflict."""
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    before = _user_snapshot(user)
 
     if body.email is not None and body.email != user.email:
         conflict = db.query(User).filter(User.email == body.email).first()
@@ -135,6 +163,19 @@ def update_user(
     if body.is_active is not None:
         user.is_active = body.is_active
 
+    after = _user_snapshot(user)
+    write_audit_log(
+        db,
+        actor_user_id=admin_user.id,
+        entity_type="user",
+        entity_id=str(user.id),
+        action="update",
+        change_summary=f"User updated: {user.email}",
+        before_payload=before,
+        after_payload=after,
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(user)
     return _user_to_out(user)
@@ -148,7 +189,8 @@ def update_user(
 def assign_subjects(
     user_id: int,
     body: SubjectAssignIn,
-    _admin: User = Depends(require_admin),
+    request: Request,
+    admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Replace all subject assignments for a teacher. Admin only."""
@@ -161,6 +203,11 @@ def assign_subjects(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Subjects can only be assigned to teacher, subject_head, or mentor roles",
         )
+
+    before_subject_ids = [
+        row.subject_id
+        for row in db.query(TeacherSubject).filter(TeacherSubject.teacher_id == user_id).all()
+    ]
 
     # Validate all subject IDs exist
     if body.subject_ids:
@@ -182,6 +229,18 @@ def assign_subjects(
 
     for sid in body.subject_ids:
         db.add(TeacherSubject(teacher_id=user_id, subject_id=sid))
+
+    write_audit_log(
+        db,
+        actor_user_id=admin_user.id,
+        entity_type="teacher_subject",
+        entity_id=str(user_id),
+        action="replace",
+        change_summary=f"Subject assignments updated for user {user.email}",
+        before_payload={"subject_ids": before_subject_ids},
+        after_payload={"subject_ids": body.subject_ids},
+        ip_address=request.client.host if request.client else None,
+    )
 
     db.commit()
     return {"ok": True, "assigned": body.subject_ids}
@@ -219,7 +278,8 @@ def get_user_subjects(
 def admin_reset_password(
     user_id: int,
     body: AdminResetPasswordIn,
-    _admin: User = Depends(require_admin),
+    request: Request,
+    admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Reset/change any user's password. Admin only."""
@@ -232,5 +292,16 @@ def admin_reset_password(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 6 characters")
 
     user.hashed_password = hash_password(body.new_password)
+
+    write_audit_log(
+        db,
+        actor_user_id=admin_user.id,
+        entity_type="user",
+        entity_id=str(user.id),
+        action="reset_password",
+        change_summary=f"Password reset by admin for user {user.email}",
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     return {"ok": True, "message": "Password reset successfully"}

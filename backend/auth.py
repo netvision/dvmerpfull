@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
+from typing import Callable
 
 import bcrypt as _bcrypt
 from fastapi import Depends, HTTPException, status
@@ -39,6 +40,10 @@ ROLE_CAPABILITIES = {
         "image_edit",
         "pdf_upload",
         "xlsx_upload",
+        "erp_student_read",
+        "erp_student_write",
+        "erp_attendance_read",
+        "erp_attendance_write",
     ],
     UserRole.subject_head: [
         "subject_scope",
@@ -48,6 +53,10 @@ ROLE_CAPABILITIES = {
         "image_edit",
         "pdf_upload",
         "xlsx_upload",
+        "erp_student_read",
+        "erp_student_write",
+        "erp_attendance_read",
+        "erp_attendance_write",
     ],
     UserRole.mentor: [
         "subject_scope",
@@ -57,6 +66,8 @@ ROLE_CAPABILITIES = {
         "image_edit",
         "pdf_upload",
         "xlsx_upload",
+        "erp_student_read",
+        "erp_attendance_read",
     ],
     UserRole.hm: [
         "platform_admin",
@@ -71,6 +82,13 @@ ROLE_CAPABILITIES = {
         "xlsx_upload",
         "subject_management",
         "user_management",
+        "erp_student_read",
+        "erp_student_write",
+        "erp_attendance_read",
+        "erp_attendance_write",
+        "erp_fee_read",
+        "erp_fee_write",
+        "erp_audit_read",
     ],
     UserRole.principal: [
         "platform_admin",
@@ -85,6 +103,13 @@ ROLE_CAPABILITIES = {
         "xlsx_upload",
         "subject_management",
         "user_management",
+        "erp_student_read",
+        "erp_student_write",
+        "erp_attendance_read",
+        "erp_attendance_write",
+        "erp_fee_read",
+        "erp_fee_write",
+        "erp_audit_read",
     ],
     UserRole.super_admin: [
         "platform_admin",
@@ -99,6 +124,13 @@ ROLE_CAPABILITIES = {
         "xlsx_upload",
         "subject_management",
         "user_management",
+        "erp_student_read",
+        "erp_student_write",
+        "erp_attendance_read",
+        "erp_attendance_write",
+        "erp_fee_read",
+        "erp_fee_write",
+        "erp_audit_read",
     ],
 }
 
@@ -179,6 +211,22 @@ def has_subject_scoped_access(user: User) -> bool:
 
 def get_role_capabilities(user: User) -> list[str]:
     return ROLE_CAPABILITIES.get(user.role, [])
+
+
+def has_capability(user: User, capability: str) -> bool:
+    return capability in get_role_capabilities(user)
+
+
+def require_capability(capability: str) -> Callable[[User], User]:
+    def _dependency(current_user: User = Depends(get_current_user)) -> User:
+        if not has_capability(current_user, capability):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Missing capability: {capability}",
+            )
+        return current_user
+
+    return _dependency
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:

@@ -1,7 +1,15 @@
-from typing import List, Optional
+from typing import List, Optional, Generic, TypeVar
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 from models import ExhibitFieldType
+
+T = TypeVar('T')
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
 
 
 class TokenOut(BaseModel):
@@ -253,3 +261,310 @@ class ExhibitCreateIn(BaseModel):
     field_type: str = "string"  # default to string type
     field_value: Optional[str] = None
     sort_order: Optional[int] = 0
+
+
+class AcademicYearOut(BaseModel):
+    id: int
+    name: str
+    start_date: date
+    end_date: date
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AcademicYearCreateIn(BaseModel):
+    name: str
+    start_date: date
+    end_date: date
+    is_active: bool = True
+
+
+class SectionOut(BaseModel):
+    id: int
+    class_id: int
+    name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClassCreateIn(BaseModel):
+    name: str
+
+
+class SectionCreateIn(BaseModel):
+    class_id: int
+    name: str
+
+
+class ERPRoleMatrixOut(BaseModel):
+    role: str
+    capabilities: List[str]
+
+
+class StudentOut(BaseModel):
+    id: int
+    admission_no: str
+    roll_no: Optional[str]
+    first_name: str
+    last_name: Optional[str]
+    date_of_birth: Optional[date]
+    gender: Optional[str]
+    phone: Optional[str]
+    email: Optional[str]
+    address: Optional[str]
+    class_id: int
+    class_name: Optional[str] = None
+    section_id: Optional[int]
+    section_name: Optional[str] = None
+    academic_year_id: int
+    academic_year_name: Optional[str] = None
+    status: str
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentListOut(BaseModel):
+    items: List[StudentOut]
+    total: int
+
+
+class StudentCreateIn(BaseModel):
+    admission_no: str
+    roll_no: Optional[str] = None
+    first_name: str
+    last_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    class_id: int
+    section_id: Optional[int] = None
+    academic_year_id: int
+    status: str = "active"
+
+
+class StudentUpdateIn(BaseModel):
+    admission_no: Optional[str] = None
+    roll_no: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    class_id: Optional[int] = None
+    section_id: Optional[int] = None
+    academic_year_id: Optional[int] = None
+    status: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class AttendanceEntryOut(BaseModel):
+    id: int
+    session_id: int
+    student_id: int
+    student_name: Optional[str] = None
+    admission_no: Optional[str] = None
+    status: str
+    remarks: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AttendanceSessionOut(BaseModel):
+    id: int
+    class_id: int
+    class_name: Optional[str] = None
+    section_id: Optional[int] = None
+    section_name: Optional[str] = None
+    academic_year_id: int
+    academic_year_name: Optional[str] = None
+    attendance_date: date
+    marked_by_id: int
+    marked_by_name: Optional[str] = None
+    marked_at: Optional[datetime] = None
+    remarks: Optional[str] = None
+    entries_count: int = 0
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AttendanceSessionCreateIn(BaseModel):
+    class_id: int
+    section_id: int
+    academic_year_id: int
+    attendance_date: date
+    remarks: Optional[str] = None
+
+
+class AttendanceEntryCreateIn(BaseModel):
+    student_id: int
+    status: str
+    remarks: Optional[str] = None
+
+
+class AttendanceEntryUpdateIn(BaseModel):
+    status: str
+    remarks: Optional[str] = None
+
+
+class BulkAttendanceMarkIn(BaseModel):
+    entries: List[AttendanceEntryCreateIn]
+
+
+class AttendanceSummaryOut(BaseModel):
+    total_entries: int
+    present: int
+    absent: int
+    late: int
+    leave: int
+
+
+class FeeHeadOut(BaseModel):
+    id: int
+    name: str
+    code: str
+    description: Optional[str] = None
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeeHeadCreateIn(BaseModel):
+    name: str
+    code: str
+    description: Optional[str] = None
+    is_active: bool = True
+
+
+class FeeHeadUpdateIn(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class FeeStructureItemOut(BaseModel):
+    id: int
+    fee_head_id: int
+    fee_head_name: Optional[str] = None
+    amount: float
+    due_day: Optional[int] = None
+
+
+class FeeStructureItemCreateIn(BaseModel):
+    fee_head_id: int
+    amount: float
+    due_day: Optional[int] = None
+
+
+class FeeStructureOut(BaseModel):
+    id: int
+    name: str
+    class_id: int
+    class_name: Optional[str] = None
+    academic_year_id: int
+    academic_year_name: Optional[str] = None
+    is_active: bool
+    items: List[FeeStructureItemOut] = []
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeeStructureCreateIn(BaseModel):
+    name: str
+    class_id: int
+    academic_year_id: int
+    is_active: bool = True
+    items: List[FeeStructureItemCreateIn] = []
+
+
+class StudentFeeAssignmentOut(BaseModel):
+    id: int
+    student_id: int
+    student_name: Optional[str] = None
+    fee_structure_id: int
+    fee_structure_name: Optional[str] = None
+    academic_year_id: int
+    academic_year_name: Optional[str] = None
+    effective_from: Optional[date] = None
+    effective_to: Optional[date] = None
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentFeeAssignmentCreateIn(BaseModel):
+    student_id: int
+    fee_structure_id: int
+    academic_year_id: int
+    effective_from: Optional[date] = None
+    effective_to: Optional[date] = None
+    is_active: bool = True
+
+
+class FeeInvoiceOut(BaseModel):
+    id: int
+    invoice_no: str
+    student_id: int
+    student_name: Optional[str] = None
+    academic_year_id: int
+    academic_year_name: Optional[str] = None
+    invoice_date: date
+    due_date: Optional[date] = None
+    total_amount: float
+    discount_amount: float
+    paid_amount: float
+    balance_amount: float
+    status: str
+    notes: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeeInvoiceCreateIn(BaseModel):
+    invoice_no: str
+    student_id: int
+    academic_year_id: int
+    invoice_date: date
+    due_date: Optional[date] = None
+    total_amount: float
+    discount_amount: float = 0.0
+    notes: Optional[str] = None
+
+
+class FeeReceiptOut(BaseModel):
+    id: int
+    receipt_no: str
+    invoice_id: int
+    student_id: int
+    student_name: Optional[str] = None
+    receipt_date: date
+    amount: float
+    payment_mode: str
+    reference_no: Optional[str] = None
+    notes: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeeReceiptCreateIn(BaseModel):
+    receipt_no: str
+    invoice_id: int
+    receipt_date: date
+    amount: float
+    payment_mode: str = "cash"
+    reference_no: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class AuditLogOut(BaseModel):
+    id: int
+    actor_user_id: Optional[int] = None
+    entity_type: str
+    entity_id: str
+    action: str
+    change_summary: Optional[str] = None
+    before_payload: Optional[str] = None
+    after_payload: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AuditLogListOut(BaseModel):
+    items: List[AuditLogOut]
+    total: int

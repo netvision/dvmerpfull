@@ -11,6 +11,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from audit import write_audit_log
 from auth import (
     create_access_token,
     get_current_user,
@@ -59,6 +60,32 @@ def _safe_upload_name(filename: Optional[str]) -> str:
     stem = Path(original_name).stem or "upload"
     safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("._") or "upload"
     return f"{uuid.uuid4()}_{safe_stem}{suffix}"
+
+
+def _client_ip(request: Optional[Request]) -> Optional[str]:
+    return request.client.host if request and request.client else None
+
+
+def _write_security_event(
+    db: Session,
+    *,
+    request: Optional[Request],
+    action: str,
+    entity_id: str,
+    actor_user_id: Optional[int] = None,
+    change_summary: Optional[str] = None,
+    payload: Optional[dict] = None,
+) -> None:
+    write_audit_log(
+        db,
+        actor_user_id=actor_user_id,
+        entity_type="security_event",
+        entity_id=entity_id,
+        action=action,
+        change_summary=change_summary,
+        after_payload=payload,
+        ip_address=_client_ip(request),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +216,73 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
     )
 
 
+def _chapter_snapshot(chapter: Chapter) -> dict:
+    return {
+        "id": chapter.id,
+        "title": chapter.title,
+        "aim": chapter.aim,
+        "subject_id": chapter.subject_id,
+        "order_index": chapter.order_index,
+        "is_approved": chapter.is_approved,
+        "pending_change_summary": chapter.pending_change_summary,
+        "approval_requested_by_id": chapter.approval_requested_by_id,
+        "approved_by_id": chapter.approved_by_id,
+        "approved_at": chapter.approved_at,
+        "pdf_filename": chapter.pdf_filename,
+    }
+
+
+def _concept_snapshot(concept: Concept) -> dict:
+    return {
+        "id": concept.id,
+        "chapter_id": concept.chapter_id,
+        "s_no": concept.s_no,
+        "title": concept.title,
+        "concept_description": concept.concept_description,
+        "sessions": concept.sessions,
+        "learning_outcomes": concept.learning_outcomes,
+        "integration_other_sub": concept.integration_other_sub,
+        "teaching_materials_methods": concept.teaching_materials_methods,
+        "library": concept.library,
+        "activity": concept.activity,
+        "life_lesson": concept.life_lesson,
+        "remarks": concept.remarks,
+        "exhibit_ref": concept.exhibit_ref,
+    }
+
+
+def _exhibit_snapshot(exhibit: Exhibit) -> dict:
+    return {
+        "id": exhibit.id,
+        "concept_id": exhibit.concept_id,
+        "field_key": exhibit.field_key,
+        "field_type": exhibit.field_type.value if hasattr(exhibit.field_type, "value") else str(exhibit.field_type),
+        "field_value": exhibit.field_value,
+        "file_key": exhibit.file_key,
+        "sort_order": exhibit.sort_order,
+    }
+
+
+def _image_snapshot(img: ConceptImage) -> dict:
+    return {
+        "id": img.id,
+        "concept_id": img.concept_id,
+        "filename": img.filename,
+        "original_name": img.original_name,
+        "sort_order": img.sort_order,
+    }
+
+
+def _subject_snapshot(subject: Subject) -> dict:
+    return {
+        "id": subject.id,
+        "name": subject.name,
+        "class_id": subject.class_id,
+        "icon": subject.icon,
+        "color": subject.color,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Auth routes (existing)
 # ---------------------------------------------------------------------------
@@ -203,17 +297,58 @@ def login(
     """Authenticate with email (username field) and password, return JWT."""
     user: User | None = db.query(User).filter(User.email == form_data.username).first()
     if user is None or not verify_password(form_data.password, user.hashed_password):
+        _write_security_event(
+            db,
+            request=request,
+            action="login_failed",
+            entity_id=form_data.username,
+            actor_user_id=user.id if user else None,
+            change_summary="Login failed: invalid credentials",
+            payload={
+                "email": form_data.username,
+                "reason": "invalid_credentials",
+            },
+        )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     if not user.is_active:
+        _write_security_event(
+            db,
+            request=request,
+            action="login_blocked",
+            entity_id=str(user.id),
+            actor_user_id=user.id,
+            change_summary="Login blocked for inactive user",
+            payload={
+                "email": user.email,
+                "reason": "inactive_user",
+            },
+        )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Inactive user",
         )
     token = create_access_token(data={"sub": user.email})
+
+    _write_security_event(
+        db,
+        request=request,
+        action="login_success",
+        entity_id=str(user.id),
+        actor_user_id=user.id,
+        change_summary="User logged in successfully",
+        payload={
+            "email": user.email,
+            "role": user.role.value,
+        },
+    )
+    db.commit()
+
     return TokenOut(access_token=token, token_type="bearer")
 
 
@@ -242,6 +377,7 @@ def auth_capabilities(current_user: User = Depends(get_current_user)):
 @router.post("/auth/change-password")
 def change_password(
     body: ChangePasswordIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -256,6 +392,17 @@ def change_password(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be different from current password")
 
     current_user.hashed_password = hash_password(body.new_password)
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="user",
+        entity_id=str(current_user.id),
+        action="change_password",
+        change_summary="User changed own password",
+        ip_address=_client_ip(request),
+    )
+
     db.commit()
     return {"ok": True, "message": "Password updated successfully"}
 
@@ -370,6 +517,7 @@ def get_chapter(
 def update_chapter(
     chapter_id: int,
     body: ChapterUpdateIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -379,6 +527,8 @@ def update_chapter(
         raise HTTPException(status_code=404, detail="Chapter not found")
 
     _check_subject_access(db, current_user, chapter.subject_id)
+
+    before = _chapter_snapshot(chapter)
 
     if body.title is not None:
         chapter.title = body.title
@@ -405,6 +555,18 @@ def update_chapter(
     summary = f"Chapter updated ({', '.join(changed_fields)})" if changed_fields else "Chapter updated"
     _mark_chapter_approval_state(chapter, current_user, summary)
 
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="chapter",
+        entity_id=str(chapter.id),
+        action="update",
+        change_summary=summary,
+        before_payload=before,
+        after_payload=_chapter_snapshot(chapter),
+        ip_address=_client_ip(request),
+    )
+
     db.commit()
     db.refresh(chapter)
     return _build_chapter_detail(db, chapter)
@@ -413,6 +575,7 @@ def update_chapter(
 @router.post("/chapters", response_model=ChapterDetailOut, status_code=201)
 def create_chapter(
     body: ChapterCreateIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -430,6 +593,19 @@ def create_chapter(
     )
     _mark_chapter_approval_state(chapter, current_user, "New chapter created")
     db.add(chapter)
+    db.flush()
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="chapter",
+        entity_id=str(chapter.id),
+        action="create",
+        change_summary=f"Chapter created: {chapter.title}",
+        after_payload=_chapter_snapshot(chapter),
+        ip_address=_client_ip(request),
+    )
+
     db.commit()
     db.refresh(chapter)
     return _build_chapter_detail(db, chapter)
@@ -438,6 +614,7 @@ def create_chapter(
 @router.post("/chapters/{chapter_id}/approve", response_model=ChapterDetailOut)
 def approve_chapter_changes(
     chapter_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -449,11 +626,26 @@ def approve_chapter_changes(
     if chapter is None:
         raise HTTPException(status_code=404, detail="Chapter not found")
 
+    before = _chapter_snapshot(chapter)
+
     chapter.is_approved = True
     chapter.pending_change_summary = None
     chapter.approval_requested_by_id = None
     chapter.approved_by_id = current_user.id
     chapter.approved_at = datetime.now(timezone.utc)
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="chapter",
+        entity_id=str(chapter.id),
+        action="approve",
+        change_summary=f"Chapter approved: {chapter.title}",
+        before_payload=before,
+        after_payload=_chapter_snapshot(chapter),
+        ip_address=_client_ip(request),
+    )
+
     db.commit()
     db.refresh(chapter)
     return _build_chapter_detail(db, chapter)
@@ -462,6 +654,7 @@ def approve_chapter_changes(
 @router.delete("/chapters/{chapter_id}")
 def delete_chapter(
     chapter_id: int,
+    request: Request,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -470,7 +663,21 @@ def delete_chapter(
     if chapter is None:
         raise HTTPException(status_code=404, detail="Chapter not found")
 
+    before = _chapter_snapshot(chapter)
+
     _delete_chapter_cascade(db, chapter)
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="chapter",
+        entity_id=str(chapter_id),
+        action="delete",
+        change_summary=f"Chapter deleted: {before.get('title')}",
+        before_payload=before,
+        ip_address=_client_ip(request),
+    )
+
     db.commit()
     return {"ok": True}
 
@@ -479,6 +686,7 @@ def delete_chapter(
 async def upload_chapter_pdf(
     chapter_id: int,
     file: UploadFile = File(...),
+    request: Request = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -487,6 +695,8 @@ async def upload_chapter_pdf(
     if chapter is None:
         raise HTTPException(status_code=404, detail="Chapter not found")
     _check_subject_access(db, current_user, chapter.subject_id)
+
+    before = _chapter_snapshot(chapter)
 
     fname = (file.filename or "").lower()
     if not fname.endswith(".pdf"):
@@ -513,6 +723,37 @@ async def upload_chapter_pdf(
 
     chapter.pdf_filename = unique_name
     _mark_chapter_approval_state(chapter, current_user, "Chapter PDF updated")
+
+    _write_security_event(
+        db,
+        request=request,
+        action="file_upload",
+        entity_id=unique_name,
+        actor_user_id=current_user.id,
+        change_summary=f"Chapter PDF uploaded for chapter {chapter.id}",
+        payload={
+            "upload_type": "chapter_pdf",
+            "chapter_id": chapter.id,
+            "subject_id": chapter.subject_id,
+            "stored_filename": unique_name,
+            "original_filename": file.filename,
+            "content_type": file.content_type,
+            "size_bytes": len(contents),
+        },
+    )
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="chapter",
+        entity_id=str(chapter.id),
+        action="upload_pdf",
+        change_summary=f"Chapter PDF uploaded/replaced: {chapter.title}",
+        before_payload=before,
+        after_payload=_chapter_snapshot(chapter),
+        ip_address=_client_ip(request),
+    )
+
     db.commit()
     return {"pdf_url": f"/uploads/{unique_name}"}
 
@@ -524,11 +765,11 @@ async def upload_chapter_pdf(
 @router.post("/editor-images")
 async def upload_editor_image(
     file: UploadFile = File(...),
+    request: Request = None,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Upload an inline editor image and return its public uploads URL."""
-    del current_user
-
     if not (file.content_type or "").startswith("image/"):
         raise HTTPException(status_code=422, detail="Only image files are allowed")
 
@@ -545,12 +786,30 @@ async def upload_editor_image(
     with open(dest_path, "wb") as output:
         output.write(contents)
 
+    _write_security_event(
+        db,
+        request=request,
+        action="file_upload",
+        entity_id=unique_name,
+        actor_user_id=current_user.id,
+        change_summary="Editor image uploaded",
+        payload={
+            "upload_type": "editor_image",
+            "stored_filename": unique_name,
+            "original_filename": file.filename,
+            "content_type": file.content_type,
+            "size_bytes": len(contents),
+        },
+    )
+    db.commit()
+
     return {"url": f"/uploads/{unique_name}"}
 
 @router.post("/upload", response_model=UploadResultOut)
 async def upload_xlsx(
     file: UploadFile = File(...),
     subject_id: int = Form(...),
+    request: Request = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -603,6 +862,7 @@ async def upload_xlsx(
         Chapter.subject_id == subject_id,
         Chapter.title == data["title"],
     ).first()
+    existing_before = _chapter_snapshot(existing) if existing else None
     if existing:
         _delete_chapter_cascade(db, existing)
         db.flush()
@@ -655,6 +915,42 @@ async def upload_xlsx(
                     sort_order=idx,
                 ))
                 exhibits_count += 1
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="chapter",
+        entity_id=str(chapter.id),
+        action="upload_xlsx",
+        change_summary=f"Chapter uploaded from xlsx: {chapter.title}",
+        before_payload=existing_before,
+        after_payload={
+            **_chapter_snapshot(chapter),
+            "concepts_count": concepts_count,
+            "exhibits_count": exhibits_count,
+        },
+        ip_address=_client_ip(request),
+    )
+
+    _write_security_event(
+        db,
+        request=request,
+        action="file_upload",
+        entity_id=f"xlsx:{subject_id}:{chapter.id}",
+        actor_user_id=current_user.id,
+        change_summary=f"Lesson xlsx uploaded for subject {subject_id}",
+        payload={
+            "upload_type": "lesson_xlsx",
+            "subject_id": subject_id,
+            "chapter_id": chapter.id,
+            "chapter_title": chapter.title,
+            "original_filename": file.filename,
+            "content_type": file.content_type,
+            "size_bytes": len(contents),
+            "concepts_count": concepts_count,
+            "exhibits_count": exhibits_count,
+        },
+    )
 
     db.commit()
 
@@ -752,6 +1048,7 @@ def _get_chapter_by_concept_id(db: Session, concept_id: int) -> Chapter:
 def update_concept(
     concept_id: int,
     body: ConceptUpdateIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -759,6 +1056,8 @@ def update_concept(
     concept = db.query(Concept).filter(Concept.id == concept_id).first()
     if concept is None:
         raise HTTPException(status_code=404, detail="Concept not found")
+
+    before = _concept_snapshot(concept)
 
     subject_id = _get_concept_subject_id(db, concept_id)
     _check_subject_access(db, current_user, subject_id)
@@ -817,6 +1116,18 @@ def update_concept(
     summary = f"Concept '{concept.title}' updated ({', '.join(changed_fields)})" if changed_fields else f"Concept '{concept.title}' updated"
     _mark_chapter_approval_state(chapter, current_user, summary)
 
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="concept",
+        entity_id=str(concept.id),
+        action="update",
+        change_summary=summary,
+        before_payload=before,
+        after_payload=_concept_snapshot(concept),
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(concept)
     return _build_concept_out(db, concept)
@@ -825,6 +1136,7 @@ def update_concept(
 @router.delete("/concepts/{concept_id}")
 def delete_concept(
     concept_id: int,
+    request: Request,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -833,8 +1145,22 @@ def delete_concept(
     if concept is None:
         raise HTTPException(status_code=404, detail="Concept not found")
 
+    before = _concept_snapshot(concept)
+
     db.query(Exhibit).filter(Exhibit.concept_id == concept.id).delete()
     db.delete(concept)
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="concept",
+        entity_id=str(concept_id),
+        action="delete",
+        change_summary=f"Concept deleted: {before.get('title')}",
+        before_payload=before,
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     return {"ok": True}
 
@@ -842,6 +1168,7 @@ def delete_concept(
 @router.post("/concepts", response_model=ConceptOut, status_code=201)
 def create_concept(
     body: ConceptCreateIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -869,6 +1196,19 @@ def create_concept(
     )
     db.add(concept)
     _mark_chapter_approval_state(chapter, current_user, f"New concept added: {concept.title}")
+    db.flush()
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="concept",
+        entity_id=str(concept.id),
+        action="create",
+        change_summary=f"Concept created: {concept.title}",
+        after_payload=_concept_snapshot(concept),
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(concept)
     return _build_concept_out(db, concept)
@@ -886,6 +1226,7 @@ async def update_exhibit(
     field_value: Optional[str] = Form(None),
     sort_order: Optional[int] = Form(None),
     file: Optional[UploadFile] = File(None),
+    request: Request = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -897,6 +1238,8 @@ async def update_exhibit(
     exhibit = db.query(Exhibit).filter(Exhibit.id == exhibit_id).first()
     if exhibit is None:
         raise HTTPException(status_code=404, detail="Exhibit not found")
+
+    before = _exhibit_snapshot(exhibit)
 
     subject_id = _get_concept_subject_id(db, exhibit.concept_id)
     _check_subject_access(db, current_user, subject_id)
@@ -948,6 +1291,18 @@ async def update_exhibit(
     summary = f"Exhibit '{exhibit.field_key}' updated ({', '.join(changed_fields)})" if changed_fields else f"Exhibit '{exhibit.field_key}' updated"
     _mark_chapter_approval_state(chapter, current_user, summary)
 
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="exhibit",
+        entity_id=str(exhibit.id),
+        action="update",
+        change_summary=summary,
+        before_payload=before,
+        after_payload=_exhibit_snapshot(exhibit),
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(exhibit)
     
@@ -966,6 +1321,7 @@ async def update_exhibit(
 @router.delete("/exhibits/{exhibit_id}")
 def delete_exhibit(
     exhibit_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -973,6 +1329,8 @@ def delete_exhibit(
     exhibit = db.query(Exhibit).filter(Exhibit.id == exhibit_id).first()
     if exhibit is None:
         raise HTTPException(status_code=404, detail="Exhibit not found")
+
+    before = _exhibit_snapshot(exhibit)
 
     subject_id = _get_concept_subject_id(db, exhibit.concept_id)
     _check_subject_access(db, current_user, subject_id)
@@ -987,6 +1345,18 @@ def delete_exhibit(
     deleted_key = exhibit.field_key
     db.delete(exhibit)
     _mark_chapter_approval_state(chapter, current_user, f"Exhibit removed: {deleted_key}")
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="exhibit",
+        entity_id=str(exhibit_id),
+        action="delete",
+        change_summary=f"Exhibit deleted: {deleted_key}",
+        before_payload=before,
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     return {"ok": True}
 
@@ -999,6 +1369,7 @@ async def create_exhibit(
     field_value: Optional[str] = Form(None),
     sort_order: Optional[int] = Form(0),
     file: Optional[UploadFile] = File(None),
+    request: Request = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1043,6 +1414,19 @@ async def create_exhibit(
     )
     db.add(exhibit)
     _mark_chapter_approval_state(chapter, current_user, f"New exhibit added: {field_key}")
+    db.flush()
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="exhibit",
+        entity_id=str(exhibit.id),
+        action="create",
+        change_summary=f"Exhibit created: {field_key}",
+        after_payload=_exhibit_snapshot(exhibit),
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(exhibit)
     
@@ -1066,6 +1450,7 @@ async def create_exhibit(
 async def upload_concept_images(
     concept_id: int,
     files: List[UploadFile] = File(...),
+    request: Request = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1111,6 +1496,25 @@ async def upload_concept_images(
         created.append(_build_image_out(img))
 
     _mark_chapter_approval_state(chapter, current_user, f"{len(created)} concept image(s) added")
+
+    for created_img in created:
+        write_audit_log(
+            db,
+            actor_user_id=current_user.id,
+            entity_type="concept_image",
+            entity_id=str(created_img.id),
+            action="create",
+            change_summary=f"Concept image uploaded: {created_img.original_name}",
+            after_payload={
+                "id": created_img.id,
+                "concept_id": concept_id,
+                "filename": created_img.filename,
+                "original_name": created_img.original_name,
+                "sort_order": created_img.sort_order,
+            },
+            ip_address=request.client.host if request.client else None,
+        )
+
     db.commit()
     return created
 
@@ -1118,6 +1522,7 @@ async def upload_concept_images(
 @router.delete("/images/{image_id}")
 def delete_concept_image(
     image_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1125,6 +1530,8 @@ def delete_concept_image(
     img = db.query(ConceptImage).filter(ConceptImage.id == image_id).first()
     if img is None:
         raise HTTPException(status_code=404, detail="Image not found")
+
+    before = _image_snapshot(img)
 
     subject_id = _get_concept_subject_id(db, img.concept_id)
     _check_subject_access(db, current_user, subject_id)
@@ -1138,6 +1545,18 @@ def delete_concept_image(
     deleted_name = img.original_name
     db.delete(img)
     _mark_chapter_approval_state(chapter, current_user, f"Concept image removed: {deleted_name}")
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="concept_image",
+        entity_id=str(image_id),
+        action="delete",
+        change_summary=f"Concept image deleted: {deleted_name}",
+        before_payload=before,
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     return {"ok": True}
 
@@ -1146,6 +1565,7 @@ def delete_concept_image(
 def update_concept_image(
     image_id: int,
     sort_order: int = Body(..., embed=True),
+    request: Request = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1154,12 +1574,27 @@ def update_concept_image(
     if img is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
+    before = _image_snapshot(img)
+
     subject_id = _get_concept_subject_id(db, img.concept_id)
     _check_subject_access(db, current_user, subject_id)
     chapter = _get_chapter_by_concept_id(db, img.concept_id)
 
     img.sort_order = sort_order
     _mark_chapter_approval_state(chapter, current_user, "Concept image order updated")
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="concept_image",
+        entity_id=str(img.id),
+        action="update",
+        change_summary="Concept image order updated",
+        before_payload=before,
+        after_payload=_image_snapshot(img),
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(img)
     return _build_image_out(img)
@@ -1197,6 +1632,7 @@ def list_subjects_portal(
 @router.post("/subjects", response_model=SubjectFullOut, status_code=201)
 def create_subject(
     body: SubjectCreateIn,
+    request: Request,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -1211,6 +1647,19 @@ def create_subject(
         color=body.color,
     )
     db.add(subject)
+    db.flush()
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="subject",
+        entity_id=str(subject.id),
+        action="create",
+        change_summary=f"Subject created: {subject.name}",
+        after_payload=_subject_snapshot(subject),
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(subject)
     return _subject_to_out(subject)
@@ -1220,6 +1669,7 @@ def create_subject(
 def update_subject(
     subject_id: int,
     body: SubjectUpdateIn,
+    request: Request,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -1227,6 +1677,8 @@ def update_subject(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
+
+    before = _subject_snapshot(subject)
     if body.name is not None:
         subject.name = body.name
     if body.icon is not None:
@@ -1238,6 +1690,19 @@ def update_subject(
         if cls is None:
             raise HTTPException(status_code=404, detail="Class not found")
         subject.class_id = body.class_id
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="subject",
+        entity_id=str(subject.id),
+        action="update",
+        change_summary=f"Subject updated: {subject.name}",
+        before_payload=before,
+        after_payload=_subject_snapshot(subject),
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     db.refresh(subject)
     return _subject_to_out(subject)
@@ -1246,6 +1711,7 @@ def update_subject(
 @router.delete("/subjects/{subject_id}")
 def delete_subject(
     subject_id: int,
+    request: Request,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -1253,6 +1719,8 @@ def delete_subject(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if subject is None:
         raise HTTPException(status_code=404, detail="Subject not found")
+
+    before = _subject_snapshot(subject)
     chapter_count = db.query(Chapter).filter(Chapter.subject_id == subject_id).count()
     if chapter_count > 0:
         raise HTTPException(
@@ -1261,5 +1729,17 @@ def delete_subject(
         )
     db.query(TeacherSubject).filter(TeacherSubject.subject_id == subject_id).delete()
     db.delete(subject)
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="subject",
+        entity_id=str(subject_id),
+        action="delete",
+        change_summary=f"Subject deleted: {before.get('name')}",
+        before_payload=before,
+        ip_address=request.client.host if request.client else None,
+    )
+
     db.commit()
     return {"ok": True}

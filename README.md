@@ -37,12 +37,11 @@ Backend:
 - PostgreSQL (production)
 - SQLite fallback (local if DATABASE_URL is not set)
 
-Frontend:
-- Vue 3
-- Vite
-- Vue Router
-- Pinia
-- Axios
+Frontends:
+- `frontend` (Lesson Planning): Vue 3, Vite, Vue Router, Pinia, Axios
+- `erp` (ERP Portal): Vue 3, Vite, Vue Router, Pinia, Axios
+- `website` (Public Website): Vue 3, Vite
+- `library` (Digital Library): Vue 3, Vite, Axios
 
 Infra:
 - Ubuntu VPS
@@ -53,7 +52,10 @@ Infra:
 ## Repository Structure
 
 - backend: API, models, routers, migrations, seeding
-- frontend: Vue app
+- frontend: lesson planning app (existing app)
+- erp: dedicated ERP frontend app
+- website: dedicated public website app
+- library: dedicated digital library app
 - deploy: VPS deployment configs and scripts
 - uploads: runtime uploaded files (not committed)
 
@@ -87,7 +89,7 @@ uvicorn main:app --reload
 
 API default URL: http://localhost:8000
 
-### 2) Frontend Setup
+### 2) Lesson Planning Frontend Setup
 
 1. Open terminal in frontend folder.
 2. Install dependencies.
@@ -101,7 +103,38 @@ npm install
 copy .env.example .env
 npm run dev
 
-Frontend default URL: http://localhost:5173
+Lesson planning frontend default URL: http://localhost:5173
+
+### 3) ERP Frontend Setup
+
+1. Open terminal in erp folder.
+2. Install dependencies.
+3. Create .env with VITE_API_BASE_URL.
+4. Start dev server.
+
+Commands:
+
+cd erp
+npm install
+echo VITE_API_BASE_URL=http://localhost:8000 > .env
+npm run dev
+
+### 4) Website Frontend Setup
+
+Commands:
+
+cd website
+npm install
+npm run dev
+
+### 5) Library Frontend Setup
+
+Commands:
+
+cd library
+npm install
+echo VITE_API_BASE_URL=http://localhost:8000 > .env
+npm run dev
 
 ## Environment Variables
 
@@ -110,7 +143,7 @@ Backend (.env):
 - DATABASE_URL: production PostgreSQL URL
 - ALLOWED_ORIGINS: comma-separated frontend origins
 
-Frontend (.env):
+Frontend env (.env) for apps that call API:
 - VITE_API_BASE_URL: public API base URL
 
 ## Default Super Admin Account (Seed)

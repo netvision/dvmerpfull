@@ -39,6 +39,9 @@
         <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/users')">
           Manage Users
         </button>
+        <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/audit')">
+          Audit Logs
+        </button>
       </div>
 
       <!-- Loading -->
