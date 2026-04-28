@@ -156,6 +156,7 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
                 id=concept.id,
                 s_no=concept.s_no,
                 title=concept.title,
+                concept_description=concept.concept_description,
                 sessions=concept.sessions,
                 learning_outcomes=concept.learning_outcomes,
                 integration_other_sub=concept.integration_other_sub,
@@ -629,6 +630,7 @@ async def upload_xlsx(
             chapter_id=chapter.id,
             s_no=concept_data.get("s_no"),
             title=concept_data["title"],
+            concept_description=concept_data.get("concept_description"),
             sessions=concept_data.get("sessions"),
             learning_outcomes=concept_data.get("learning_outcomes"),
             integration_other_sub=concept_data.get("integration_other_sub"),
@@ -710,6 +712,7 @@ def _build_concept_out(db: Session, concept: Concept) -> ConceptOut:
         id=concept.id,
         s_no=concept.s_no,
         title=concept.title,
+        concept_description=concept.concept_description,
         sessions=concept.sessions,
         learning_outcomes=concept.learning_outcomes,
         integration_other_sub=concept.integration_other_sub,
@@ -764,6 +767,8 @@ def update_concept(
         concept.s_no = body.s_no
     if body.title is not None:
         concept.title = body.title
+    if body.concept_description is not None:
+        concept.concept_description = body.concept_description
     if body.sessions is not None:
         concept.sessions = body.sessions
     if body.learning_outcomes is not None:
@@ -789,6 +794,8 @@ def update_concept(
         changed_fields.append("s_no")
     if body.title is not None:
         changed_fields.append("title")
+    if body.concept_description is not None:
+        changed_fields.append("description")
     if body.sessions is not None:
         changed_fields.append("sessions")
     if body.learning_outcomes is not None:
@@ -849,6 +856,7 @@ def create_concept(
         chapter_id=body.chapter_id,
         s_no=body.s_no,
         title=body.title,
+        concept_description=body.concept_description,
         sessions=body.sessions,
         learning_outcomes=body.learning_outcomes,
         integration_other_sub=body.integration_other_sub,

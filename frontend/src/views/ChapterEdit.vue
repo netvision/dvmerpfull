@@ -196,10 +196,10 @@
                 <label>Sessions</label>
                 <input v-model="conceptForm.sessions" type="text" placeholder="e.g. 2" />
               </div>
-              <div class="field field--sm">
-                <label>Exhibit Ref</label>
-                <input v-model="conceptForm.exhibit_ref" type="text" placeholder="exhibit_1" />
-              </div>
+            </div>
+            <div class="field">
+              <label>Concept Description</label>
+              <RichTextEditor v-model="conceptForm.concept_description" placeholder="Concept description…" />
             </div>
             <div class="field">
               <label>Learning Outcomes</label>
@@ -450,8 +450,8 @@ const conceptTabs = ['Concept Info', 'Exhibit Fields']
 const conceptForm = ref({
   s_no: '',
   title: '',
+  concept_description: '',
   sessions: '',
-  exhibit_ref: '',
   learning_outcomes: '',
   integration_other_sub: '',
   teaching_materials_methods: '',
@@ -553,8 +553,8 @@ async function openConceptModal(concept) {
   conceptForm.value = {
     s_no: concept.s_no || '',
     title: concept.title || '',
+    concept_description: concept.concept_description || '',
     sessions: concept.sessions || '',
-    exhibit_ref: concept.exhibit_ref || '',
     learning_outcomes: concept.learning_outcomes || '',
     integration_other_sub: concept.integration_other_sub || '',
     teaching_materials_methods: concept.teaching_materials_methods || '',
@@ -576,8 +576,8 @@ async function openAddConceptModal() {
   conceptForm.value = {
     s_no: '',
     title: '',
+    concept_description: '',
     sessions: '',
-    exhibit_ref: '',
     learning_outcomes: '',
     integration_other_sub: '',
     teaching_materials_methods: '',

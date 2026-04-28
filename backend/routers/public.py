@@ -146,6 +146,7 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
                 id=concept.id,
                 s_no=concept.s_no,
                 title=concept.title,
+                concept_description=concept.concept_description,
                 sessions=concept.sessions,
                 learning_outcomes=concept.learning_outcomes,
                 integration_other_sub=concept.integration_other_sub,

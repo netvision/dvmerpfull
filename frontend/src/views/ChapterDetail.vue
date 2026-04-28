@@ -72,6 +72,11 @@
 
               <!-- Card Body -->
               <div class="concept-body">
+                <div v-if="concept.concept_description" class="extra-field concept-description-field">
+                  <p class="field-label">📖 Concept Description</p>
+                  <div class="ql-content field-content" v-html="sanitize(concept.concept_description)"></div>
+                </div>
+
                 <!-- Learning Outcomes callout -->
                 <div v-if="concept.learning_outcomes" class="lo-callout">
                   <p class="lo-label">🎯 Learning Outcomes</p>

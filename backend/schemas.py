@@ -63,6 +63,7 @@ class ConceptOut(BaseModel):
     id: int
     s_no: Optional[str]
     title: str
+    concept_description: Optional[str]
     sessions: Optional[str]
     learning_outcomes: Optional[str]
     integration_other_sub: Optional[str]
@@ -189,6 +190,7 @@ class UserFullOut(BaseModel):
 class ConceptUpdateIn(BaseModel):
     s_no: Optional[str] = None
     title: Optional[str] = None
+    concept_description: Optional[str] = None
     sessions: Optional[str] = None
     learning_outcomes: Optional[str] = None
     integration_other_sub: Optional[str] = None
@@ -204,6 +206,7 @@ class ConceptCreateIn(BaseModel):
     chapter_id: int
     s_no: Optional[str] = None
     title: str
+    concept_description: Optional[str] = None
     sessions: Optional[str] = None
     learning_outcomes: Optional[str] = None
     integration_other_sub: Optional[str] = None

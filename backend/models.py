@@ -105,6 +105,7 @@ class Concept(Base):
     chapter_id = Column(Integer, ForeignKey("chapters.id"), nullable=False)
     s_no = Column(String, nullable=True)
     title = Column(String, nullable=False)
+    concept_description = Column(Text, nullable=True)
     sessions = Column(String, nullable=True)
     learning_outcomes = Column(Text, nullable=True)
     integration_other_sub = Column(Text, nullable=True)
