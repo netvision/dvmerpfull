@@ -1,10 +1,14 @@
 <template>
-  <div class="login-wrap">
+  <div>
+    <header class="login-header">
+      <a href="http://localhost:5173" target="_blank" class="login-home-link">Go to Lesson Home</a>
+    </header>
+    <div class="login-wrap">
 
-    <!-- ── Left branding panel ── -->
-    <div class="brand-panel">
-      <div class="brand-deco brand-deco--tl"></div>
-      <div class="brand-deco brand-deco--br"></div>
+      <!-- ── Left branding panel ── -->
+      <div class="brand-panel">
+        <div class="brand-deco brand-deco--tl"></div>
+        <div class="brand-deco brand-deco--br"></div>
       <div class="brand-content">
         <div class="brand-logo">
           <img src="/dvm-logo.png" alt="Dalmia Vidya Mandir Logo" class="brand-logo-img" />
@@ -63,6 +67,7 @@
     </div>
 
   </div>
+</div>
 </template>
 
 <script setup>
@@ -104,6 +109,23 @@ async function handleLogin() {
   min-height: 100vh;
   display: flex;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+.login-header {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.75rem 1.5rem;
+  text-align: right;
+}
+
+.login-home-link {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login-home-link:hover {
+  color: #1d4ed8;
 }
 
 /* ── Left panel ── */

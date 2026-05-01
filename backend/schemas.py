@@ -279,6 +279,168 @@ class AcademicYearCreateIn(BaseModel):
     is_active: bool = True
 
 
+class LoginIn(BaseModel):
+    email: str
+    password: str
+
+
+class RefreshTokenIn(BaseModel):
+    refreshToken: str
+
+
+class WebsiteAuthUserOut(BaseModel):
+    id: int
+    email: str
+    first_name: str
+    last_name: str
+    role: str
+    is_active: bool
+
+
+class ContactSubmissionIn(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+    subject: str
+    message: str
+
+
+class MarketingCategoryOut(BaseModel):
+    id: int
+    name: str
+    slug: str
+    description: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+
+class MarketingCategoryCreateIn(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class MarketingCategoryUpdateIn(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class GalleryPhotoOut(BaseModel):
+    id: int
+    album_id: int
+    image_url: str
+    thumbnail_url: Optional[str] = None
+    caption: Optional[str] = None
+    display_order: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GalleryPhotoCreateIn(BaseModel):
+    image_url: str
+    thumbnail_url: Optional[str] = None
+    caption: Optional[str] = None
+    display_order: Optional[int] = 0
+
+
+class GalleryPhotoUpdateIn(BaseModel):
+    image_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    caption: Optional[str] = None
+    display_order: Optional[int] = None
+
+
+class GalleryAlbumOut(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    category: Optional[str] = None
+    date: Optional[str] = None
+    photo_count: int
+    photos: List[GalleryPhotoOut] = []
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GalleryAlbumCreateIn(BaseModel):
+    title: str
+    description: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    category: Optional[str] = None
+    date: Optional[str] = None
+
+
+class GalleryAlbumUpdateIn(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    category: Optional[str] = None
+    date: Optional[str] = None
+
+
+class PageContentOut(BaseModel):
+    id: int
+    slug: str
+    title: str
+    content: str
+    is_active: bool
+    created_at: str
+    updated_at: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PageContentCreateIn(BaseModel):
+    slug: str
+    title: str
+    content: str
+    is_active: bool = True
+
+
+class PageContentUpdateIn(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class NewsArticleCreateIn(BaseModel):
+    title: str
+    excerpt: Optional[str] = None
+    content: str
+    featured_image_url: Optional[str] = None
+    category_id: Optional[int] = None
+    status: Optional[str] = "draft"
+
+
+class NewsArticleUpdateIn(BaseModel):
+    title: Optional[str] = None
+    excerpt: Optional[str] = None
+    content: Optional[str] = None
+    featured_image_url: Optional[str] = None
+    category_id: Optional[int] = None
+    status: Optional[str] = None
+
+
+class EventCreateIn(BaseModel):
+    title: str
+    description: Optional[str] = None
+    location: Optional[str] = None
+    start_date: date
+    end_date: date
+    featured_image_url: Optional[str] = None
+    capacity: Optional[int] = None
+    status: Optional[str] = "upcoming"
+
+
+class EventUpdateIn(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    featured_image_url: Optional[str] = None
+    capacity: Optional[int] = None
+    status: Optional[str] = None
+
+
 class SectionOut(BaseModel):
     id: int
     class_id: int

@@ -16,6 +16,7 @@ from config import UPLOADS_DIR
 from limiter import limiter
 
 from routers import public, portal, users, erp
+from routers import core, cms
 
 
 # ---------------------------------------------------------------------------
@@ -58,6 +59,8 @@ app.include_router(public.router, prefix="/api/public", tags=["public"])
 app.include_router(portal.router, prefix="/api/portal", tags=["portal"])
 app.include_router(erp.router, prefix="/api/portal", tags=["erp"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(core.router, prefix="/api/v1", tags=["core"])
+app.include_router(cms.router, prefix="/api/v1", tags=["cms"])
 
 
 @app.get("/")

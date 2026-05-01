@@ -18,6 +18,7 @@
         <div class="nav-links">
           <RouterLink to="/login" class="nav-link" v-if="!auth.isLoggedIn">Teacher Login</RouterLink>
           <RouterLink to="/portal" class="nav-link nav-link--portal" v-if="auth.isLoggedIn">Portal</RouterLink>
+          <a href="https://lessons.dvmchirawa.ac.in" target="_blank" class="nav-link" v-if="auth.isLoggedIn">Public Site</a>
         </div>
       </nav>
     </header>

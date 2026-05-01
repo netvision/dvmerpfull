@@ -27,12 +27,151 @@ class UserRole(enum.Enum):
     super_admin = "super_admin"
 
 
+class NewsStatus(enum.Enum):
+    draft = "draft"
+    published = "published"
+    archived = "archived"
+
+
+class EventStatus(enum.Enum):
+    upcoming = "upcoming"
+    ongoing = "ongoing"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
 class ExhibitFieldType(enum.Enum):
     string = "string"
     audio = "audio"
     image = "image"
     video = "video"
     link = "link"
+
+
+class CMSCategory(Base):
+    __tablename__ = "cms_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    slug = Column(String, nullable=False, unique=True, index=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    news = relationship("CMSNews", back_populates="category")
+
+
+class CMSNews(Base):
+    __tablename__ = "cms_news"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    slug = Column(String, nullable=False, unique=True, index=True)
+    excerpt = Column(Text, nullable=True)
+    content = Column(Text, nullable=False)
+    featured_image_url = Column(String, nullable=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    category_id = Column(Integer, ForeignKey("cms_categories.id"), nullable=True)
+    status = Column(Enum(NewsStatus), nullable=False, default=NewsStatus.draft)
+    views = Column(Integer, nullable=False, default=0)
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    category = relationship("CMSCategory", back_populates="news")
+    author = relationship("User")
+
+
+class CMSEvent(Base):
+    __tablename__ = "cms_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    slug = Column(String, nullable=False, unique=True, index=True)
+    description = Column(Text, nullable=True)
+    location = Column(String, nullable=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    featured_image_url = Column(String, nullable=True)
+    organizer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    capacity = Column(Integer, nullable=True)
+    registered_count = Column(Integer, nullable=False, default=0)
+    status = Column(Enum(EventStatus), nullable=False, default=EventStatus.upcoming)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    organizer = relationship("User")
+
+
+class CMSAchiever(Base):
+    __tablename__ = "cms_achievers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    photo_url = Column(String, nullable=True)
+    achievement = Column(Text, nullable=False)
+    category = Column(String, nullable=False)
+    year = Column(Integer, nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class CMSContactSubmission(Base):
+    __tablename__ = "cms_contact_submissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    phone = Column(String, nullable=True)
+    subject = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class CMSGalleryAlbum(Base):
+    __tablename__ = "cms_gallery_albums"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    cover_image_url = Column(String, nullable=True)
+    category = Column(String, nullable=True)
+    date = Column(String, nullable=True)
+    display_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    photos = relationship("CMSGalleryPhoto", back_populates="album", cascade="all, delete-orphan")
+
+
+class CMSGalleryPhoto(Base):
+    __tablename__ = "cms_gallery_photos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    album_id = Column(Integer, ForeignKey("cms_gallery_albums.id"), nullable=False)
+    image_url = Column(String, nullable=False)
+    thumbnail_url = Column(String, nullable=True)
+    caption = Column(String, nullable=True)
+    display_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    album = relationship("CMSGalleryAlbum", back_populates="photos")
+
+
+class CMSPageContent(Base):
+    __tablename__ = "cms_pages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String, nullable=False, unique=True, index=True)
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
 
 class StudentStatus(enum.Enum):

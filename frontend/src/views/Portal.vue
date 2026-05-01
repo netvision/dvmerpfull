@@ -4,6 +4,7 @@
     <nav class="navbar">
       <span class="nav-title">DVM Lesson Plans</span>
       <div class="nav-right">
+        <a href="http://localhost:5173" target="_blank" class="home-link">Lesson Home</a>
         <span v-if="auth.user" class="user-info">
           <span class="user-name">{{ auth.user.name }}</span>
           <span class="role-badge" :class="auth.user.role">{{ auth.user.role }}</span>
@@ -458,6 +459,21 @@ async function deleteChapter(ch) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.home-link {
+  color: #a5f3fc;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.18);
+  transition: background 0.15s, color 0.15s;
+}
+
+.home-link:hover {
+  background: rgba(255,255,255,0.14);
+  color: #ffffff;
 }
 
 .user-name {
