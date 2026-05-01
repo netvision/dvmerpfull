@@ -1,7 +1,7 @@
 <template>
   <div>
     <header class="login-header">
-      <a href="http://localhost:5173" target="_blank" class="login-home-link">Go to Lesson Home</a>
+      <a href="/" class="login-home-link">Go to Lesson Home</a>
     </header>
     <div class="login-wrap">
 

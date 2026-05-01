@@ -4,7 +4,7 @@
     <nav class="navbar">
       <span class="nav-title">DVM Lesson Plans</span>
       <div class="nav-right">
-        <a href="http://localhost:5173" target="_blank" class="home-link">Lesson Home</a>
+        <a href="/" class="home-link">Lesson Home</a>
         <span v-if="auth.user" class="user-info">
           <span class="user-name">{{ auth.user.name }}</span>
           <span class="role-badge" :class="auth.user.role">{{ auth.user.role }}</span>
