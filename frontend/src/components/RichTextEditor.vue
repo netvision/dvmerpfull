@@ -11,6 +11,7 @@
         <button type="button" class="rte-tool-btn rte-tool-btn--icon" title="Insert image" aria-label="Insert image" @click="selectAndInsertImage"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.2h10a1 1 0 0 1 1 1v7.6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1zm0 1.6v6.4h10V4.8H3zm2 4.8 1.7-1.9 1.6 1.7 2.2-2.5 2 2.7H5zm1-3.5a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z" fill="currentColor"/></svg></button>
         <button type="button" class="rte-tool-btn rte-tool-btn--icon" title="Insert table" aria-label="Insert table" @click="insertTable"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3h11v10h-11V3zm1.5 1.5v2h3v-2h-3zm4.5 0v2h3v-2h-3zm-4.5 3.5v2h3V8h-3zm4.5 0v2h3V8h-3zm4 0v2H12V8h.5zm0-3.5v2H12v-2h.5zM4 11.5h3v0H4zm4.5 0h3v0h-3z" fill="currentColor"/></svg></button>
         <button type="button" class="rte-tool-btn rte-tool-btn--icon" title="Insert raw HTML" aria-label="Insert raw HTML" @click="openHtmlModal"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.6 4.1 2.8 8l2.8 3.9H3.7L1 8l2.7-3.9h1.9zm4.1-1.4h1.7l-2.1 10.6H7.6L9.7 2.7zm2.6 1.4h1.9L17 8l-2.8 3.9h-1.9L15.1 8l-2.8-3.9z" fill="currentColor" transform="translate(-1 0)"/></svg></button>
+        <input type="color" class="rte-tool-btn rte-color-input" title="Text color" aria-label="Text color" :value="editor.getAttributes('textStyle').color || '#000000'" @input="editor.chain().focus().setColor($event.target.value).run()">
         <button type="button" class="rte-tool-btn rte-tool-btn--icon" title="Clear formatting" aria-label="Clear formatting" @click="clearFormatting"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.6 12.4 6.9-6.9 1.1 1.1-6.9 6.9H3.6v-1.1zm.6-5.9L6 4.7l3.8 3.8L8.7 9.6 7.6 8.5 5.4 10.7H3.8l2.7-2.7-2.3-2.3zm7.8 5.7H7.8v1.6H12v-1.6z" fill="currentColor"/></svg></button>
       </div>
 
@@ -57,6 +58,8 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { Placeholder } from '@tiptap/extension-placeholder'
+import { Color } from '@tiptap/extension-color'
+import { TextStyle } from '@tiptap/extension-text-style'
 import api from '../api.js'
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -160,7 +163,10 @@ onMounted(() => {
   editor.value = new Editor({
     content: props.modelValue || '',
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false,
+        underline: false,
+      }),
       Underline,
       Link.configure({
         openOnClick: false,
@@ -173,6 +179,8 @@ onMounted(() => {
       TableHeader,
       TableCell,
       Placeholder.configure({ placeholder: props.placeholder }),
+      TextStyle,
+      Color,
     ],
     editorProps: {
       attributes: {
@@ -288,6 +296,27 @@ onBeforeUnmount(() => {
 .rte-tool-btn--danger:hover {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.rte-color-input {
+  padding: 0;
+  width: 30px;
+  min-width: 30px;
+  cursor: pointer;
+}
+
+.rte-color-input::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+
+.rte-color-input::-webkit-color-swatch {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+
+.rte-color-input::-moz-color-swatch {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
 }
 
 .rte-editor :deep(.tiptap) {
