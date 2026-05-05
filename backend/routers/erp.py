@@ -42,6 +42,7 @@ from schemas import (
     AttendanceSessionOut,
     BulkAttendanceMarkIn,
     ClassCreateIn,
+    ClassUpdateIn,
     ClassOut,
     ERPRoleMatrixOut,
     FeeHeadCreateIn,
@@ -173,7 +174,7 @@ def list_classes(
     _user: User = Depends(require_capability("erp_student_read")),
     db: Session = Depends(get_db),
 ):
-    return db.query(Class).order_by(Class.id).all()
+    return db.query(Class).order_by(Class.display_order.asc(), Class.id.asc()).all()
 
 
 @router.post("/lookups/classes", response_model=ClassOut, status_code=201)
@@ -191,7 +192,7 @@ def create_class_lookup(
     if existing:
         raise HTTPException(status_code=400, detail="Class with this name already exists")
 
-    row = Class(name=name)
+    row = Class(name=name, display_order=body.display_order)
     db.add(row)
     db.flush()
 
@@ -209,6 +210,54 @@ def create_class_lookup(
     db.commit()
     db.refresh(row)
     return row
+
+
+@router.put("/lookups/classes/{class_id}", response_model=ClassOut)
+def update_class_lookup(
+    class_id: int,
+    body: ClassUpdateIn,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    cls = db.query(Class).filter(Class.id == class_id).first()
+    if cls is None:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    before = {"id": cls.id, "name": cls.name}
+
+    if body.name is not None:
+        name = body.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Class name cannot be empty")
+        
+        if name.lower() != cls.name.lower():
+            existing = db.query(Class).filter(func.lower(Class.name) == name.lower()).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Class with this name already exists")
+        
+        cls.name = name
+
+    if body.display_order is not None:
+        cls.display_order = body.display_order
+
+    after = {"id": cls.id, "name": cls.name, "display_order": cls.display_order}
+
+    write_audit_log(
+        db,
+        actor_user_id=current_user.id,
+        entity_type="class",
+        entity_id=str(cls.id),
+        action="update",
+        change_summary=f"Class updated: {cls.name}",
+        before_payload=before,
+        after_payload=after,
+        ip_address=request.client.host if request.client else None,
+    )
+
+    db.commit()
+    db.refresh(cls)
+    return cls
 
 
 @router.get("/lookups/sections", response_model=List[SectionOut])

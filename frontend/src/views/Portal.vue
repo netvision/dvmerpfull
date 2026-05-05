@@ -34,6 +34,9 @@
         <button class="add-btn" @click="openAddModal">
           + Add Chapter
         </button>
+        <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/classes')">
+          Manage Classes
+        </button>
         <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/subjects')">
           Manage Subjects
         </button>
@@ -140,6 +143,10 @@
               <option v-for="s in modalSubjects" :key="s.id" :value="s.id">{{ formatSubjectLabel(s) }}</option>
             </select>
           </div>
+          <div class="field">
+            <label>Order Index</label>
+            <input v-model.number="newChapter.order_index" type="number" min="0" class="input-sm" />
+          </div>
           <div v-if="createError" class="error-banner">{{ createError }}</div>
           <div class="modal-actions">
             <button type="button" class="btn-cancel" @click="showAddModal = false">Cancel</button>
@@ -201,7 +208,7 @@ const error = ref('')
 
 const showAddModal = ref(false)
 const allModalSubjects = ref([])
-const newChapter = ref({ title: '', aim: '', class_id: '', subject_id: '' })
+const newChapter = ref({ title: '', aim: '', class_id: '', subject_id: '', order_index: 0 })
 const creating = ref(false)
 const createError = ref('')
 const showPasswordModal = ref(false)
@@ -238,7 +245,7 @@ const modalSubjects = computed(() => {
 })
 
 async function openAddModal() {
-  newChapter.value = { title: '', aim: '', class_id: '', subject_id: '' }
+  newChapter.value = { title: '', aim: '', class_id: '', subject_id: '', order_index: 0 }
   createError.value = ''
   allModalSubjects.value = []
   try {
@@ -400,9 +407,10 @@ async function createChapter() {
       title: newChapter.value.title,
       aim: newChapter.value.aim,
       subject_id: newChapter.value.subject_id,
+      order_index: newChapter.value.order_index,
     })
     showAddModal.value = false
-    newChapter.value = { title: '', aim: '', class_id: '', subject_id: '' }
+    newChapter.value = { title: '', aim: '', class_id: '', subject_id: '', order_index: 0 }
     await fetchChapters()
   } catch (e) {
     createError.value = e.response?.data?.detail || 'Failed to create chapter.'

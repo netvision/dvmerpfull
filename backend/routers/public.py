@@ -23,7 +23,7 @@ router = APIRouter()
 @router.get("/classes", response_model=List[ClassOut])
 def list_classes(db: Session = Depends(get_db)):
     """Return all classes."""
-    return db.query(Class).order_by(Class.id).all()
+    return db.query(Class).order_by(Class.display_order.asc(), Class.id.asc()).all()
 
 
 @router.get("/classes/{class_id}/subjects", response_model=List[SubjectOut])
@@ -99,14 +99,11 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
     subject = chapter.subject
     cls = subject.cls
 
-    def _sno_key(c):
-        try:
-            return (0, int(c.s_no))
-        except (TypeError, ValueError):
-            return (1, c.s_no or "")
+    def _order_key(c):
+        return (c.display_order, c.id)
 
     concepts_out = []
-    for concept in sorted(chapter.concepts, key=_sno_key):
+    for concept in sorted(chapter.concepts, key=_order_key):
         ordered_exhibits = (
             db.query(Exhibit)
             .filter(Exhibit.concept_id == concept.id)
@@ -146,6 +143,7 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
                 id=concept.id,
                 s_no=concept.s_no,
                 title=concept.title,
+                display_order=concept.display_order,
                 concept_description=concept.concept_description,
                 sessions=concept.sessions,
                 learning_outcomes=concept.learning_outcomes,

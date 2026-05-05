@@ -141,14 +141,11 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
     subject = chapter.subject
     cls = subject.cls
 
-    def _sno_key(c):
-        try:
-            return (0, int(c.s_no))
-        except (TypeError, ValueError):
-            return (1, c.s_no or "")
+    def _order_key(c):
+        return (c.display_order, c.id)
 
     concepts_out = []
-    for concept in sorted(chapter.concepts, key=_sno_key):
+    for concept in sorted(chapter.concepts, key=_order_key):
         ordered_exhibits = (
             db.query(Exhibit)
             .filter(Exhibit.concept_id == concept.id)
@@ -179,6 +176,7 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
                 id=concept.id,
                 s_no=concept.s_no,
                 title=concept.title,
+                display_order=concept.display_order,
                 concept_description=concept.concept_description,
                 sessions=concept.sessions,
                 learning_outcomes=concept.learning_outcomes,
@@ -1062,6 +1060,8 @@ def update_concept(
         concept.s_no = body.s_no
     if body.title is not None:
         concept.title = body.title
+    if body.display_order is not None:
+        concept.display_order = body.display_order
     if body.concept_description is not None:
         concept.concept_description = body.concept_description
     if body.sessions is not None:
@@ -1179,6 +1179,7 @@ def create_concept(
         chapter_id=body.chapter_id,
         s_no=body.s_no,
         title=body.title,
+        display_order=body.display_order,
         concept_description=body.concept_description,
         sessions=body.sessions,
         learning_outcomes=body.learning_outcomes,

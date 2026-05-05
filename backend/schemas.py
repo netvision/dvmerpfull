@@ -35,6 +35,7 @@ class RoleCapabilitiesOut(BaseModel):
 class ClassOut(BaseModel):
     id: int
     name: str
+    display_order: int
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -71,6 +72,7 @@ class ConceptOut(BaseModel):
     id: int
     s_no: Optional[str]
     title: str
+    display_order: int
     concept_description: Optional[str]
     sessions: Optional[str]
     learning_outcomes: Optional[str]
@@ -198,6 +200,7 @@ class UserFullOut(BaseModel):
 class ConceptUpdateIn(BaseModel):
     s_no: Optional[str] = None
     title: Optional[str] = None
+    display_order: Optional[int] = None
     concept_description: Optional[str] = None
     sessions: Optional[str] = None
     learning_outcomes: Optional[str] = None
@@ -214,6 +217,7 @@ class ConceptCreateIn(BaseModel):
     chapter_id: int
     s_no: Optional[str] = None
     title: str
+    display_order: Optional[int] = 0
     concept_description: Optional[str] = None
     sessions: Optional[str] = None
     learning_outcomes: Optional[str] = None
@@ -450,6 +454,12 @@ class SectionOut(BaseModel):
 
 class ClassCreateIn(BaseModel):
     name: str
+    display_order: Optional[int] = 0
+
+
+class ClassUpdateIn(BaseModel):
+    name: Optional[str] = None
+    display_order: Optional[int] = None
 
 
 class SectionCreateIn(BaseModel):

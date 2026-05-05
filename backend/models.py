@@ -234,6 +234,7 @@ class Class(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)  # e.g. "Class 6"
+    display_order = Column(Integer, nullable=False, default=0)
 
     subjects = relationship("Subject", back_populates="cls")
     sections = relationship("Section", back_populates="cls")
@@ -272,7 +273,7 @@ class Chapter(Base):
     approved_at = Column(DateTime(timezone=True), nullable=True)
 
     subject = relationship("Subject", back_populates="chapters")
-    concepts = relationship("Concept", back_populates="chapter")
+    concepts = relationship("Concept", back_populates="chapter", order_by="Concept.display_order")
 
 
 class Concept(Base):
@@ -282,6 +283,7 @@ class Concept(Base):
     chapter_id = Column(Integer, ForeignKey("chapters.id"), nullable=False)
     s_no = Column(String, nullable=True)
     title = Column(String, nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
     concept_description = Column(Text, nullable=True)
     sessions = Column(String, nullable=True)
     learning_outcomes = Column(Text, nullable=True)

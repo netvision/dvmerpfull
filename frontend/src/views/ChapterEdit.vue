@@ -196,6 +196,10 @@
                 <label>Sessions</label>
                 <input v-model="conceptForm.sessions" type="text" placeholder="e.g. 2" />
               </div>
+              <div class="field field--sm">
+                <label>Order</label>
+                <input v-model.number="conceptForm.display_order" type="number" />
+              </div>
             </div>
             <div class="field">
               <label>Concept Description</label>
@@ -450,6 +454,7 @@ const conceptTabs = ['Concept Info', 'Exhibit Fields']
 const conceptForm = ref({
   s_no: '',
   title: '',
+  display_order: 0,
   concept_description: '',
   sessions: '',
   learning_outcomes: '',
@@ -553,6 +558,7 @@ async function openConceptModal(concept) {
   conceptForm.value = {
     s_no: concept.s_no || '',
     title: concept.title || '',
+    display_order: concept.display_order ?? 0,
     concept_description: concept.concept_description || '',
     sessions: concept.sessions || '',
     learning_outcomes: concept.learning_outcomes || '',
@@ -576,6 +582,7 @@ async function openAddConceptModal() {
   conceptForm.value = {
     s_no: '',
     title: '',
+    display_order: 0,
     concept_description: '',
     sessions: '',
     learning_outcomes: '',
