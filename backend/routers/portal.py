@@ -1002,6 +1002,7 @@ def _build_concept_out(db: Session, concept: Concept) -> ConceptOut:
         id=concept.id,
         s_no=concept.s_no,
         title=concept.title,
+        display_order=concept.display_order,
         concept_description=concept.concept_description,
         sessions=concept.sessions,
         learning_outcomes=concept.learning_outcomes,
