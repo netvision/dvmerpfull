@@ -843,6 +843,7 @@ async function deleteConcept() {
     showConceptModal.value = false
   } catch (e) {
     alert(e.response?.data?.detail || 'Delete failed')
+  } finally {
     deletingConcept.value = false
   }
 }
