@@ -7,12 +7,13 @@ from datetime import datetime
 # Add backend directory to sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.dirname(current_dir)
+from dotenv import load_dotenv
+load_dotenv(os.path.join(backend_dir, '.env'))
+
 sys.path.insert(0, backend_dir)
 
 from database import SessionLocal
 from models import User, UserRole, Class, Section, Student, Guardian, StudentGuardian, AcademicYear, StaffProfile, StudentProfile
-from dotenv import load_dotenv
-load_dotenv(os.path.join(backend_dir, '.env'))
 
 from auth import hash_password
 
