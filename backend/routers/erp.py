@@ -21,6 +21,9 @@ from models import (
     FeeReceipt,
     FeeStructure,
     FeeStructureItem,
+    Guardian,
+    StudentGuardian,
+    StudentProfile,
     InvoiceStatus,
     PaymentMode,
     Section,
@@ -55,6 +58,8 @@ from schemas import (
     FeeStructureCreateIn,
     FeeStructureOut,
     FeeStructureItemOut,
+    GuardianOut,
+    GuardianUpsertIn,
     SectionCreateIn,
     SectionOut,
     StudentFeeAssignmentCreateIn,
@@ -62,6 +67,7 @@ from schemas import (
     StudentCreateIn,
     StudentOut,
     StudentListOut,
+    StudentProfileUpdateIn,
     StudentUpdateIn,
 )
 
@@ -108,7 +114,29 @@ def _validate_student_refs(
     return cls, section, academic_year
 
 
+def _guardian_to_out(link: "StudentGuardian") -> GuardianOut:
+    g = link.guardian
+    return GuardianOut(
+        id=g.id,
+        name=g.name,
+        relation=g.relation,
+        phone=g.phone,
+        email=g.email,
+        address=g.address,
+        is_primary=link.is_primary,
+    )
+
+
 def _student_to_out(student: Student) -> StudentOut:
+    profile_out = None
+    if student.profile:
+        from schemas import StudentProfileOut
+        profile_out = StudentProfileOut.model_validate(student.profile)
+
+    guardian_out = None
+    if student.guardians is not None:
+        guardian_out = [_guardian_to_out(link) for link in student.guardians]
+
     return StudentOut(
         id=student.id,
         admission_no=student.admission_no,
@@ -128,6 +156,8 @@ def _student_to_out(student: Student) -> StudentOut:
         academic_year_name=student.academic_year.name if student.academic_year else None,
         status=student.status.value if hasattr(student.status, "value") else str(student.status),
         is_active=student.is_active,
+        profile=profile_out,
+        guardians=guardian_out,
     )
 
 
@@ -540,6 +570,75 @@ def update_student(
         after_payload=after,
         ip_address=request.client.host if request.client else None,
     )
+
+    db.commit()
+    db.refresh(student)
+    return _student_to_out(student)
+
+
+@router.get("/students/{student_id}/guardians", response_model=List[GuardianOut])
+def get_student_guardians(
+    student_id: int,
+    _user: User = Depends(require_capability("erp_student_read")),
+    db: Session = Depends(get_db),
+):
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return [_guardian_to_out(link) for link in student.guardians]
+
+
+@router.put("/students/{student_id}/guardians", response_model=List[GuardianOut])
+def upsert_student_guardians(
+    student_id: int,
+    body: List[GuardianUpsertIn],
+    current_user: User = Depends(require_capability("erp_student_write")),
+    db: Session = Depends(get_db),
+):
+    """Replace all guardians for a student."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Remove existing links (old orphaned Guardian rows stay - they may link to other students)
+    db.query(StudentGuardian).filter(StudentGuardian.student_id == student_id).delete()
+
+    for g_in in body:
+        guardian = Guardian(
+            name=g_in.name,
+            relation=g_in.relation,
+            phone=g_in.phone,
+            email=g_in.email,
+            address=g_in.address,
+        )
+        db.add(guardian)
+        db.flush()
+        db.add(StudentGuardian(student_id=student_id, guardian_id=guardian.id, is_primary=g_in.is_primary))
+
+    db.commit()
+    db.refresh(student)
+    return [_guardian_to_out(link) for link in student.guardians]
+
+
+@router.put("/students/{student_id}/profile", response_model=StudentOut)
+def update_student_profile(
+    student_id: int,
+    body: StudentProfileUpdateIn,
+    current_user: User = Depends(require_capability("erp_student_write")),
+    db: Session = Depends(get_db),
+):
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    if student.profile is None:
+        student.profile = StudentProfile(student_id=student_id)
+        db.add(student.profile)
+        db.flush()
+
+    p = student.profile
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(p, field, value)
 
     db.commit()
     db.refresh(student)

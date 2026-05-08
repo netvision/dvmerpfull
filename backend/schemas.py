@@ -519,6 +519,47 @@ class StudentProfileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class StudentProfileUpdateIn(BaseModel):
+    blood_group: Optional[str] = None
+    category: Optional[str] = None
+    religion: Optional[str] = None
+    nationality: Optional[str] = None
+    mother_tongue: Optional[str] = None
+    previous_school: Optional[str] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    vision: Optional[str] = None
+    is_transport: Optional[bool] = None
+    pickup_route: Optional[str] = None
+    drop_route: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_no: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    aadhaar_no: Optional[str] = None
+    pen_no: Optional[str] = None
+    apaar_id: Optional[str] = None
+
+
+class GuardianOut(BaseModel):
+    id: int
+    name: str
+    relation: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    is_primary: bool = False
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GuardianUpsertIn(BaseModel):
+    name: str
+    relation: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    is_primary: bool = False
+
+
 class StudentOut(BaseModel):
     id: int
     admission_no: str
@@ -539,6 +580,7 @@ class StudentOut(BaseModel):
     status: str
     is_active: bool
     profile: Optional[StudentProfileOut] = None
+    guardians: Optional[List[GuardianOut]] = None
     model_config = ConfigDict(from_attributes=True)
 
 
