@@ -17,11 +17,36 @@ class TokenOut(BaseModel):
     token_type: str
 
 
+class StaffProfileOut(BaseModel):
+    staff_code: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    blood_group: Optional[str] = None
+    marital_status: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    joining_date: Optional[date] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    nationality: Optional[str] = None
+    qualification: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_no: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    pan_no: Optional[str] = None
+    aadhaar_no: Optional[str] = None
+    pf_no: Optional[str] = None
+    esi_no: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserOut(BaseModel):
     id: int
     name: str
     email: str
     role: str
+    profile: Optional[StaffProfileOut] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -472,6 +497,28 @@ class ERPRoleMatrixOut(BaseModel):
     capabilities: List[str]
 
 
+class StudentProfileOut(BaseModel):
+    blood_group: Optional[str] = None
+    category: Optional[str] = None
+    religion: Optional[str] = None
+    nationality: Optional[str] = None
+    mother_tongue: Optional[str] = None
+    previous_school: Optional[str] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    vision: Optional[str] = None
+    is_transport: Optional[bool] = None
+    pickup_route: Optional[str] = None
+    drop_route: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_no: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    aadhaar_no: Optional[str] = None
+    pen_no: Optional[str] = None
+    apaar_id: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class StudentOut(BaseModel):
     id: int
     admission_no: str
@@ -491,6 +538,7 @@ class StudentOut(BaseModel):
     academic_year_name: Optional[str] = None
     status: str
     is_active: bool
+    profile: Optional[StudentProfileOut] = None
     model_config = ConfigDict(from_attributes=True)
 
 

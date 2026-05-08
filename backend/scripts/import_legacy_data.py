@@ -10,7 +10,7 @@ backend_dir = os.path.dirname(current_dir)
 sys.path.insert(0, backend_dir)
 
 from database import SessionLocal
-from models import User, UserRole, Class, Section, Student, Guardian, StudentGuardian, AcademicYear
+from models import User, UserRole, Class, Section, Student, Guardian, StudentGuardian, AcademicYear, StaffProfile, StudentProfile
 from dotenv import load_dotenv
 load_dotenv(os.path.join(backend_dir, '.env'))
 
@@ -30,8 +30,24 @@ def parse_date(date_str):
     except:
         return None
 
+def purge_data(db):
+    print("Purging existing students and non-super-admin staff...")
+    db.query(StudentGuardian).delete()
+    db.query(StudentProfile).delete()
+    db.query(Student).delete()
+    db.query(Guardian).delete()
+    
+    # Delete staff profiles and non-admin users
+    db.query(StaffProfile).delete()
+    # Assuming user.id = 1 is super admin or keeping those where role='super_admin'
+    db.query(User).filter(User.role != UserRole.super_admin).delete()
+    db.commit()
+    print("Data purged successfully.")
+
 def run_import():
     db = SessionLocal()
+    purge_data(db)
+    
     staff_file = os.path.join(backend_dir, "..", "stafflist.xls")
     student_file = os.path.join(backend_dir, "..", "studentlist.xls")
 
@@ -67,6 +83,31 @@ def run_import():
                 role=UserRole.teacher,
                 is_active=True
             )
+            
+            profile = StaffProfile(
+                staff_code=staff_code,
+                date_of_birth=parse_date(clean_val(row.get('Date of Birth'))),
+                gender=clean_val(row.get('Gender')),
+                blood_group=clean_val(row.get('Blood Group')),
+                marital_status=clean_val(row.get('Marital Status')),
+                department=clean_val(row.get('Department')),
+                designation=clean_val(row.get('Designation')),
+                joining_date=parse_date(clean_val(row.get('Joining Date'))),
+                address=clean_val(row.get('Address')),
+                city=clean_val(row.get('City')),
+                state=clean_val(row.get('State')),
+                nationality=clean_val(row.get('Nationality')),
+                qualification=clean_val(row.get('Qualification')),
+                bank_name=clean_val(row.get('Bank')),
+                account_no=clean_val(row.get('Account No.')),
+                ifsc_code=clean_val(row.get('Ifsc Code')),
+                pan_no=clean_val(row.get('Pan No')),
+                aadhaar_no=clean_val(row.get('Aadhaar No.')),
+                pf_no=clean_val(row.get('PF No.')),
+                esi_no=clean_val(row.get('ESI No.'))
+            )
+            user.profile = profile
+            
             db.add(user)
             staff_count += 1
             
@@ -107,8 +148,25 @@ def run_import():
         section_name = "A"
         if class_section and "-" in class_section:
             parts = class_section.split("-", 1)
-            class_name = parts[0].strip()
+            raw_class_name = parts[0].strip()
             section_name = parts[1].strip()
+            
+            # Map Roman numerals to Class X
+            roman_to_num = {
+                'I': 'Class 1',
+                'II': 'Class 2',
+                'III': 'Class 3',
+                'IV': 'Class 4',
+                'V': 'Class 5',
+                'VI': 'Class 6',
+                'VII': 'Class 7',
+                'VIII': 'Class 8',
+                'IX': 'Class 9',
+                'X': 'Class 10',
+                'XI': 'Class 11',
+                'XII': 'Class 12',
+            }
+            class_name = roman_to_num.get(raw_class_name, raw_class_name)
         
         # Get or create Class
         cls = db.query(Class).filter(Class.name == class_name).first()
@@ -141,6 +199,29 @@ def run_import():
                 section_id=sec.id,
                 academic_year_id=ac_year.id,
             )
+            
+            profile = StudentProfile(
+                blood_group=clean_val(row.get('Blood Group')),
+                category=clean_val(row.get('Category')),
+                religion=clean_val(row.get('Religion')),
+                nationality=clean_val(row.get('Nationality')),
+                mother_tongue=clean_val(row.get('Mother Tongue')),
+                previous_school=clean_val(row.get('Previous School Name')),
+                height=float(clean_val(row.get('Height'))) if clean_val(row.get('Height')) else None,
+                weight=float(clean_val(row.get('Weight'))) if clean_val(row.get('Weight')) else None,
+                vision=clean_val(row.get('Vision')),
+                is_transport=clean_val(row.get('Is Transport')) == 'Yes',
+                pickup_route=clean_val(row.get('Pick-up Route')),
+                drop_route=clean_val(row.get('Drop-off Route')),
+                bank_name=clean_val(row.get('Bank Name')),
+                account_no=clean_val(row.get('Account No')),
+                ifsc_code=clean_val(row.get('IFSC')),
+                aadhaar_no=clean_val(row.get('Aadhaar Number')),
+                pen_no=clean_val(row.get('Permanent Education Number(PEN)')),
+                apaar_id=clean_val(row.get('APAAR ID'))
+            )
+            student.profile = profile
+            
             db.add(student)
             db.commit() # Commit to get student.id for guardian linking
             student_count += 1

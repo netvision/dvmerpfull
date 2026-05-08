@@ -2,6 +2,7 @@ import enum
 from sqlalchemy import (
     Column,
     Integer,
+    Float,
     String,
     Boolean,
     Date,
@@ -215,6 +216,36 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
 
     teacher_subjects = relationship("TeacherSubject", back_populates="teacher")
+    profile = relationship("StaffProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+
+class StaffProfile(Base):
+    __tablename__ = "staff_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    staff_code = Column(String, unique=True, index=True, nullable=True)
+    date_of_birth = Column(Date, nullable=True)
+    gender = Column(String, nullable=True)
+    blood_group = Column(String, nullable=True)
+    marital_status = Column(String, nullable=True)
+    department = Column(String, nullable=True)
+    designation = Column(String, nullable=True)
+    joining_date = Column(Date, nullable=True)
+    address = Column(Text, nullable=True)
+    city = Column(String, nullable=True)
+    state = Column(String, nullable=True)
+    nationality = Column(String, nullable=True)
+    qualification = Column(String, nullable=True)
+    bank_name = Column(String, nullable=True)
+    account_no = Column(String, nullable=True)
+    ifsc_code = Column(String, nullable=True)
+    pan_no = Column(String, nullable=True)
+    aadhaar_no = Column(String, nullable=True)
+    pf_no = Column(String, nullable=True)
+    esi_no = Column(String, nullable=True)
+
+    user = relationship("User", back_populates="profile")
 
 
 class TeacherSubject(Base):
@@ -407,6 +438,34 @@ class Student(Base):
     fee_assignments = relationship("StudentFeeAssignment", back_populates="student")
     fee_invoices = relationship("FeeInvoice", back_populates="student")
     fee_receipts = relationship("FeeReceipt", back_populates="student")
+    profile = relationship("StudentProfile", back_populates="student", uselist=False, cascade="all, delete-orphan")
+
+
+class StudentProfile(Base):
+    __tablename__ = "student_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), unique=True, nullable=False)
+    blood_group = Column(String, nullable=True)
+    category = Column(String, nullable=True)
+    religion = Column(String, nullable=True)
+    nationality = Column(String, nullable=True)
+    mother_tongue = Column(String, nullable=True)
+    previous_school = Column(String, nullable=True)
+    height = Column(Float, nullable=True)
+    weight = Column(Float, nullable=True)
+    vision = Column(String, nullable=True)
+    is_transport = Column(Boolean, nullable=True, default=False)
+    pickup_route = Column(String, nullable=True)
+    drop_route = Column(String, nullable=True)
+    bank_name = Column(String, nullable=True)
+    account_no = Column(String, nullable=True)
+    ifsc_code = Column(String, nullable=True)
+    aadhaar_no = Column(String, nullable=True)
+    pen_no = Column(String, nullable=True)
+    apaar_id = Column(String, nullable=True)
+
+    student = relationship("Student", back_populates="profile")
 
 
 class StudentGuardian(Base):
