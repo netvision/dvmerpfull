@@ -21,6 +21,9 @@ def clean_val(val):
     if pd.isna(val) or val == 'nan':
         return None
     v = str(val).strip()
+    # Strip trailing .0 that pandas adds to integer-like floats (e.g. phone numbers)
+    if v.endswith('.0') and v[:-2].lstrip('-').isdigit():
+        v = v[:-2]
     return v if v else None
 
 def parse_date(date_str):
