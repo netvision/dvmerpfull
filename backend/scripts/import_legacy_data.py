@@ -30,23 +30,8 @@ def parse_date(date_str):
     except:
         return None
 
-def purge_data(db):
-    print("Purging existing students and non-super-admin staff...")
-    db.query(StudentGuardian).delete()
-    db.query(StudentProfile).delete()
-    db.query(Student).delete()
-    db.query(Guardian).delete()
-    
-    # Delete staff profiles and non-admin users
-    db.query(StaffProfile).delete()
-    # Assuming user.id = 1 is super admin or keeping those where role='super_admin'
-    db.query(User).filter(User.role != UserRole.super_admin).delete()
-    db.commit()
-    print("Data purged successfully.")
-
 def run_import():
     db = SessionLocal()
-    purge_data(db)
     
     staff_file = os.path.join(backend_dir, "..", "stafflist.xls")
     student_file = os.path.join(backend_dir, "..", "studentlist.xls")
@@ -75,6 +60,7 @@ def run_import():
         
         # Check if user exists
         existing_user = db.query(User).filter(User.email == email).first()
+        user = existing_user
         if not existing_user:
             user = User(
                 name=name,
@@ -83,7 +69,11 @@ def run_import():
                 role=UserRole.teacher,
                 is_active=True
             )
+            db.add(user)
+            staff_count += 1
             
+        # Create profile if it doesn't exist
+        if not db.query(StaffProfile).filter(StaffProfile.user_id == user.id).first():
             profile = StaffProfile(
                 staff_code=staff_code,
                 date_of_birth=parse_date(clean_val(row.get('Date of Birth'))),
@@ -107,9 +97,12 @@ def run_import():
                 esi_no=clean_val(row.get('ESI No.'))
             )
             user.profile = profile
+            # Only add to session if it's a new user or we just created the profile
+            if existing_user:
+                db.add(profile)
             
-            db.add(user)
-            staff_count += 1
+        if not existing_user:
+            pass # count was incremented above
             
     db.commit()
     print(f"Added {staff_count} new staff members.")
@@ -185,7 +178,9 @@ def run_import():
             db.refresh(sec)
             
         student = db.query(Student).filter(Student.admission_no == str(adm_no)).first()
+        is_new_student = False
         if not student:
+            is_new_student = True
             student = Student(
                 admission_no=str(adm_no),
                 first_name=first_name,
@@ -199,8 +194,13 @@ def run_import():
                 section_id=sec.id,
                 academic_year_id=ac_year.id,
             )
+            db.add(student)
+            db.commit() # Commit to get student.id for guardian linking
+            student_count += 1
             
+        if not db.query(StudentProfile).filter(StudentProfile.student_id == student.id).first():
             profile = StudentProfile(
+                student_id=student.id,
                 blood_group=clean_val(row.get('Blood Group')),
                 category=clean_val(row.get('Category')),
                 religion=clean_val(row.get('Religion')),
@@ -220,13 +220,10 @@ def run_import():
                 pen_no=clean_val(row.get('Permanent Education Number(PEN)')),
                 apaar_id=clean_val(row.get('APAAR ID'))
             )
-            student.profile = profile
+            db.add(profile)
             
-            db.add(student)
-            db.commit() # Commit to get student.id for guardian linking
-            student_count += 1
-            
-            # Guardians
+        if is_new_student:
+            # Guardians (only add for new students to avoid duplicate processing)
             father_name = clean_val(row.get('Father Name'))
             mother_name = clean_val(row.get('Mother Name'))
             father_phone = clean_val(row.get("Father's Primary Contact Number"))
