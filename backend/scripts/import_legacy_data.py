@@ -118,7 +118,7 @@ def run_import():
     ac_year_str = "2026-27"
     ac_year = db.query(AcademicYear).filter(AcademicYear.name == ac_year_str).first()
     if not ac_year:
-        ac_year = AcademicYear(name=ac_year_str, start_date=datetime(2026,4,1).date(), end_date=datetime(2027,3,31).date(), is_current=True)
+        ac_year = AcademicYear(name=ac_year_str, start_date=datetime(2026,4,1).date(), end_date=datetime(2027,3,31).date(), is_active=True)
         db.add(ac_year)
         db.commit()
         db.refresh(ac_year)
