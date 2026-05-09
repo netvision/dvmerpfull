@@ -49,7 +49,7 @@ def search_students(
     class_name: str = None,
     section: str = None,
     status: str = None,
-    limit: int = 10,
+    limit: int = 50,
 ) -> dict:
     """
     Search for students by name or admission number.
@@ -95,7 +95,7 @@ def get_student_attendance(
 def search_staff(
     query: str = None,
     department: str = None,
-    limit: int = 10,
+    limit: int = 50,
 ) -> dict:
     """
     Search for staff members by name, email, or department.

@@ -198,7 +198,7 @@ def agent_search_students(
     class_name: Optional[str] = Query(None),
     section: Optional[str] = Query(None),
     status_filter: Optional[str] = Query(None, alias="status"),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=100),
     _key: str = Depends(verify_agent_key),
     db: Session = Depends(get_db),
 ):
@@ -304,7 +304,7 @@ def agent_search_staff(
     request: Request,
     q: Optional[str] = Query(None, description="Search by name, email, or department"),
     department: Optional[str] = Query(None),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=100),
     _key: str = Depends(verify_agent_key),
     db: Session = Depends(get_db),
 ):

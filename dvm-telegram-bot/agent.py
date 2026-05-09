@@ -67,7 +67,7 @@ TOOLS = [
                     "class_name": {"type": "string", "description": "Class name e.g. 'Class 5'"},
                     "section": {"type": "string", "description": "Section e.g. 'A'"},
                     "status": {"type": "string", "description": "active / promoted / left / detained"},
-                    "limit": {"type": "integer", "description": "Max results (default 10)"},
+                    "limit": {"type": "integer", "description": "Max results (default 50)"},
                 },
                 "required": [],
             },
@@ -115,7 +115,7 @@ TOOLS = [
                 "properties": {
                     "query": {"type": "string", "description": "Staff name or keyword"},
                     "department": {"type": "string", "description": "Department filter e.g. 'Science'"},
-                    "limit": {"type": "integer", "description": "Max results (default 10)"},
+                    "limit": {"type": "integer", "description": "Max results (default 50)"},
                 },
                 "required": [],
             },
