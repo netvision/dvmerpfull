@@ -44,9 +44,11 @@ Frontends:
 - `library` (Digital Library): Vue 3, Vite, Axios
 
 Infra:
-- Ubuntu VPS
-- Nginx reverse proxy
-- systemd service for uvicorn
+- Ubuntu VPS (Live)
+- Dual systemd services:
+    1. `dvmapi`: FastAPI backend (uvicorn)
+    2. `dvmbot`: Telegram AI Agent (python)
+- Nginx reverse proxy (SSL via Certbot)
 - Netlify for frontend hosting
 
 ## Repository Structure
@@ -56,6 +58,7 @@ Infra:
 - erp: dedicated ERP frontend app
 - website: dedicated public website app
 - library: dedicated digital library app
+- dvm-telegram-bot: AI agent for student/staff lookup
 - deploy: VPS deployment configs and scripts
 - uploads: runtime uploaded files (not committed)
 
@@ -195,6 +198,12 @@ Use deploy/deploy.sh on VPS:
 
 To run seed during deploy:
 - `RUN_SEED=1 bash deploy/deploy.sh`
+
+### Telegram Bot Deployment
+The AI agent runs as a separate service on the same VPS:
+1. Directory: `dvm-telegram-bot`
+2. Service Name: `dvmbot.service`
+3. Log View: `journalctl -u dvmbot -f`
 
 ## API Overview
 
