@@ -117,8 +117,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         reply = agent.ask(user_text)
     except Exception as e:
-        logger.error(f"Agent error: {e}", exc_info=True)
-        reply = "⚠️ Something went wrong while processing your request. Please try again."
+        err_str = str(e)
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+            reply = "⏳ The AI is a bit busy right now. Please try again in a few seconds."
+        elif "403" in err_str or "API_KEY" in err_str.upper():
+            reply = "⚠️ AI service configuration issue. Please contact the administrator."
+        else:
+            logger.error(f"Agent error: {e}", exc_info=True)
+            reply = "⚠️ Something went wrong. Please try again."
 
     await update.message.reply_text(reply, parse_mode="Markdown")
 
