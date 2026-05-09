@@ -13,7 +13,7 @@ load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY", ""))
 
-MODEL = "llama-3.3-70b-versatile"  # Best free model with tool calling support
+MODEL = "llama3-groq-70b-8192-tool-use-preview"  # Fine-tuned specifically for OpenAI-compatible tool use
 
 # ---------------------------------------------------------------------------
 # System Prompt
@@ -150,6 +150,7 @@ def ask(user_message: str) -> str:
             messages=messages,
             tools=TOOLS,
             tool_choice="auto",
+            parallel_tool_calls=False,  # Prevents malformed multi-call generation
             max_tokens=1024,
         )
 
