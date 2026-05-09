@@ -4,6 +4,7 @@
       <div class="brand">DVM ERP</div>
       <nav class="tabs">
         <RouterLink to="/students">Students</RouterLink>
+        <RouterLink v-if="auth.isAdmin" to="/staff">Staff</RouterLink>
         <RouterLink to="/attendance">Attendance</RouterLink>
         <RouterLink to="/fees">Fees</RouterLink>
         <RouterLink to="/audit">Audit</RouterLink>

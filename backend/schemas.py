@@ -23,6 +23,7 @@ class StaffProfileOut(BaseModel):
     gender: Optional[str] = None
     blood_group: Optional[str] = None
     marital_status: Optional[str] = None
+    phone: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None
     joining_date: Optional[date] = None
@@ -198,6 +199,55 @@ class UserUpdateIn(BaseModel):
     email: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+
+
+class StaffCreateIn(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str
+    staff_code: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    joining_date: Optional[date] = None
+    address: Optional[str] = None
+
+
+class StaffUpdateIn(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    # Profile fields
+    staff_code: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    joining_date: Optional[date] = None
+    address: Optional[str] = None
+    blood_group: Optional[str] = None
+    marital_status: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    nationality: Optional[str] = None
+    qualification: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_no: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    pan_no: Optional[str] = None
+    aadhaar_no: Optional[str] = None
+    pf_no: Optional[str] = None
+    esi_no: Optional[str] = None
+
+
+class StaffListOut(BaseModel):
+    items: List[UserOut]
+    total: int
 
 
 class ChangePasswordIn(BaseModel):

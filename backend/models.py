@@ -229,6 +229,7 @@ class StaffProfile(Base):
     gender = Column(String, nullable=True)
     blood_group = Column(String, nullable=True)
     marital_status = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
     department = Column(String, nullable=True)
     designation = Column(String, nullable=True)
     joining_date = Column(Date, nullable=True)
