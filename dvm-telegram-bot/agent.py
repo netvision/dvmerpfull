@@ -156,7 +156,7 @@ def ask(user_message: str) -> str:
     Returns the final natural-language answer as a string.
     """
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
+        model_name="gemini-1.5-flash-latest",
         system_instruction=SYSTEM_PROMPT,
         tools=[TOOL_DECLARATIONS],
     )
