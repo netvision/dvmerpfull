@@ -1,0 +1,17 @@
+[Unit]
+Description=DVM ERP Telegram Bot Agent
+After=network.target
+
+[Service]
+Type=simple
+User=dev
+WorkingDirectory=/home/dev/dvmerpfull/dvm-telegram-bot
+EnvironmentFile=/home/dev/dvmerpfull/dvm-telegram-bot/.env
+ExecStart=/home/dev/dvmerpfull/dvm-telegram-bot/venv/bin/python bot.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
