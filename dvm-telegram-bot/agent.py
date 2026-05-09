@@ -133,20 +133,50 @@ from tools import TOOL_FUNCTIONS
 # Main agent function
 # ---------------------------------------------------------------------------
 
-def ask(user_message: str) -> str:
+def ask(
+    user_message: str,
+    role: str = "staff",
+    authorized_student_ids: list = None,
+    authorized_student_names: list = None,
+    user_name: str = "User",
+) -> str:
     """
     Send a user message through the Groq LLM with tool calling loop.
-    Returns the final natural-language answer as a string.
+    Role controls what data the agent is allowed to surface:
+      - staff    → unrestricted
+      - guardian → only authorized_student_ids
+      - unknown  → no personal data
     """
+    # Build role-specific system prompt suffix
+    if role == "guardian" and authorized_student_ids:
+        names = ", ".join(authorized_student_names or [str(i) for i in authorized_student_ids])
+        role_context = (
+            f"\n\nIMPORTANT: This user ({user_name}) is a parent/guardian. "
+            f"You MUST only show information for these specific students: {names} "
+            f"(database IDs: {authorized_student_ids}). "
+            "If they ask about any other student, politely decline. "
+            "When they say 'my child' or 'mere bache', they mean one of these students."
+        )
+    elif role == "unknown":
+        role_context = (
+            f"\n\nIMPORTANT: This user ({user_name}) is not verified in the school records. "
+            "You may only answer general questions about school statistics (total students, classes). "
+            "Do NOT search for or reveal any individual student or staff information. "
+            "If they ask for personal data, politely explain they need to be registered."
+        )
+    else:
+        role_context = f"\n\nThis user ({user_name}) is a verified school staff member with full access."
+
+    system = SYSTEM_PROMPT + role_context
+
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system},
         {"role": "user", "content": user_message},
     ]
 
     try:
-        return _run_loop(messages)
+        return _run_loop(messages, role=role, authorized_ids=authorized_student_ids or [])
     except Exception as e:
-        # If tool calling fails (malformed generation), retry without tools
         if "tool_use_failed" in str(e) or "tool_call" in str(e).lower():
             try:
                 fallback = client.chat.completions.create(
@@ -157,10 +187,11 @@ def ask(user_message: str) -> str:
                 return fallback.choices[0].message.content.strip()
             except Exception:
                 pass
-        raise  # re-raise for the caller to handle
+        raise
 
 
-def _run_loop(messages: list) -> str:
+def _run_loop(messages: list, role: str = "staff", authorized_ids: list = None) -> str:
+    authorized_ids = authorized_ids or []
     max_iterations = 5
     for _ in range(max_iterations):
         response = client.chat.completions.create(
@@ -175,11 +206,9 @@ def _run_loop(messages: list) -> str:
         msg = response.choices[0].message
         messages.append(msg)
 
-        # No tool calls — return the text response
         if not msg.tool_calls:
             return msg.content.strip() if msg.content else "No response generated."
 
-        # Execute each tool call
         for tool_call in msg.tool_calls:
             fn_name = tool_call.function.name
             try:
@@ -187,8 +216,49 @@ def _run_loop(messages: list) -> str:
             except json.JSONDecodeError:
                 fn_args = {}
 
+            # Guardian access control — block student lookups for non-authorized IDs
+            if role == "guardian" and authorized_ids:
+                if fn_name == "get_student_detail":
+                    sid = fn_args.get("student_id")
+                    if sid and int(sid) not in authorized_ids:
+                        result = {"error": "Access denied. You can only view your own child's data."}
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(result),
+                        })
+                        continue
+                elif fn_name == "get_student_attendance":
+                    sid = fn_args.get("student_id")
+                    if sid and int(sid) not in authorized_ids:
+                        result = {"error": "Access denied. You can only view your own child's attendance."}
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(result),
+                        })
+                        continue
+
+            # Unknown role — block all personal data tools
+            if role == "unknown" and fn_name in (
+                "search_students", "get_student_detail", "get_student_attendance", "search_staff"
+            ):
+                result = {"error": "Access denied. Please verify your identity first."}
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(result),
+                })
+                continue
+
             if fn_name in TOOL_FUNCTIONS:
                 result = TOOL_FUNCTIONS[fn_name](**fn_args)
+
+                # For guardians: filter search_students results to only authorized IDs
+                if role == "guardian" and authorized_ids and fn_name == "search_students":
+                    if "results" in result:
+                        result["results"] = [r for r in result["results"] if r["id"] in authorized_ids]
+                        result["count"] = len(result["results"])
             else:
                 result = {"error": f"Unknown tool: {fn_name}"}
 

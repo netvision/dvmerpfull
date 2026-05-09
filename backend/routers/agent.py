@@ -410,3 +410,95 @@ def agent_attendance(
             f"Absent: {absent}, Late: {late}."
         ) if total else f"No attendance records found for {name}.",
     }
+
+
+@router.get("/verify-phone")
+@limiter.limit("30/minute")
+def agent_verify_phone(
+    request: Request,
+    phone: str = Query(..., description="Phone number to verify (digits only)"),
+    _key: str = Depends(verify_agent_key),
+    db: Session = Depends(get_db),
+):
+    """
+    Verify a phone number and return the caller's role + authorized student IDs.
+
+    Roles:
+    - staff    → full access to all data
+    - guardian → can only access their linked children's data
+    - unknown  → no access to personal data
+
+    Used by the Telegram bot to authenticate users who share their contact.
+    """
+    from models import StaffProfile, StudentGuardian
+
+    # Normalize phone — strip country code prefix if present
+    digits = "".join(c for c in phone if c.isdigit())
+    # Match last 10 digits to handle +91XXXXXXXXXX format
+    phone_10 = digits[-10:] if len(digits) >= 10 else digits
+
+    def _phone_match(stored: str) -> bool:
+        if not stored:
+            return False
+        stored_digits = "".join(c for c in stored if c.isdigit())
+        return stored_digits[-10:] == phone_10 if len(stored_digits) >= 10 else stored_digits == phone_10
+
+    # 1. Check staff
+    staff_profiles = db.query(StaffProfile).all()
+    for profile in staff_profiles:
+        if _phone_match(profile.phone or ""):
+            user = profile.user
+            _log_agent(db, request, "verify_phone", f"Staff auth: {user.name} ({phone_10})")
+            return {
+                "role": "staff",
+                "name": user.name,
+                "authorized_student_ids": [],  # empty = all access
+                "natural_summary": f"Authenticated as staff: {user.name}",
+            }
+
+    # 2. Check guardian phone
+    guardians = db.query(Guardian).all()
+    for g in guardians:
+        if _phone_match(g.phone or ""):
+            links = db.query(StudentGuardian).filter(StudentGuardian.guardian_id == g.id).all()
+            student_ids = [link.student_id for link in links]
+            student_names = []
+            for sid in student_ids:
+                s = db.query(Student).filter(Student.id == sid).first()
+                if s:
+                    student_names.append(f"{s.first_name} {s.last_name or ''}".strip())
+
+            _log_agent(db, request, "verify_phone", f"Guardian auth: {g.name} ({phone_10}) → students {student_ids}")
+            return {
+                "role": "guardian",
+                "name": g.name,
+                "authorized_student_ids": student_ids,
+                "authorized_student_names": student_names,
+                "natural_summary": (
+                    f"Authenticated as guardian: {g.name}. "
+                    f"Children: {', '.join(student_names) or 'none found'}."
+                ),
+            }
+
+    # 3. Check student's own phone
+    students = db.query(Student).all()
+    for s in students:
+        if _phone_match(s.phone or ""):
+            _log_agent(db, request, "verify_phone", f"Student auth: {s.first_name} ({phone_10})")
+            return {
+                "role": "guardian",  # treat same as guardian — own data only
+                "name": f"{s.first_name} {s.last_name or ''}".strip(),
+                "authorized_student_ids": [s.id],
+                "authorized_student_names": [f"{s.first_name} {s.last_name or ''}".strip()],
+                "natural_summary": f"Authenticated as student: {s.first_name}.",
+            }
+
+    # 4. Not found
+    _log_agent(db, request, "verify_phone", f"Unknown phone: {phone_10}")
+    return {
+        "role": "unknown",
+        "name": None,
+        "authorized_student_ids": [],
+        "natural_summary": "Phone number not found in school records.",
+    }
+

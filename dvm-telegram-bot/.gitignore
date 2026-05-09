@@ -1,1 +1,3 @@
 dvm-telegram-bot/.env
+dvm-telegram-bot/sessions.json
+dvm-telegram-bot/venv/
