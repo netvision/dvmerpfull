@@ -13,7 +13,7 @@ load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY", ""))
 
-MODEL = "llama3-groq-70b-8192-tool-use-preview"  # Fine-tuned specifically for OpenAI-compatible tool use
+MODEL = "llama-3.1-70b-versatile"  # Stable tool calling on Groq free tier
 
 # ---------------------------------------------------------------------------
 # System Prompt
@@ -143,6 +143,24 @@ def ask(user_message: str) -> str:
         {"role": "user", "content": user_message},
     ]
 
+    try:
+        return _run_loop(messages)
+    except Exception as e:
+        # If tool calling fails (malformed generation), retry without tools
+        if "tool_use_failed" in str(e) or "tool_call" in str(e).lower():
+            try:
+                fallback = client.chat.completions.create(
+                    model=MODEL,
+                    messages=messages,
+                    max_tokens=512,
+                )
+                return fallback.choices[0].message.content.strip()
+            except Exception:
+                pass
+        raise  # re-raise for the caller to handle
+
+
+def _run_loop(messages: list) -> str:
     max_iterations = 5
     for _ in range(max_iterations):
         response = client.chat.completions.create(
@@ -150,12 +168,12 @@ def ask(user_message: str) -> str:
             messages=messages,
             tools=TOOLS,
             tool_choice="auto",
-            parallel_tool_calls=False,  # Prevents malformed multi-call generation
+            parallel_tool_calls=False,
             max_tokens=1024,
         )
 
         msg = response.choices[0].message
-        messages.append(msg)  # add assistant turn to history
+        messages.append(msg)
 
         # No tool calls — return the text response
         if not msg.tool_calls:
