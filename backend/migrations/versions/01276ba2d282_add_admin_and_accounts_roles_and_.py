@@ -35,9 +35,13 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column('department_id', sa.Integer(), nullable=True))
         batch_op.create_foreign_key('fk_staff_profile_dept', 'departments', ['department_id'], ['id'])
 
-    # 3. Skip altering the 'users' role column for now because SQLite doesn't 
-    # support ALTER COLUMN and it's already working as a string column.
-    pass
+    # 3. Add new roles to the UserRole enum in PostgreSQL
+    # PostgreSQL requires explicit ALTER TYPE for enums
+    bind = op.get_bind()
+    if bind.dialect.name == 'postgresql':
+        # Disable transaction for ADD VALUE if needed, but usually op.execute works
+        op.execute("ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'admin'")
+        op.execute("ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'accounts'")
 
 
 def downgrade() -> None:
@@ -47,3 +51,6 @@ def downgrade() -> None:
     
     op.drop_index(op.f('ix_departments_id'), table_name='departments')
     op.drop_table('departments')
+    
+    # Note: Downgrading enums in Postgres is hard (requires deleting values)
+    # Usually we don't downgrade enums.
