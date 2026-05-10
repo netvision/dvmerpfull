@@ -33,6 +33,8 @@
               <option value="mentor">Mentor</option>
               <option value="hm">HM</option>
               <option value="principal">Principal</option>
+              <option value="admin">Admin</option>
+              <option value="accounts">Accounts</option>
             </select>
           </div>
           <div class="field" v-if="isEdit">
@@ -58,7 +60,10 @@
           </div>
           <div class="field">
             <label for="f-dept">Department</label>
-            <input id="f-dept" v-model="form.department" placeholder="e.g. Science, Mathematics" />
+            <select id="f-dept" v-model="form.department_id">
+              <option :value="null">Select Department</option>
+              <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+            </select>
           </div>
           <div class="field">
             <label for="f-desig">Designation</label>
@@ -110,16 +115,20 @@ const loadError = ref('')
 const error = ref('')
 const success = ref('')
 const submitting = ref(false)
+const departments = ref([])
 
 const form = ref({
   name: '', email: '', password: '', role: 'teacher', is_active: true,
-  staff_code: '', phone: '', department: '', designation: '',
+  staff_code: '', phone: '', department_id: null, designation: '',
   gender: '', date_of_birth: '', address: '',
 })
 
 onMounted(async () => {
-  if (isEdit.value) {
-    try {
+  try {
+    const { data: depts } = await api.get('/api/portal/departments')
+    departments.value = depts
+
+    if (isEdit.value) {
       const { data } = await api.get(`/api/portal/staff/${route.params.id}`)
       form.value = {
         name: data.name,
@@ -128,15 +137,15 @@ onMounted(async () => {
         is_active: data.is_active,
         staff_code: data.profile?.staff_code || '',
         phone: data.profile?.phone || '',
-        department: data.profile?.department || '',
+        department_id: data.profile?.department_id || null,
         designation: data.profile?.designation || '',
         gender: data.profile?.gender || '',
         date_of_birth: data.profile?.date_of_birth || '',
         address: data.profile?.address || '',
       }
-    } catch (e) {
-      loadError.value = e.response?.data?.detail || 'Failed to load staff data'
     }
+  } catch (e) {
+    loadError.value = e.response?.data?.detail || 'Failed to load data'
   }
 })
 

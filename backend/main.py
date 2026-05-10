@@ -19,6 +19,7 @@ from routers import public, portal, users, erp
 from routers import core, cms
 from routers import agent
 from routers import staff
+from routers import departments
 
 
 # ---------------------------------------------------------------------------
@@ -65,6 +66,7 @@ app.include_router(core.router, prefix="/api/v1", tags=["core"])
 app.include_router(cms.router, prefix="/api/v1", tags=["cms"])
 app.include_router(agent.router, prefix="/api", tags=["agent"])
 app.include_router(staff.router, prefix="/api/portal", tags=["staff"])
+app.include_router(departments.router, prefix="/api/portal", tags=["departments"])
 
 
 @app.get("/")

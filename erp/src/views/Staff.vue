@@ -25,6 +25,8 @@
         <option value="mentor">Mentor</option>
         <option value="hm">HM</option>
         <option value="principal">Principal</option>
+        <option value="admin">Admin</option>
+        <option value="accounts">Accounts</option>
       </select>
       <input
         v-model="deptFilter"
@@ -66,7 +68,7 @@
               </div>
             </td>
             <td class="role-cell">{{ formatRole(s.role) }}</td>
-            <td>{{ s.profile?.department || '—' }}</td>
+            <td>{{ s.profile?.department_name || s.profile?.department || '—' }}</td>
             <td>{{ s.profile?.designation || '—' }}</td>
             <td>{{ s.profile?.phone || '—' }}</td>
             <td>

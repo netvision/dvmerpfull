@@ -20,7 +20,7 @@ import bcrypt as _bcrypt
 from sqlalchemy import text
 
 from database import SessionLocal, engine
-from models import Base, Class, Subject, Chapter, Concept, Exhibit, User, UserRole
+from models import Base, Class, Subject, Chapter, Concept, Exhibit, User, UserRole, Department
 from xlsx_parser import parse_xlsx
 
 # ---------------------------------------------------------------------------
@@ -59,6 +59,8 @@ ROLE_BOOTSTRAP_USERS = [
     ("Mentor User", "mentor@dalmiatrusts.in", UserRole.mentor),
     ("HM User", "hm@dalmiatrusts.in", UserRole.hm),
     ("Principal User", "principal@dalmiatrusts.in", UserRole.principal),
+    ("Admin User", "admin-staff@dalmiatrusts.in", UserRole.admin),
+    ("Accounts User", "accounts@dalmiatrusts.in", UserRole.accounts),
 ]
 
 def _hash_password(plain: str) -> str:
@@ -194,6 +196,15 @@ def seed():
         for subject_name in SUBJECT_META:
             subj = get_or_create_subject(db, subject_name, cls6.id)
             subjects[subject_name] = subj
+        db.commit()
+
+        # ------------------------------------------------------------------
+        # 2b. Departments
+        # ------------------------------------------------------------------
+        default_depts = ["Academic", "Administration", "Finance", "Sports", "Library", "Maintenance"]
+        for dname in default_depts:
+            if not db.query(Department).filter(Department.name == dname).first():
+                db.add(Department(name=dname))
         db.commit()
 
         # ------------------------------------------------------------------

@@ -25,6 +25,8 @@ class UserRole(enum.Enum):
     mentor = "mentor"
     hm = "hm"
     principal = "principal"
+    admin = "admin"
+    accounts = "accounts"
     super_admin = "super_admin"
 
 
@@ -219,6 +221,17 @@ class User(Base):
     profile = relationship("StaffProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
+class Department(Base):
+    __tablename__ = "departments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    staff_profiles = relationship("StaffProfile", back_populates="dept_link")
+
+
 class StaffProfile(Base):
     __tablename__ = "staff_profiles"
 
@@ -230,7 +243,8 @@ class StaffProfile(Base):
     blood_group = Column(String, nullable=True)
     marital_status = Column(String, nullable=True)
     phone = Column(String, nullable=True)
-    department = Column(String, nullable=True)
+    department = Column(String, nullable=True)  # Keep for legacy/notes
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     designation = Column(String, nullable=True)
     joining_date = Column(Date, nullable=True)
     address = Column(Text, nullable=True)
@@ -247,6 +261,11 @@ class StaffProfile(Base):
     esi_no = Column(String, nullable=True)
 
     user = relationship("User", back_populates="profile")
+    dept_link = relationship("Department", back_populates="staff_profiles")
+
+    @property
+    def department_name(self):
+        return self.dept_link.name if self.dept_link else self.department
 
 
 class TeacherSubject(Base):

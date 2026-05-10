@@ -11,6 +11,7 @@ const routes = [
   { path: '/staff', component: () => import('../views/Staff.vue'), meta: { requiresAuth: true } },
   { path: '/staff/new', component: () => import('../views/StaffForm.vue'), meta: { requiresAuth: true } },
   { path: '/staff/:id/edit', component: () => import('../views/StaffForm.vue'), meta: { requiresAuth: true } },
+  { path: '/departments', component: () => import('../views/Departments.vue'), meta: { requiresAuth: true } },
   { path: '/attendance', component: () => import('../views/Attendance.vue'), meta: { requiresAuth: true } },
   { path: '/fees', component: () => import('../views/Fees.vue'), meta: { requiresAuth: true } },
   { path: '/audit', component: () => import('../views/Audit.vue'), meta: { requiresAuth: true } },

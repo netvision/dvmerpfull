@@ -17,6 +17,13 @@ class TokenOut(BaseModel):
     token_type: str
 
 
+class DepartmentOut(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class StaffProfileOut(BaseModel):
     staff_code: Optional[str] = None
     date_of_birth: Optional[date] = None
@@ -25,6 +32,8 @@ class StaffProfileOut(BaseModel):
     marital_status: Optional[str] = None
     phone: Optional[str] = None
     department: Optional[str] = None
+    department_id: Optional[int] = None
+    department_name: Optional[str] = None
     designation: Optional[str] = None
     joining_date: Optional[date] = None
     address: Optional[str] = None
@@ -210,7 +219,7 @@ class StaffCreateIn(BaseModel):
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     phone: Optional[str] = None
-    department: Optional[str] = None
+    department_id: Optional[int] = None
     designation: Optional[str] = None
     joining_date: Optional[date] = None
     address: Optional[str] = None
@@ -226,7 +235,7 @@ class StaffUpdateIn(BaseModel):
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     phone: Optional[str] = None
-    department: Optional[str] = None
+    department_id: Optional[int] = None
     designation: Optional[str] = None
     joining_date: Optional[date] = None
     address: Optional[str] = None
@@ -248,6 +257,16 @@ class StaffUpdateIn(BaseModel):
 class StaffListOut(BaseModel):
     items: List[UserOut]
     total: int
+
+
+class DepartmentCreateIn(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class DepartmentUpdateIn(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 class ChangePasswordIn(BaseModel):

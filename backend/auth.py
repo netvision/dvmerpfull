@@ -22,6 +22,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/portal/auth/login")
 ADMIN_ROLES = {
     UserRole.hm,
     UserRole.principal,
+    UserRole.admin,
+    UserRole.accounts,
     UserRole.super_admin,
 }
 
@@ -110,6 +112,20 @@ ROLE_CAPABILITIES = {
         "erp_fee_read",
         "erp_fee_write",
         "erp_audit_read",
+    ],
+    UserRole.admin: [
+        "platform_admin",
+        "user_management",
+        "erp_student_read",
+        "erp_student_write",
+        "erp_attendance_read",
+        "erp_attendance_write",
+        "erp_fee_read",
+    ],
+    UserRole.accounts: [
+        "erp_fee_read",
+        "erp_fee_write",
+        "erp_student_read",
     ],
     UserRole.super_admin: [
         "platform_admin",

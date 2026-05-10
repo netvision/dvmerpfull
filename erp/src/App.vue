@@ -5,6 +5,7 @@
       <nav class="tabs">
         <RouterLink to="/students">Students</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/staff">Staff</RouterLink>
+        <RouterLink v-if="auth.isSuperAdmin" to="/departments">Departments</RouterLink>
         <RouterLink to="/attendance">Attendance</RouterLink>
         <RouterLink to="/fees">Fees</RouterLink>
         <RouterLink to="/audit">Audit</RouterLink>

@@ -8,12 +8,13 @@ from sqlalchemy.orm import Session
 from audit import write_audit_log
 from auth import require_capability, hash_password
 from database import get_db
-from models import User, StaffProfile, UserRole
+from models import User, StaffProfile, UserRole, Department
 from schemas import (
     StaffCreateIn,
     StaffUpdateIn,
     StaffListOut,
     UserOut,
+    DepartmentOut,
 )
 
 router = APIRouter(prefix="/staff")
@@ -61,7 +62,12 @@ def list_staff(
             pass
 
     if department:
-        query = query.join(StaffProfile).filter(StaffProfile.department.ilike(f"%{department}%"))
+        query = query.join(StaffProfile).filter(
+            or_(
+                StaffProfile.department.ilike(f"%{department}%"),
+                StaffProfile.dept_link.has(Department.name.ilike(f"%{department}%"))
+            )
+        )
 
     if q:
         like_q = f"%{q.strip()}%"
@@ -131,7 +137,7 @@ def create_staff(
         date_of_birth=body.date_of_birth,
         gender=body.gender,
         phone=body.phone,
-        department=body.department,
+        department_id=body.department_id,
         designation=body.designation,
         joining_date=body.joining_date,
         address=body.address,
@@ -197,7 +203,7 @@ def update_staff(
 
     p = user.profile
     profile_fields = [
-        "staff_code", "date_of_birth", "gender", "phone", "department", 
+        "staff_code", "date_of_birth", "gender", "phone", "department_id", 
         "designation", "joining_date", "address", "blood_group", 
         "marital_status", "city", "state", "nationality", 
         "qualification", "bank_name", "account_no", "ifsc_code", 
