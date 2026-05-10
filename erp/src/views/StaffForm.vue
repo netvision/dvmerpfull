@@ -153,7 +153,13 @@ const submit = async () => {
   submitting.value = true; error.value = ''; success.value = ''
   try {
     const payload = { ...form.value }
+    
+    // Clean up payload: remove empty strings for dates/integers to avoid validation errors
     if (!payload.date_of_birth) delete payload.date_of_birth
+    if (!payload.department_id) payload.department_id = null
+    
+    // Explicitly delete legacy field if it exists
+    delete payload.department
     
     if (isEdit.value) {
       delete payload.password

@@ -195,13 +195,15 @@ def update_staff(
     if body.is_active is not None:
         user.is_active = body.is_active
 
-    # Update/Create Profile
+    # Update Profile fields
     if user.profile is None:
         user.profile = StaffProfile(user_id=user.id)
         db.add(user.profile)
         db.flush()
 
     p = user.profile
+    # Only update fields that were actually provided in the request
+    update_data = body.model_dump(exclude_unset=True)
     profile_fields = [
         "staff_code", "date_of_birth", "gender", "phone", "department_id", 
         "designation", "joining_date", "address", "blood_group", 
@@ -210,9 +212,8 @@ def update_staff(
         "pan_no", "aadhaar_no", "pf_no", "esi_no"
     ]
     for field in profile_fields:
-        val = getattr(body, field, None)
-        if val is not None:
-            setattr(p, field, val)
+        if field in update_data:
+            setattr(p, field, update_data[field])
 
     after = _staff_snapshot(user)
     write_audit_log(
