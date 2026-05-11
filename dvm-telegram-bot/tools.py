@@ -22,9 +22,15 @@ def _get(path: str, params: dict = None) -> dict:
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.HTTPError as e:
-        return {"error": f"API error {e.response.status_code}: {e.response.text}"}
+        try:
+            error_detail = e.response.json()
+            if isinstance(error_detail, dict) and "detail" in error_detail:
+                return {"error": f"API error {e.response.status_code}: {error_detail['detail']}"}
+        except Exception:
+            pass
+        return {"error": f"API error {e.response.status_code}: {e.response.text[:200]}"}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Connection error: {str(e)}"}
 
 
 # ---------------------------------------------------------------------------
