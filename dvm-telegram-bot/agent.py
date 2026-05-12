@@ -261,10 +261,14 @@ def _run_loop(messages: list, role: str = "staff", authorized_ids: list = None) 
                 result = TOOL_FUNCTIONS[fn_name](**fn_args)
 
                 # For guardians: filter search_students results to only authorized IDs
-                if role == "guardian" and authorized_ids and fn_name == "search_students":
-                    if "results" in result:
+                if role == "guardian" and authorized_ids:
+                    if fn_name == "search_students" and "results" in result:
                         result["results"] = [r for r in result["results"] if r["id"] in authorized_ids]
                         result["count"] = len(result["results"])
+                    elif fn_name == "get_student_attendance":
+                        sid = result.get("student_id")
+                        if sid and int(sid) not in authorized_ids:
+                            result = {"error": "Access denied. You can only view your own child's attendance."}
             else:
                 result = {"error": f"Unknown tool: {fn_name}"}
 

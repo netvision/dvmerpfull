@@ -325,17 +325,20 @@ def agent_search_staff(
 
     def _staff_dict(u: User) -> dict:
         p = u.profile
-        summary = f"{u.name}, {p.designation or p.department or u.role}"
-        if p and p.department:
-            summary += f", {p.department}"
+        department_name = p.department_name if p else None
+        role = u.role.value if hasattr(u.role, "value") else str(u.role)
+        summary_label = p.designation or department_name or role if p else role
+        summary = f"{u.name}, {summary_label}"
+        if department_name:
+            summary += f", {department_name}"
 
         return {
             "id": u.id,
             "name": u.name,
             "email": u.email,
-            "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+            "role": role,
             "designation": p.designation if p else None,
-            "department": p.department if p else None,
+            "department": department_name,
             "phone": None,  # not stored on User; kept for schema consistency
             "natural_summary": summary,
         }
@@ -343,7 +346,11 @@ def agent_search_staff(
     items = [_staff_dict(u) for u in rows]
 
     if department:
-        items = [i for i in items if i["department"] and department.lower() in i["department"].lower()]
+        dept_lower = department.lower()
+        items = [
+            i for i in items
+            if i["department"] and dept_lower in i["department"].lower()
+        ]
 
     _log_agent(db, request, "search_staff", f"Agent searched staff: q={q!r} dept={department!r}")
 
@@ -501,4 +508,3 @@ def agent_verify_phone(
         "authorized_student_ids": [],
         "natural_summary": "Phone number not found in school records.",
     }
-

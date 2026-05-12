@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import requests
+import tempfile
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -66,7 +67,16 @@ def _load_sessions() -> dict:
 
 def _save_sessions(sessions: dict):
     try:
-        SESSIONS_FILE.write_text(json.dumps(sessions, indent=2))
+        SESSIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=SESSIONS_FILE.parent,
+            delete=False,
+        ) as tmp:
+            json.dump(sessions, tmp, indent=2, ensure_ascii=False)
+            tmp_path = Path(tmp.name)
+        tmp_path.replace(SESSIONS_FILE)
     except Exception as e:
         logger.error(f"Failed to save sessions: {e}")
 
@@ -92,6 +102,14 @@ def _verify_phone(phone: str) -> dict:
     except Exception as e:
         logger.error(f"Phone verification error: {e}")
         return {"role": "unknown", "name": None, "authorized_student_ids": [], "natural_summary": "Verification failed."}
+
+
+def _is_own_contact(update: Update) -> bool:
+    contact = update.message.contact if update.message else None
+    user = update.effective_user
+    if not contact or not user:
+        return False
+    return contact.user_id is None or contact.user_id == user.id
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +159,13 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle the contact share — verify phone and store session."""
     contact = update.message.contact
     if not contact:
+        return
+
+    if not _is_own_contact(update):
+        await update.message.reply_text(
+            "Please share your own phone number using the button. For privacy, I cannot verify another person's contact.",
+            reply_markup=SHARE_PHONE_KEYBOARD,
+        )
         return
 
     phone = contact.phone_number
@@ -234,7 +259,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Agent error: {e}", exc_info=True)
             reply = "⚠️ Something went wrong. Please try again."
 
-    await update.message.reply_text(reply, parse_mode="Markdown")
+    await update.message.reply_text(reply)
 
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -281,6 +306,8 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 def main():
     if not TELEGRAM_BOT_TOKEN:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not set in .env")
+    if not AGENT_API_KEY:
+        raise RuntimeError("AGENT_API_KEY is not set in .env")
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 

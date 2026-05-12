@@ -1,11 +1,11 @@
 # DVM ERP Telegram Bot
 
-An AI-powered Telegram bot that lets school staff query the DVM ERP using natural language.
+An AI-powered Telegram bot that lets verified staff and guardians query the DVM ERP using natural language.
 
 ## How it works
 
 ```
-User → Telegram → Bot → Gemini LLM (function calling) → /api/agent/* → Answer
+User → Telegram → Bot → Groq LLM (function calling) → /api/agent/* → Answer
 ```
 
 The LLM decides which ERP endpoint to call, fetches the data, and writes a natural-language reply.
@@ -35,8 +35,7 @@ nano .env
 
 Fill in:
 - `TELEGRAM_BOT_TOKEN` — from [@BotFather](https://t.me/BotFather) on Telegram
-- `ALLOWED_TELEGRAM_IDS` — your Telegram numeric user ID (get it from [@userinfobot](https://t.me/userinfobot))
-- `GEMINI_API_KEY` — from [Google AI Studio](https://aistudio.google.com/app/apikey) (free)
+- `GROQ_API_KEY` — from [Groq Console](https://console.groq.com/keys)
 - `AGENT_BASE_URL` — e.g. `https://your-vps-ip/api/agent`
 - `AGENT_API_KEY` — same value as `AGENT_API_KEY` in the backend `.env`
 
@@ -74,17 +73,15 @@ sudo journalctl -u dvmbot -f
 
 ## Adding More Users
 
-Edit `.env` and add their Telegram ID to `ALLOWED_TELEGRAM_IDS`, then:
-```bash
-sudo systemctl restart dvmbot
-```
+Users verify themselves by sharing their Telegram contact. The backend matches the
+phone number against staff, guardian, and student records.
 
 ## File Structure
 
 ```
 dvm-telegram-bot/
-├── bot.py            ← Telegram handler, allowlist check, routing
-├── agent.py          ← Gemini LLM + function calling loop
+├── bot.py            ← Telegram handler, phone verification, routing
+├── agent.py          ← Groq LLM + function calling loop
 ├── tools.py          ← Functions that call /api/agent/* endpoints
 ├── requirements.txt
 ├── .env.example      ← Copy to .env and fill in

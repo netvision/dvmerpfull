@@ -1,6 +1,6 @@
 """
 tools.py — Thin wrappers around /api/agent/* endpoints.
-Each function is registered as a Gemini tool so the LLM can call them autonomously.
+Each function is registered as an LLM tool so the agent can call it autonomously.
 """
 
 import os
@@ -117,7 +117,7 @@ def search_staff(
 
 
 # ---------------------------------------------------------------------------
-# Registry — used by agent.py to build Gemini tool declarations
+# Registry — used by agent.py to execute LLM tool calls
 # ---------------------------------------------------------------------------
 
 TOOL_FUNCTIONS = {
