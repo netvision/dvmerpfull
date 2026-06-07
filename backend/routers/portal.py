@@ -12,8 +12,9 @@ from pathlib import Path
 from posixpath import normpath
 from typing import List, Optional
 
+from starlette.background import BackgroundTask
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, UploadFile, File, Form, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import Date, DateTime, Integer, Numeric, text
 from sqlalchemy.orm import Session
@@ -61,6 +62,13 @@ from xlsx_parser import parse_xlsx
 router = APIRouter()
 
 BACKUP_FORMAT_VERSION = 1
+
+
+def _unlink_file(path: str) -> None:
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
 
 
 def _safe_upload_name(filename: Optional[str]) -> str:
@@ -580,25 +588,32 @@ def download_backup(
     _current_user: User = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
-    buffer = io.BytesIO()
     database_payload = _export_database(db)
     manifest = {
         "format": "dvm-lesson-portal-backup",
         "version": BACKUP_FORMAT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-
-    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("database.json", json.dumps(database_payload, indent=2))
-        manifest["upload_file_count"] = _add_uploads_to_archive(archive)
-        archive.writestr("manifest.json", json.dumps(manifest, indent=2))
-
-    buffer.seek(0)
     filename = f"dvm-lesson-portal-backup-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.zip"
-    return StreamingResponse(
-        buffer,
+
+    tmp = tempfile.NamedTemporaryFile(prefix="dvm-backup-", suffix=".zip", delete=False)
+    tmp_path = tmp.name
+    tmp.close()
+
+    try:
+        with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("database.json", json.dumps(database_payload, indent=2))
+            manifest["upload_file_count"] = _add_uploads_to_archive(archive)
+            archive.writestr("manifest.json", json.dumps(manifest, indent=2))
+    except Exception:
+        _unlink_file(tmp_path)
+        raise
+
+    return FileResponse(
+        tmp_path,
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        filename=filename,
+        background=BackgroundTask(_unlink_file, tmp_path),
     )
 
 
