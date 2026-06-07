@@ -1,48 +1,70 @@
 <template>
-  <div class="page">
-    <!-- Hero Banner -->
-    <div class="hero">
-      <div class="hero-inner">
-        <h1 class="hero-school">Dalmia Vidya Mandir</h1>
-        <p class="hero-tagline">✨ From Living Standards to Life Standards ✨</p>
+  <main class="public-home dvm-page">
+    <section class="home-hero dvm-container">
+      <div class="home-copy">
+        <h1>Browse lesson plans by class, subject, and chapter.</h1>
+        <p>
+          A focused academic workspace for Dalmia Vidya Mandir lesson material,
+          prepared chapters, concepts, exhibits, and chapter PDFs.
+        </p>
+        <div class="home-search" role="search">
+          <input v-model="classQuery" type="search" placeholder="Filter classes..." aria-label="Filter classes" />
+          <button class="dvm-btn dvm-btn--navy" type="button" @click="classQuery = ''">Clear</button>
+        </div>
       </div>
-      <!-- Wave SVG -->
-      <svg class="hero-wave" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" fill="#f8fafc"/>
-      </svg>
-    </div>
+      <aside class="home-preview dvm-card" aria-label="Lesson browser preview">
+        <div class="preview-item">
+          <strong>Class 6 - Science</strong>
+          <span>Concepts, outcomes, activities, exhibits</span>
+          <div class="preview-bars"><i></i><i></i><i></i></div>
+        </div>
+        <div class="preview-item">
+          <strong>Chapter PDFs</strong>
+          <span>Open attached teaching documents quickly</span>
+          <div class="preview-bars"><i></i><i></i><i></i></div>
+        </div>
+      </aside>
+    </section>
 
-    <!-- Content Area -->
-    <div class="content">
-      <p class="section-eyebrow">Browse</p>
-      <h2 class="section-heading">Choose Your Class</h2>
+    <section class="class-section dvm-container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Lesson Library</p>
+          <h2>Choose your class</h2>
+        </div>
+        <span v-if="!loading && !error" class="dvm-badge">{{ filteredClasses.length }} available</span>
+      </div>
 
-      <LoadingSpinner v-if="loading" message="Loading classes…" />
+      <LoadingSpinner v-if="loading" message="Loading classes..." />
 
-      <div v-else-if="error" class="error-box">
+      <div v-else-if="error" class="dvm-error">
         <ErrorBanner :message="error" />
-        <button class="retry-btn" @click="fetchClasses">Retry</button>
+        <button class="dvm-btn dvm-btn--navy retry-btn" @click="fetchClasses">Retry</button>
       </div>
 
-      <div v-else class="grid">
-        <div
-          v-for="cls in classes"
+      <div v-else-if="filteredClasses.length === 0" class="dvm-empty">
+        No classes match your filter.
+      </div>
+
+      <div v-else class="class-grid">
+        <button
+          v-for="cls in filteredClasses"
           :key="cls.id"
-          class="class-card"
-          :style="{ background: classGradient(cls.id) }"
+          class="class-tile"
+          type="button"
           @click="router.push(`/class/${cls.id}`)"
         >
           <span class="class-number">{{ classNumber(cls.name) }}</span>
-          <span class="class-label">{{ cls.name }}</span>
-          <span class="class-arrow">→</span>
-        </div>
+          <span class="class-name">{{ cls.name }}</span>
+          <span class="class-action">Open class</span>
+        </button>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api.js'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
@@ -52,25 +74,18 @@ const router = useRouter()
 const classes = ref([])
 const loading = ref(true)
 const error = ref(null)
+const classQuery = ref('')
 
-const gradients = [
-  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
-  'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)',
-  'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)',
-]
-
-function classGradient(id) {
-  return gradients[(id - 1) % gradients.length]
-}
+const filteredClasses = computed(() => {
+  const q = classQuery.value.trim().toLowerCase()
+  if (!q) return classes.value
+  return classes.value.filter(cls => cls.name.toLowerCase().includes(q))
+})
 
 function classNumber(name) {
   const match = name.match(/\d+/)
-  return match ? match[0] : name.charAt(0)
+  if (match) return match[0]
+  return name.replace(/^Class\s+/i, '').slice(0, 3).toUpperCase()
 }
 
 async function fetchClasses() {
@@ -90,155 +105,193 @@ onMounted(fetchClasses)
 </script>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  background: #f8fafc;
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+.public-home {
+  padding-bottom: 4rem;
 }
 
-/* Hero */
-.hero {
-  position: relative;
-  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
-  padding: 4rem 2rem 3.5rem;
-  text-align: center;
-  overflow: hidden;
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 2rem;
+  align-items: center;
+  padding: 3rem 0 2rem;
 }
 
-.hero-inner {
-  position: relative;
-  z-index: 1;
-}
-
-.hero-school {
-  font-size: 3rem;
-  font-weight: 900;
-  color: #fff;
-  margin: 0 0 0.75rem;
-  letter-spacing: -0.02em;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
-}
-
-.hero-tagline {
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.88);
+.home-copy h1 {
+  max-width: 720px;
   margin: 0;
-  font-weight: 400;
-  letter-spacing: 0.01em;
+  color: var(--dvm-navy);
+  font-size: clamp(2rem, 4vw, 3.15rem);
+  line-height: 1.06;
+  letter-spacing: 0;
 }
 
-.hero-wave {
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 60px;
+.home-copy p {
+  max-width: 640px;
+  margin: 1rem 0 0;
+  color: var(--dvm-muted);
+  font-size: 1rem;
+}
+
+.home-search {
+  display: flex;
+  gap: 0.65rem;
+  max-width: 520px;
+  margin-top: 1.5rem;
+}
+
+.home-search input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+  padding: 0.75rem 0.85rem;
+  outline: none;
+}
+
+.home-search input:focus {
+  border-color: var(--dvm-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.home-preview {
+  padding: 1rem;
+  background: #f8fafc;
+}
+
+.preview-item {
+  background: #fff;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+  padding: 1rem;
+}
+
+.preview-item + .preview-item {
+  margin-top: 0.75rem;
+}
+
+.preview-item strong,
+.preview-item span {
   display: block;
 }
 
-/* Content */
-.content {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;
-  text-align: center;
+.preview-item strong {
+  color: var(--dvm-navy);
+  font-size: 0.98rem;
 }
 
-.section-eyebrow {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6b7280;
-  margin: 0 0 0.4rem;
+.preview-item span {
+  margin-top: 0.25rem;
+  color: var(--dvm-muted);
+  font-size: 0.84rem;
 }
 
-.section-heading {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: #1e3a8a;
-  margin: 0 0 2rem;
-}
-
-/* Grid */
-.grid {
+.preview-bars {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.25rem;
+  gap: 0.45rem;
+  margin-top: 0.9rem;
 }
 
-.class-card {
-  position: relative;
-  border-radius: 16px;
-  padding: 2.2rem 1.25rem 1.5rem;
-  cursor: pointer;
+.preview-bars i {
+  height: 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+}
+
+.preview-bars i:nth-child(2) {
+  width: 78%;
+  background: #fef3c7;
+}
+
+.preview-bars i:nth-child(3) {
+  width: 58%;
+  background: #dcfce7;
+}
+
+.class-section {
+  padding-top: 1rem;
+}
+
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--dvm-muted);
+  font-size: 0.75rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.section-head h2 {
+  margin: 0;
+  color: var(--dvm-text);
+  font-size: 1.45rem;
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.8rem;
+}
+
+.class-tile {
+  min-height: 118px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius-lg);
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  color: #fff;
-  text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  justify-content: space-between;
+  box-shadow: var(--dvm-shadow-soft);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.class-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.22);
+.class-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--dvm-blue);
+  box-shadow: var(--dvm-shadow);
 }
 
 .class-number {
-  font-size: 3.8rem;
+  color: var(--dvm-navy);
+  font-size: 1.8rem;
   font-weight: 900;
-  line-height: 1;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-.class-label {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-top: 0.45rem;
-  opacity: 0.92;
-  letter-spacing: 0.04em;
+.class-name {
+  color: var(--dvm-text);
+  font-weight: 800;
 }
 
-.class-arrow {
-  position: absolute;
-  bottom: 0.85rem;
-  right: 1rem;
-  font-size: 1.1rem;
-  opacity: 0.7;
-  font-weight: 700;
-}
-
-/* Error */
-.error-box {
-  text-align: center;
-  padding: 2rem;
+.class-action {
+  color: var(--dvm-muted);
+  font-size: 0.78rem;
+  font-weight: 750;
 }
 
 .retry-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1.5rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-family: inherit;
-  transition: background 0.2s ease;
+  margin-top: 0.75rem;
 }
 
-.retry-btn:hover {
-  background: #1d4ed8;
-}
+@media (max-width: 800px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+    padding-top: 2rem;
+  }
 
-@media (max-width: 640px) {
-  .hero-school { font-size: 2.2rem; }
-  .hero-tagline { font-size: 1rem; }
-  .content { padding: 2rem 1rem 3rem; }
-  .section-heading { font-size: 1.4rem; }
-  .grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-  .class-number { font-size: 3rem; }
+  .home-search,
+  .section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 </style>

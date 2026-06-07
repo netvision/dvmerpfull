@@ -1,12 +1,10 @@
 <template>
   <div>
     <header v-if="!route.meta.hideNav" class="site-header">
-      <!-- Top strip -->
       <div class="header-strip">
-        <span>📍 Station Road, Chirawa, Rajasthan</span>
-        <span>📞 +91 1596 220602</span>
+        <span>Station Road, Chirawa, Rajasthan</span>
+        <span>+91 1596 220602</span>
       </div>
-      <!-- Main nav -->
       <nav class="main-nav">
         <RouterLink to="/" class="nav-brand">
           <img src="/dvm-logo.png" alt="DVM Logo" class="nav-logo" />
@@ -16,9 +14,9 @@
           </div>
         </RouterLink>
         <div class="nav-links">
-          <RouterLink to="/login" class="nav-link" v-if="!auth.isLoggedIn">Teacher Login</RouterLink>
-          <RouterLink to="/portal" class="nav-link nav-link--portal" v-if="auth.isLoggedIn">Portal</RouterLink>
-          <a href="https://lessons.dvmchirawa.ac.in" target="_blank" class="nav-link" v-if="auth.isLoggedIn">Public Site</a>
+          <RouterLink v-if="!auth.isLoggedIn" to="/login" class="nav-link">Teacher Login</RouterLink>
+          <RouterLink v-if="auth.isLoggedIn" to="/portal" class="nav-link nav-link--portal">Portal</RouterLink>
+          <a v-if="auth.isLoggedIn" href="https://lessons.dvmchirawa.ac.in" target="_blank" class="nav-link">Public Site</a>
         </div>
       </nav>
     </header>
@@ -29,38 +27,34 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+
 const route = useRoute()
 const auth = useAuthStore()
 </script>
 
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #374151; }
-
 .site-header {
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  border-bottom: 1px solid var(--dvm-line);
+  box-shadow: 0 8px 22px rgba(23, 32, 51, 0.06);
 }
 
-/* Top info strip — navy */
 .header-strip {
-  background: #1e3a8a;
-  color: rgba(255,255,255,0.85);
+  background: var(--dvm-navy);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 0.75rem;
-  padding: 0.25rem 1.5rem;
+  padding: 0.35rem 1.75rem;
   display: flex;
   gap: 1.5rem;
   justify-content: flex-end;
 }
 
-/* Main nav bar — white */
 .main-nav {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 0 1.5rem;
-  height: 60px;
+  background: #fff;
+  padding: 0 1.75rem;
+  min-height: 68px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -75,26 +69,30 @@ body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #f8f
 }
 
 .nav-logo {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
-  /* logo is white — render on navy pill */
-  background: #1e3a8a;
+  background: var(--dvm-navy);
   border-radius: 8px;
   padding: 4px;
 }
 
+.brand-name,
+.brand-sub {
+  display: block;
+}
+
 .brand-name {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #1e3a8a;
-  letter-spacing: -0.01em;
+  font-size: 1.08rem;
+  font-weight: 850;
+  color: var(--dvm-navy);
 }
 
 .brand-sub {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #2563eb;
+  margin-top: 0.12rem;
+  font-size: 0.7rem;
+  font-weight: 750;
+  color: var(--dvm-blue);
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
@@ -102,31 +100,51 @@ body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #f8f
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .nav-link {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #374151;
+  font-size: 0.88rem;
+  font-weight: 750;
+  color: var(--dvm-text);
   text-decoration: none;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
+  padding: 0.48rem 0.8rem;
+  border-radius: 7px;
   transition: color 0.15s, background 0.15s;
 }
 
 .nav-link:hover {
-  color: #1e3a8a;
-  background: #eff6ff;
+  color: var(--dvm-navy);
+  background: var(--dvm-blue-soft);
 }
 
 .nav-link--portal {
-  background: #eab308;
-  color: #1e293b;
+  background: var(--dvm-gold);
+  color: #1f2937;
 }
 
 .nav-link--portal:hover {
-  background: #ca8a04;
+  background: var(--dvm-gold-hover);
   color: #fff;
+}
+
+@media (max-width: 700px) {
+  .header-strip {
+    display: none;
+  }
+
+  .main-nav {
+    padding: 0.75rem 1rem;
+    gap: 1rem;
+  }
+
+  .brand-sub {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.82rem;
+  }
 }
 </style>

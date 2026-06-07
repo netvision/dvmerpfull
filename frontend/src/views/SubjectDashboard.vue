@@ -1,47 +1,54 @@
 <template>
-  <div class="page">
-    <!-- Top Banner -->
-    <div class="banner" :style="{ background: bannerGradient }">
-      <div class="banner-inner">
-        <nav class="breadcrumb">
-          <span class="crumb crumb-link" @click="router.push('/')">Home</span>
-          <span class="crumb-sep">›</span>
-          <span class="crumb">{{ className || `Class ${classId}` }}</span>
+  <main class="subject-page dvm-page">
+    <section class="subject-header">
+      <div class="dvm-container">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <button type="button" @click="router.push('/')">Home</button>
+          <span>/</span>
+          <span>{{ className || `Class ${classId}` }}</span>
         </nav>
-        <h1 class="banner-title">{{ className || `Class ${classId}` }}</h1>
-        <p class="banner-subtitle">Choose a subject to explore</p>
+        <div class="header-row">
+          <div>
+            <h1>{{ className || `Class ${classId}` }}</h1>
+            <p>Choose a subject to view chapter plans, concepts, exhibits, and resources.</p>
+          </div>
+          <span v-if="!loading && !error" class="dvm-badge">{{ subjects.length }} subjects</span>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Content -->
-    <div class="content">
-      <LoadingSpinner v-if="loading" message="Loading subjects…" />
+    <section class="dvm-container content">
+      <LoadingSpinner v-if="loading" message="Loading subjects..." />
 
-      <div v-else-if="error" class="error-box">
+      <div v-else-if="error" class="dvm-error">
         <ErrorBanner :message="error" />
-        <button class="retry-btn" @click="fetchSubjects">Retry</button>
+        <button class="dvm-btn dvm-btn--navy retry-btn" @click="fetchSubjects">Retry</button>
       </div>
 
-      <div v-else class="grid">
-        <div
+      <div v-else-if="subjects.length === 0" class="dvm-empty">
+        No subjects found for this class.
+      </div>
+
+      <div v-else class="subject-grid">
+        <button
           v-for="subject in subjects"
           :key="subject.id"
           class="subject-card"
-          :style="{ '--top-border-color': subject.color || '#2563eb' }"
+          type="button"
+          :style="{ '--subject-accent': subject.color || '#2563eb' }"
           @click="router.push(`/class/${classId}/${subject.id}`)"
         >
-          <div class="subject-icon-wrap">
-            <span class="subject-icon">{{ subject.icon || '📖' }}</span>
-          </div>
+          <span class="accent-line"></span>
+          <span class="subject-icon">{{ subject.icon || '📘' }}</span>
           <span class="subject-name">{{ subject.name }}</span>
-          <span class="subject-badge">
+          <span class="subject-count">
             {{ subject.chapter_count }} chapter{{ subject.chapter_count !== 1 ? 's' : '' }}
           </span>
-          <span class="subject-explore">Explore →</span>
-        </div>
+          <span class="subject-action">Explore subject</span>
+        </button>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 </template>
 
 <script setup>
@@ -59,10 +66,6 @@ const subjects = ref([])
 const loading = ref(true)
 const error = ref(null)
 const className = ref('')
-
-const bannerGradient = computed(() => {
-  return 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
-})
 
 async function fetchSubjects() {
   loading.value = true
@@ -92,167 +95,135 @@ onMounted(fetchSubjects)
 </script>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  background: #f0f4ff;
-  font-family: system-ui, -apple-system, sans-serif;
-}
-
-/* Banner */
-.banner {
-  padding: 3rem 2rem 2.5rem;
-  color: white;
-}
-
-.banner-inner {
-  max-width: 860px;
-  margin: 0 auto;
+.subject-header {
+  background: #fff;
+  border-bottom: 1px solid var(--dvm-line);
+  padding: 1.6rem 0;
 }
 
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  margin-bottom: 0.9rem;
-  opacity: 0.85;
-  font-weight: 500;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+  color: var(--dvm-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.crumb-link {
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.breadcrumb button {
+  border: 0;
+  background: transparent;
+  color: var(--dvm-blue);
+  padding: 0;
+  font: inherit;
 }
 
-.crumb-link:hover {
-  opacity: 1;
+.header-row {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.crumb-sep {
-  opacity: 0.6;
-}
-
-.banner-title {
-  font-size: 2.4rem;
-  font-weight: 900;
-  margin: 0 0 0.5rem;
-  letter-spacing: -0.02em;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.15);
-}
-
-.banner-subtitle {
-  font-size: 1rem;
+.header-row h1 {
   margin: 0;
-  opacity: 0.88;
+  color: var(--dvm-navy);
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  line-height: 1.1;
 }
 
-/* Content */
+.header-row p {
+  max-width: 640px;
+  margin: 0.55rem 0 0;
+  color: var(--dvm-muted);
+}
+
 .content {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;
+  padding: 1.5rem 0 4rem;
 }
 
-/* Grid */
-.grid {
+.subject-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.9rem;
 }
 
 .subject-card {
-  background: white;
-  border-radius: 16px;
-  border-top: 4px solid var(--top-border-color, #2563eb);
-  padding: 1.75rem 1.25rem 1.25rem;
-  cursor: pointer;
+  position: relative;
+  min-height: 172px;
+  overflow: hidden;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius-lg);
+  padding: 1.1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.4rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  align-items: flex-start;
+  box-shadow: var(--dvm-shadow-soft);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .subject-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  transform: translateY(-2px);
+  border-color: var(--subject-accent);
+  box-shadow: var(--dvm-shadow);
 }
 
-.subject-icon-wrap {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #f0f4ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.3rem;
+.accent-line {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--subject-accent);
 }
 
 .subject-icon {
-  font-size: 2rem;
-  line-height: 1;
+  width: 42px;
+  height: 42px;
+  margin-top: 0.35rem;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--dvm-blue-soft);
+  font-size: 1.35rem;
 }
 
 .subject-name {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #1e1b4b;
-  line-height: 1.3;
+  margin-top: 0.9rem;
+  color: var(--dvm-text);
+  font-size: 1.02rem;
+  font-weight: 850;
 }
 
-.subject-badge {
-  font-size: 0.78rem;
-  font-weight: 600;
-  background: #eff6ff;
-  color: #2563eb;
-  padding: 0.2rem 0.65rem;
-  border-radius: 20px;
-  margin-top: 0.15rem;
-}
-
-.subject-explore {
+.subject-count {
+  margin-top: 0.3rem;
+  color: var(--dvm-muted);
   font-size: 0.82rem;
-  font-weight: 600;
-  color: #6b7280;
-  margin-top: 0.4rem;
-  transition: color 0.2s ease;
+  font-weight: 700;
 }
 
-.subject-card:hover .subject-explore {
-  color: #2563eb;
-}
-
-/* Error */
-.error-box {
-  text-align: center;
-  padding: 2rem;
+.subject-action {
+  margin-top: auto;
+  color: var(--dvm-blue);
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .retry-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1.5rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-family: inherit;
-  transition: background 0.2s ease;
+  margin-top: 0.75rem;
 }
 
-.retry-btn:hover {
-  background: #1d4ed8;
-}
+@media (max-width: 700px) {
+  .header-row {
+    align-items: start;
+    flex-direction: column;
+  }
 
-@media (max-width: 640px) {
-  .banner { padding: 2rem 1rem 2rem; }
-  .banner-title { font-size: 1.8rem; }
-  .content { padding: 2rem 1rem 3rem; }
-  .grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .subject-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

@@ -276,8 +276,3 @@ import {
   Calculator 
 } from 'lucide-vue-next'
 </script>
-
-<style scoped>
-/* Custom font for Sanskrit */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&display=swap');
-</style>

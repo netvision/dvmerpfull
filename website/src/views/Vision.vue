@@ -293,7 +293,4 @@ import {
 .no-underline:hover {
   text-decoration: none !important;
 }
-
-/* Custom font for Sanskrit */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&display=swap');
 </style>

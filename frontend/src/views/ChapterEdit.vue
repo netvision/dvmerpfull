@@ -2036,4 +2036,182 @@ async function uploadXlsx() {
 .preview-remove:hover {
   background: #fecaca;
 }
+
+/* DVM redesign overlay: aligns the existing editor with the approved portal direction. */
+.page {
+  background: var(--dvm-bg);
+  font-family: var(--dvm-font);
+}
+
+.navbar {
+  background: #fff;
+  color: var(--dvm-text);
+  border-bottom: 1px solid var(--dvm-line);
+  box-shadow: none;
+}
+
+.nav-title {
+  color: var(--dvm-navy);
+  font-weight: 900;
+}
+
+.back-btn {
+  background: #fff;
+  color: var(--dvm-navy);
+  border: 1px solid var(--dvm-line);
+}
+
+.content {
+  max-width: 1120px;
+}
+
+.summary-card,
+.docs-card,
+.concepts-table-wrap {
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius-lg);
+  box-shadow: var(--dvm-shadow-soft);
+}
+
+.summary-title,
+.section-title {
+  color: var(--dvm-text);
+}
+
+.meta-badge,
+.count-badge {
+  background: var(--dvm-blue-soft);
+  color: var(--dvm-navy);
+}
+
+.concepts-table th {
+  background: #f8fafc;
+  color: var(--dvm-muted);
+}
+
+.concepts-table td {
+  border-bottom-color: var(--dvm-line);
+}
+
+.modal-card--wide {
+  width: min(1180px, calc(100vw - 42px));
+  max-height: min(780px, calc(100vh - 42px));
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--dvm-line);
+  border-radius: 10px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+}
+
+.modal-card--wide .modal-header {
+  grid-column: 1 / -1;
+  background: #fbfcfe;
+  border-bottom: 1px solid var(--dvm-line);
+}
+
+.modal-card--wide .tab-bar {
+  grid-row: 2;
+  grid-column: 1;
+  display: block;
+  padding: 0.9rem;
+  background: #fff;
+  border-right: 1px solid var(--dvm-line);
+  border-bottom: 0;
+  overflow-y: auto;
+}
+
+.modal-card--wide .tab-bar::before {
+  content: "Editor sections";
+  display: block;
+  margin: 0.1rem 0.45rem 0.55rem;
+  color: var(--dvm-muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.modal-card--wide .tab-btn {
+  width: 100%;
+  justify-content: flex-start;
+  margin-bottom: 0.3rem;
+  border-radius: 7px;
+  border: 0;
+  color: var(--dvm-text);
+  text-align: left;
+}
+
+.modal-card--wide .tab-btn--active {
+  background: var(--dvm-blue-soft);
+  color: var(--dvm-navy);
+  box-shadow: inset 3px 0 0 var(--dvm-blue);
+}
+
+.modal-card--wide .modal-body {
+  grid-row: 2;
+  grid-column: 2;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--dvm-bg);
+  padding: 1rem;
+}
+
+.modal-card--wide .modal-body > div {
+  background: #fff;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius-lg);
+  padding: 1rem;
+}
+
+.modal-card--wide .fields-row {
+  display: grid;
+  grid-template-columns: 100px minmax(220px, 1fr) 110px 100px;
+  gap: 0.75rem;
+}
+
+.modal-card--wide .field label {
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.modal-card--wide .field input,
+.modal-card--wide .field select,
+.modal-card--wide .field textarea {
+  border-color: var(--dvm-line);
+  border-radius: 7px;
+}
+
+.modal-card--wide .modal-footer {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--dvm-line);
+  background: #fff;
+}
+
+@media (max-width: 900px) {
+  .modal-card--wide {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-card--wide .tab-bar {
+    grid-column: 1;
+    display: flex;
+    border-right: 0;
+    border-bottom: 1px solid var(--dvm-line);
+  }
+
+  .modal-card--wide .tab-bar::before {
+    display: none;
+  }
+
+  .modal-card--wide .modal-body {
+    grid-column: 1;
+  }
+
+  .modal-card--wide .fields-row {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

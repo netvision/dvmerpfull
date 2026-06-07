@@ -1,122 +1,122 @@
 <template>
-  <div class="portal-page">
-    <!-- Nav Bar -->
-    <nav class="navbar">
-      <span class="nav-title">DVM Lesson Plans</span>
-      <div class="nav-right">
-        <a href="/" class="home-link">Lesson Home</a>
-        <span v-if="auth.user" class="user-info">
-          <span class="user-name">{{ auth.user.name }}</span>
-          <span class="role-badge" :class="auth.user.role">{{ auth.user.role }}</span>
-        </span>
-        <button class="change-pass-btn" @click="openChangePasswordModal">Change Password</button>
-        <button class="logout-btn" @click="handleLogout">Logout</button>
+  <PortalShell
+    title="Chapter workspace"
+    subtitle="Lesson plan portal"
+    @logout="handleLogout"
+    @change-password="openChangePasswordModal"
+  >
+    <section class="metrics">
+      <div class="metric-card">
+        <span>Total chapters</span>
+        <strong>{{ chapters.length }}</strong>
       </div>
-    </nav>
-
-    <div class="content">
-      <!-- Filter Row -->
-      <div class="filter-row">
-        <div class="filter-group">
-          <label>Class</label>
-          <select v-model="selectedClassId" @change="onClassChange">
-            <option value="">All Classes</option>
-            <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Subject</label>
-          <select v-model="selectedSubjectId" @change="fetchChapters">
-            <option value="">All Subjects</option>
-            <option v-for="s in subjects" :key="s.id" :value="s.id">{{ formatSubjectLabel(s) }}</option>
-          </select>
-        </div>
-        <button class="add-btn" @click="openAddModal">
-          + Add Chapter
-        </button>
-        <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/classes')">
-          Manage Classes
-        </button>
-        <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/subjects')">
-          Manage Subjects
-        </button>
-        <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/users')">
-          Manage Users
-        </button>
-        <button v-if="auth.isAdmin" class="manage-btn" @click="router.push('/portal/audit')">
-          Audit Logs
-        </button>
+      <div class="metric-card">
+        <span>Pending approval</span>
+        <strong>{{ pendingCount }}</strong>
       </div>
-
-      <!-- Loading -->
-      <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading chapters…</p>
+      <div class="metric-card">
+        <span>Concepts</span>
+        <strong>{{ conceptCount }}</strong>
       </div>
-
-      <!-- Error -->
-      <div v-else-if="error" class="error-box">{{ error }}</div>
-
-      <!-- Empty State -->
-      <div v-else-if="chapters.length === 0" class="empty-state">
-        <p>No chapters found.</p>
-        <p v-if="auth.isAdmin" class="hint">Click "Add Chapter" to create one, or upload an xlsx file.</p>
-        <p v-else class="hint">Click "Add Chapter" to create one for your assigned subjects.</p>
+      <div class="metric-card">
+        <span>Sessions</span>
+        <strong>{{ sessionCount }}</strong>
       </div>
+    </section>
 
-      <!-- Data Table -->
-      <div v-else class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Class</th>
-              <th>Subject</th>
-              <th>Chapter Title</th>
-              <th>Concepts</th>
-              <th>Total Sessions</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="ch in chapters" :key="ch.id">
-              <td>{{ ch.class_name }}</td>
-              <td>{{ ch.subject_name }}</td>
-              <td class="title-cell">
-                <div>{{ ch.title }}</div>
-                <div v-if="!ch.is_approved && ch.pending_change_summary" class="pending-change-note">
-                  Changed: {{ ch.pending_change_summary }}
-                </div>
-              </td>
-              <td class="center">{{ ch.concept_count }}</td>
-              <td class="center">{{ ch.sessions_total }}</td>
-              <td class="actions-cell">
-                <span class="approval-badge" :class="ch.is_approved ? 'approved' : 'pending'">
-                  {{ ch.is_approved ? 'Approved' : 'Pending Approval' }}
-                </span>
-                <button class="btn-edit" @click="router.push(`/portal/chapter/${ch.id}/edit`)">
-                  Edit
-                </button>
-                <button
-                  v-if="canVerifyChanges && !ch.is_approved"
-                  class="btn-approve"
-                  :disabled="ch.approving"
-                  @click="approveChapter(ch)"
-                >
-                  <span v-if="ch.approving" class="spinner-inline"></span>
-                  <span v-else>Approve</span>
-                </button>
-                <button v-if="auth.isAdmin" class="btn-delete" :disabled="ch.deleting" @click="deleteChapter(ch)">
-                  <span v-if="ch.deleting" class="spinner-inline"></span>
-                  <span v-else>Delete</span>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <section class="dvm-card dvm-toolbar">
+      <div class="filter-group">
+        <label>Class</label>
+        <select v-model="selectedClassId" class="dvm-select" @change="onClassChange">
+          <option value="">All Classes</option>
+          <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
+        </select>
       </div>
+      <div class="filter-group">
+        <label>Subject</label>
+        <select v-model="selectedSubjectId" class="dvm-select" @change="fetchChapters">
+          <option value="">All Subjects</option>
+          <option v-for="s in subjects" :key="s.id" :value="s.id">{{ formatSubjectLabel(s) }}</option>
+        </select>
+      </div>
+      <div class="filter-group filter-search">
+        <label>Search</label>
+        <input v-model="chapterSearch" class="dvm-input" type="search" placeholder="Chapter title, class, subject..." />
+      </div>
+      <button class="dvm-btn dvm-btn--primary toolbar-action" @click="openAddModal">Add Chapter</button>
+    </section>
+
+    <div v-if="loading" class="dvm-card dvm-state">
+      <div class="dvm-spinner"></div>
+      <p>Loading chapters...</p>
     </div>
 
-    <!-- Add Chapter Modal -->
+    <div v-else-if="error" class="dvm-error">{{ error }}</div>
+
+    <div v-else-if="filteredChapters.length === 0" class="dvm-empty">
+      <p>No chapters found.</p>
+      <p v-if="auth.isAdmin">Use Add Chapter to create one, or upload an xlsx file from the chapter editor.</p>
+      <p v-else>Use Add Chapter to create one for your assigned subjects.</p>
+    </div>
+
+    <div v-else class="dvm-table-wrap">
+      <table class="dvm-table">
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Subject</th>
+            <th>Chapter</th>
+            <th>Concepts</th>
+            <th>Sessions</th>
+            <th>Status</th>
+            <th class="actions-head">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="ch in filteredChapters" :key="ch.id">
+            <td>{{ ch.class_name }}</td>
+            <td>{{ ch.subject_name }}</td>
+            <td class="title-cell">
+              <strong>{{ ch.title }}</strong>
+              <span v-if="!ch.is_approved && ch.pending_change_summary" class="pending-change-note">
+                Changed: {{ ch.pending_change_summary }}
+              </span>
+            </td>
+            <td>{{ ch.concept_count }}</td>
+            <td>{{ ch.sessions_total }}</td>
+            <td>
+              <span class="dvm-badge" :class="ch.is_approved ? 'dvm-badge--approved' : 'dvm-badge--pending'">
+                {{ ch.is_approved ? 'Approved' : 'Pending' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <button class="dvm-icon-btn" title="Edit" @click="router.push(`/portal/chapter/${ch.id}/edit`)">E</button>
+              <button
+                v-if="canVerifyChanges && !ch.is_approved"
+                class="dvm-icon-btn"
+                title="Approve"
+                :disabled="ch.approving"
+                @click="approveChapter(ch)"
+              >
+                <span v-if="ch.approving" class="spinner-inline"></span>
+                <span v-else>A</span>
+              </button>
+              <button
+                v-if="auth.isAdmin"
+                class="dvm-icon-btn danger"
+                title="Delete"
+                :disabled="ch.deleting"
+                @click="deleteChapter(ch)"
+              >
+                <span v-if="ch.deleting" class="spinner-inline"></span>
+                <span v-else>D</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
       <div class="modal">
         <h2 class="modal-title">Add Chapter</h2>
@@ -149,16 +149,15 @@
           </div>
           <div v-if="createError" class="error-banner">{{ createError }}</div>
           <div class="modal-actions">
-            <button type="button" class="btn-cancel" @click="showAddModal = false">Cancel</button>
-            <button type="submit" class="btn-save" :disabled="creating">
-              {{ creating ? 'Creating…' : 'Create' }}
+            <button type="button" class="dvm-btn" @click="showAddModal = false">Cancel</button>
+            <button type="submit" class="dvm-btn dvm-btn--primary" :disabled="creating">
+              {{ creating ? 'Creating...' : 'Create' }}
             </button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Change Password Modal -->
     <div v-if="showPasswordModal" class="modal-overlay" @click.self="closeChangePasswordModal">
       <div class="modal">
         <h2 class="modal-title">Change Password</h2>
@@ -178,15 +177,15 @@
           <div v-if="passwordError" class="error-banner">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-banner">{{ passwordSuccess }}</div>
           <div class="modal-actions">
-            <button type="button" class="btn-cancel" @click="closeChangePasswordModal">Cancel</button>
-            <button type="submit" class="btn-save" :disabled="changingPassword">
-              {{ changingPassword ? 'Updating…' : 'Update Password' }}
+            <button type="button" class="dvm-btn" @click="closeChangePasswordModal">Cancel</button>
+            <button type="submit" class="dvm-btn dvm-btn--primary" :disabled="changingPassword">
+              {{ changingPassword ? 'Updating...' : 'Update Password' }}
             </button>
           </div>
         </form>
       </div>
     </div>
-  </div>
+  </PortalShell>
 </template>
 
 <script setup>
@@ -194,6 +193,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api.js'
+import PortalShell from '../components/PortalShell.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -203,6 +203,7 @@ const subjects = ref([])
 const chapters = ref([])
 const selectedClassId = ref('')
 const selectedSubjectId = ref('')
+const chapterSearch = ref('')
 const loading = ref(false)
 const error = ref('')
 
@@ -218,6 +219,17 @@ const passwordError = ref('')
 const passwordSuccess = ref('')
 
 const canVerifyChanges = computed(() => ['hm', 'principal'].includes(auth.user?.role))
+const pendingCount = computed(() => chapters.value.filter(ch => !ch.is_approved).length)
+const conceptCount = computed(() => chapters.value.reduce((sum, ch) => sum + Number(ch.concept_count || 0), 0))
+const sessionCount = computed(() => chapters.value.reduce((sum, ch) => sum + Number(ch.sessions_total || 0), 0))
+
+const filteredChapters = computed(() => {
+  const q = chapterSearch.value.trim().toLowerCase()
+  if (!q) return chapters.value
+  return chapters.value.filter(ch => {
+    return [ch.title, ch.class_name, ch.subject_name].some(value => String(value || '').toLowerCase().includes(q))
+  })
+})
 
 const modalClassOptions = computed(() => {
   if (auth.isAdmin) return classes.value
@@ -237,7 +249,6 @@ const modalClassOptions = computed(() => {
   return scoped
 })
 
-// Always show only subjects for the selected class in Add Chapter modal.
 const modalSubjects = computed(() => {
   if (!newChapter.value.class_id) return []
   const classId = Number(newChapter.value.class_id)
@@ -347,10 +358,6 @@ async function approveChapter(ch) {
   }
 }
 
-function goToUpload(ch) {
-  router.push({ path: '/portal/upload', query: { subject_id: ch.subject_id || '' } })
-}
-
 function handleLogout() {
   auth.logout()
   router.replace('/login')
@@ -388,10 +395,6 @@ async function changePassword() {
   } finally {
     changingPassword.value = false
   }
-}
-
-async function loadModalSubjects() {
-  // no-op: handled by openAddModal
 }
 
 function formatSubjectLabel(subject) {
@@ -433,575 +436,159 @@ async function deleteChapter(ch) {
 </script>
 
 <style scoped>
-.portal-page {
-  min-height: 100vh;
-  background: #f1f5f9;
-  font-family: system-ui, -apple-system, sans-serif;
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1rem;
 }
 
-/* Navbar */
-.navbar {
-  background: #1e3a8a;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.5rem;
-  height: 56px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+.metric-card {
+  background: #fff;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius-lg);
+  padding: 0.9rem;
+  box-shadow: var(--dvm-shadow-soft);
 }
 
-.nav-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.home-link {
-  color: #a5f3fc;
-  font-weight: 600;
-  text-decoration: none;
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.18);
-  transition: background 0.15s, color 0.15s;
-}
-
-.home-link:hover {
-  background: rgba(255,255,255,0.14);
-  color: #ffffff;
-}
-
-.user-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.role-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
+.metric-card span {
+  display: block;
+  color: var(--dvm-muted);
+  font-size: 0.75rem;
+  font-weight: 850;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  padding: 0.2rem 0.55rem;
-  border-radius: 20px;
+  letter-spacing: 0.04em;
 }
 
-.role-badge.admin {
-  background: #dc2626;
-  color: white;
-}
-
-.role-badge.teacher {
-  background: #2563eb;
-  color: white;
-}
-
-.role-badge.super_admin {
-  background: #1d4ed8;
-  color: white;
-}
-
-.role-badge.principal {
-  background: #0f766e;
-  color: white;
-}
-
-.role-badge.hm {
-  background: #0369a1;
-  color: white;
-}
-
-.role-badge.subject_head {
-  background: #4f46e5;
-  color: white;
-}
-
-.role-badge.mentor {
-  background: #7c3aed;
-  color: white;
-}
-
-.logout-btn {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.25);
-  color: white;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.88rem;
-  transition: background 0.15s;
-}
-
-.logout-btn:hover {
-  background: rgba(255,255,255,0.22);
-}
-
-.change-pass-btn {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.28);
-  color: white;
-  padding: 0.4rem 0.9rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background 0.15s;
-}
-
-.change-pass-btn:hover {
-  background: rgba(255,255,255,0.18);
-}
-
-/* Content */
-.content {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-}
-
-/* Filter Row */
-.filter-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-  flex-wrap: wrap;
-  background: white;
-  border-radius: 10px;
-  padding: 1rem 1.2rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-  margin-bottom: 1.2rem;
+.metric-card strong {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--dvm-text);
+  font-size: 1.7rem;
+  line-height: 1;
 }
 
 .filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  min-width: 155px;
 }
 
-.filter-group label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+.filter-search {
+  flex: 1;
+  min-width: 240px;
 }
 
-.filter-group select {
-  padding: 0.5rem 0.8rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 7px;
-  font-size: 0.93rem;
-  color: #1e293b;
-  background: white;
-  outline: none;
-  cursor: pointer;
-  min-width: 160px;
-}
-
-.filter-group select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37,99,235,0.12);
-}
-
-.add-btn {
+.toolbar-action {
   margin-left: auto;
-  padding: 0.55rem 1.2rem;
-  background: #eab308;
-  color: #1e293b;
-  border: none;
-  border-radius: 7px;
-  font-size: 0.93rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
 }
 
-.add-btn:hover {
-  background: #ca8a04;
-  color: white;
-}
-
-.manage-btn {
-  padding: 0.55rem 1.1rem;
-  background: #1e3a8a;
-  color: white;
-  border: none;
-  border-radius: 7px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.manage-btn:hover {
-  background: #1d4ed8;
-}
-
-/* Table */
-.table-wrapper {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.93rem;
-}
-
-.data-table thead tr {
-  background: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-.data-table th {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: #64748b;
-  white-space: nowrap;
-}
-
-.data-table td {
-  padding: 0.8rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-  color: #1e293b;
-  vertical-align: middle;
-}
-
-.data-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.title-cell {
-  font-weight: 600;
-  max-width: 280px;
+.title-cell strong,
+.title-cell span {
+  display: block;
 }
 
 .pending-change-note {
   margin-top: 0.2rem;
+  color: var(--dvm-amber);
   font-size: 0.78rem;
-  font-weight: 500;
-  color: #92400e;
-  line-height: 1.35;
 }
 
-.center {
-  text-align: center;
+.actions-head {
+  text-align: right;
 }
 
 .actions-cell {
-  white-space: nowrap;
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
 }
 
-.btn-edit {
-  padding: 0.35rem 0.85rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.83rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
+.dvm-icon-btn.danger {
+  color: var(--dvm-red);
 }
 
-.btn-edit:hover {
-  background: #1d4ed8;
-}
-
-.approval-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.2rem 0.55rem;
-  border-radius: 20px;
-  white-space: nowrap;
-}
-
-.approval-badge.approved {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.approval-badge.pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.btn-approve {
-  padding: 0.35rem 0.85rem;
-  background: #fff7ed;
-  color: #c2410c;
-  border: 1.5px solid #fdba74;
-  border-radius: 6px;
-  font-size: 0.83rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.btn-approve:hover {
-  background: #ffedd5;
-}
-
-.btn-approve:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.btn-upload {
-  padding: 0.35rem 0.85rem;
-  background: white;
-  color: #2563eb;
-  border: 1.5px solid #2563eb;
-  border-radius: 6px;
-  font-size: 0.83rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-upload:hover {
-  background: #f0f9ff;
-}
-
-.btn-delete {
-  padding: 0.35rem 0.85rem;
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1.5px solid #fca5a5;
-  border-radius: 6px;
-  font-size: 0.83rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-.btn-delete:hover { background: #fecaca; border-color: #f87171; }
-.btn-delete:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.spinner-inline {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid #fca5a5;
-  border-top-color: #dc2626;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-/* Empty / Loading / Error */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  color: #64748b;
-  gap: 1rem;
-  background: white;
-  border-radius: 10px;
-}
-
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.error-box {
-  background: #fef2f2;
-  color: #dc2626;
-  padding: 1rem 1.2rem;
-  border-radius: 8px;
-  border: 1px solid #fecaca;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: #64748b;
-  background: white;
-  border-radius: 10px;
-}
-
-.empty-state p {
-  margin: 0.25rem 0;
-}
-
-.empty-state .hint {
-  font-size: 0.88rem;
-  color: #94a3b8;
-}
-
-/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  background: rgba(15, 23, 42, 0.46);
   padding: 1rem;
 }
 
 .modal {
-  background: white;
-  border-radius: 14px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 480px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  width: min(500px, 100%);
+  background: #fff;
+  border-radius: var(--dvm-radius-lg);
+  border: 1px solid var(--dvm-line);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+  padding: 1.4rem;
 }
 
 .modal-title {
+  margin: 0 0 1rem;
+  color: var(--dvm-text);
   font-size: 1.2rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 1.4rem;
 }
 
 .field {
-  margin-bottom: 1rem;
+  margin-bottom: 0.9rem;
 }
 
 .field label {
   display: block;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #374151;
   margin-bottom: 0.35rem;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .field input,
-.field textarea,
-.field select {
-  width: 100%;
-  padding: 0.6rem 0.85rem;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 7px;
-  font-size: 0.93rem;
-  color: #111827;
-  outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-  font-family: inherit;
-  background: white;
-}
-
-.field input:focus,
-.field textarea:focus,
-.field select:focus {
-  border-color: #2563eb;
-}
-
+.field select,
 .field textarea {
-  resize: vertical;
-}
-
-.error-banner {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  width: 100%;
+  border: 1px solid var(--dvm-line);
   border-radius: 7px;
-  padding: 0.6rem 0.9rem;
-  font-size: 0.88rem;
-  margin-bottom: 1rem;
-}
-
-.success-banner {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #047857;
-  border-radius: 7px;
-  padding: 0.6rem 0.9rem;
-  font-size: 0.88rem;
-  margin-bottom: 1rem;
+  padding: 0.6rem 0.7rem;
+  outline: none;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
 }
 
-.btn-cancel {
-  padding: 0.55rem 1.2rem;
-  background: white;
-  color: #374151;
-  border: 1.5px solid #e5e7eb;
+.error-banner,
+.success-banner {
   border-radius: 7px;
-  font-size: 0.93rem;
-  cursor: pointer;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.86rem;
 }
 
-.btn-cancel:hover {
-  background: #f9fafb;
+.error-banner {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  color: var(--dvm-red);
 }
 
-.btn-save {
-  padding: 0.55rem 1.4rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 7px;
-  font-size: 0.93rem;
-  font-weight: 600;
-  cursor: pointer;
+.success-banner {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: var(--dvm-green);
 }
 
-.btn-save:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
+@media (max-width: 900px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.btn-save:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-@media (max-width: 768px) {
-  .navbar { padding: 0 1rem; }
-  .user-name { display: none; }
-  .content { padding: 1rem 16px; }
-  .data-table th, .data-table td { padding: 0.6rem 0.7rem; }
+@media (max-width: 620px) {
+  .metrics {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

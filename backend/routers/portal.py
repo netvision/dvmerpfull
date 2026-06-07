@@ -1,14 +1,21 @@
-import tempfile
+import io
+import json
 import os
 import re
+import tempfile
 import uuid
 import shutil
-from datetime import datetime, timezone
+import zipfile
+from datetime import date, datetime, timezone
+from decimal import Decimal
 from pathlib import Path
+from posixpath import normpath
 from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, UploadFile, File, Form, status
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import Date, DateTime, Integer, Numeric, text
 from sqlalchemy.orm import Session
 
 from audit import write_audit_log
@@ -23,7 +30,7 @@ from auth import (
     verify_password,
 )
 from config import UPLOADS_DIR
-from database import get_db
+from database import Base, get_db
 from limiter import limiter
 from models import User, UserRole, TeacherSubject, Subject, Class, Chapter, Concept, Exhibit, ConceptImage, ExhibitFieldType
 from schemas import (
@@ -52,6 +59,8 @@ from schemas import (
 from xlsx_parser import parse_xlsx
 
 router = APIRouter()
+
+BACKUP_FORMAT_VERSION = 1
 
 
 def _safe_upload_name(filename: Optional[str]) -> str:
@@ -91,6 +100,167 @@ def _write_security_event(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def require_super_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != UserRole.super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin access required",
+        )
+    return current_user
+
+
+def _serialize_db_value(value):
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if hasattr(value, "value"):
+        return value.value
+    return value
+
+
+def _deserialize_db_value(column, value):
+    if value is None:
+        return None
+    column_type = column.type
+    if isinstance(column_type, DateTime):
+        return datetime.fromisoformat(value)
+    if isinstance(column_type, Date):
+        return date.fromisoformat(value)
+    if isinstance(column_type, Numeric):
+        return Decimal(str(value))
+    return value
+
+
+def _export_database(db: Session) -> dict:
+    tables = {}
+    for table in Base.metadata.sorted_tables:
+        rows = []
+        for row in db.execute(table.select()).mappings():
+            rows.append({
+                column.name: _serialize_db_value(row[column.name])
+                for column in table.columns
+            })
+        tables[table.name] = rows
+    return {
+        "format": "dvm-lesson-portal-db-json",
+        "version": BACKUP_FORMAT_VERSION,
+        "tables": tables,
+    }
+
+
+def _restore_database(db: Session, payload: dict) -> int:
+    if payload.get("version") != BACKUP_FORMAT_VERSION or "tables" not in payload:
+        raise HTTPException(status_code=400, detail="Unsupported backup database format")
+
+    restored_tables = 0
+    try:
+        for table in reversed(Base.metadata.sorted_tables):
+            db.execute(table.delete())
+
+        for table in Base.metadata.sorted_tables:
+            rows = payload["tables"].get(table.name, [])
+            if not rows:
+                continue
+            converted_rows = [
+                {
+                    column.name: _deserialize_db_value(column, row.get(column.name))
+                    for column in table.columns
+                }
+                for row in rows
+            ]
+            db.execute(table.insert(), converted_rows)
+            restored_tables += 1
+
+        if db.bind and db.bind.dialect.name == "postgresql":
+            _reset_postgres_sequences(db)
+        db.commit()
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Database restore failed: {exc}") from exc
+
+    return restored_tables
+
+
+def _reset_postgres_sequences(db: Session) -> None:
+    for table in Base.metadata.sorted_tables:
+        for column in table.primary_key.columns:
+            if not isinstance(column.type, Integer):
+                continue
+            sequence = db.execute(
+                text("SELECT pg_get_serial_sequence(:table_name, :column_name)"),
+                {"table_name": table.name, "column_name": column.name},
+            ).scalar()
+            if sequence:
+                db.execute(
+                    text(
+                        "SELECT setval(:sequence_name, "
+                        f"COALESCE((SELECT MAX({column.name}) FROM {table.name}), 1), true)"
+                    ),
+                    {"sequence_name": sequence},
+                )
+
+
+def _add_uploads_to_archive(archive: zipfile.ZipFile) -> int:
+    uploads_root = Path(UPLOADS_DIR)
+    if not uploads_root.exists():
+        return 0
+
+    count = 0
+    for path in uploads_root.rglob("*"):
+        if not path.is_file():
+            continue
+        archive.write(path, f"uploads/{path.relative_to(uploads_root).as_posix()}")
+        count += 1
+    return count
+
+
+def _safe_upload_member_path(member_name: str) -> Optional[Path]:
+    if not member_name.startswith("uploads/") or member_name.endswith("/"):
+        return None
+    normalized = normpath(member_name).replace("\\", "/")
+    if normalized.startswith("../") or normalized == ".." or not normalized.startswith("uploads/"):
+        raise HTTPException(status_code=400, detail="Backup archive contains an unsafe upload path")
+    relative = normalized.removeprefix("uploads/").strip("/")
+    if not relative:
+        return None
+    return Path(relative)
+
+
+def _stage_uploads_from_archive(archive: zipfile.ZipFile, stage_dir: Path) -> int:
+    count = 0
+    for member in archive.infolist():
+        relative = _safe_upload_member_path(member.filename)
+        if relative is None:
+            continue
+        target = stage_dir / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with archive.open(member) as source, target.open("wb") as output:
+            shutil.copyfileobj(source, output)
+        count += 1
+    return count
+
+
+def _replace_uploads_from_stage(stage_dir: Path) -> None:
+    uploads_root = Path(UPLOADS_DIR)
+    uploads_root.mkdir(parents=True, exist_ok=True)
+    for child in uploads_root.iterdir():
+        if child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+    for staged in stage_dir.rglob("*"):
+        if not staged.is_file():
+            continue
+        target = uploads_root / staged.relative_to(stage_dir)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(staged, target)
 
 def _check_subject_access(db: Session, user: User, subject_id: int):
     """Raise 403 if teacher doesn't have access to this subject."""
@@ -399,6 +569,73 @@ def change_password(
 
     db.commit()
     return {"ok": True, "message": "Password updated successfully"}
+
+
+# ---------------------------------------------------------------------------
+# Super-admin backup and restore utilities
+# ---------------------------------------------------------------------------
+
+@router.get("/utilities/backup")
+def download_backup(
+    _current_user: User = Depends(require_super_admin),
+    db: Session = Depends(get_db),
+):
+    buffer = io.BytesIO()
+    database_payload = _export_database(db)
+    manifest = {
+        "format": "dvm-lesson-portal-backup",
+        "version": BACKUP_FORMAT_VERSION,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("database.json", json.dumps(database_payload, indent=2))
+        manifest["upload_file_count"] = _add_uploads_to_archive(archive)
+        archive.writestr("manifest.json", json.dumps(manifest, indent=2))
+
+    buffer.seek(0)
+    filename = f"dvm-lesson-portal-backup-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.zip"
+    return StreamingResponse(
+        buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/utilities/restore")
+async def restore_backup(
+    file: UploadFile = File(...),
+    confirm_restore: str = Form(...),
+    _current_user: User = Depends(require_super_admin),
+    db: Session = Depends(get_db),
+):
+    if confirm_restore != "RESTORE":
+        raise HTTPException(status_code=400, detail="Type RESTORE to confirm this destructive operation")
+    if not (file.filename or "").lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Restore file must be a .zip backup archive")
+
+    contents = await file.read()
+    try:
+        with zipfile.ZipFile(io.BytesIO(contents)) as archive:
+            try:
+                database_payload = json.loads(archive.read("database.json"))
+            except KeyError as exc:
+                raise HTTPException(status_code=400, detail="Backup archive is missing database.json") from exc
+
+            with tempfile.TemporaryDirectory() as tmp:
+                stage_dir = Path(tmp) / "uploads"
+                stage_dir.mkdir()
+                upload_count = _stage_uploads_from_archive(archive, stage_dir)
+                restored_tables = _restore_database(db, database_payload)
+                _replace_uploads_from_stage(stage_dir)
+    except zipfile.BadZipFile as exc:
+        raise HTTPException(status_code=400, detail="Restore file is not a valid zip archive") from exc
+
+    return {
+        "message": "Backup restored successfully",
+        "restored_tables": restored_tables,
+        "restored_upload_files": upload_count,
+    }
 
 
 # ---------------------------------------------------------------------------

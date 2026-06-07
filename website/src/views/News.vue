@@ -107,7 +107,7 @@ const router = useRouter()
 const loading = ref(true)
 const newsItems = ref<NewsArticle[]>([])
 const categories = ref<NewsCategory[]>([])
-const selectedCategory = ref<string | null>(null)
+const selectedCategory = ref<number | null>(null)
 const pagination = ref({
   page: 1,
   limit: 9,

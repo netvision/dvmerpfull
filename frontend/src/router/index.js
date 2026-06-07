@@ -43,6 +43,11 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }
   },
   {
+    path: '/portal/utilities',
+    component: () => import('../views/Utilities.vue'),
+    meta: { requiresAuth: true, requiresSuperAdmin: true, hideNav: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     component: () => import('../views/NotFound.vue'),
   },
@@ -57,13 +62,16 @@ router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
   // If a token exists but user hasn't been fetched yet (e.g. hard refresh),
   // resolve the user before evaluating role-based guards.
-  if ((to.meta.requiresAuth || to.meta.requiresAdmin) && auth.isLoggedIn && !auth.user) {
+  if ((to.meta.requiresAuth || to.meta.requiresAdmin || to.meta.requiresSuperAdmin) && auth.isLoggedIn && !auth.user) {
     try { await auth.fetchMe() } catch (_) {}
   }
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
     return next('/login')
   }
   if (to.meta.requiresAdmin && !auth.isAdmin) {
+    return next('/portal')
+  }
+  if (to.meta.requiresSuperAdmin && !auth.isSuperAdmin) {
     return next('/portal')
   }
   next()

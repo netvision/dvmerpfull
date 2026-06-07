@@ -78,7 +78,7 @@ class CMSService {
     limit?: number
     status?: string
     search?: string
-    category_id?: string
+    category_id?: number
   }): Promise<PaginatedResponse<NewsArticle>> {
     const response = await apiClient.get('/cms/news', { params })
     return response.data

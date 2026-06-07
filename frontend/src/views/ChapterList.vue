@@ -1,69 +1,73 @@
 <template>
-  <div class="page">
-    <!-- Page Header -->
-    <div class="page-header" :style="{ '--accent': subjectColor }">
-      <div class="header-inner">
-        <nav class="breadcrumb">
-          <span class="crumb crumb-link" @click="router.push('/')">Home</span>
-          <span class="crumb-sep">›</span>
-          <span class="crumb crumb-link" @click="router.push(`/class/${classId}`)">
-            {{ className || `Class ${classId}` }}
-          </span>
-          <span class="crumb-sep">›</span>
-          <span class="crumb">{{ subjectName || 'Chapters' }}</span>
+  <main class="chapter-list-page dvm-page">
+    <section class="list-header">
+      <div class="dvm-container">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <button type="button" @click="router.push('/')">Home</button>
+          <span>/</span>
+          <button type="button" @click="router.push(`/class/${classId}`)">{{ className || `Class ${classId}` }}</button>
+          <span>/</span>
+          <span>{{ subjectName || 'Chapters' }}</span>
         </nav>
         <div class="header-title-row">
-          <span v-if="subjectIcon" class="header-icon">{{ subjectIcon }}</span>
-          <h1 class="header-title">{{ subjectName || 'Chapters' }}</h1>
+          <span v-if="subjectIcon" class="subject-icon">{{ subjectIcon }}</span>
+          <div>
+            <h1>{{ subjectName || 'Chapters' }}</h1>
+            <p>Scan chapters, session counts, concepts, and attached PDFs.</p>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Chapter List -->
-    <div class="content">
-      <LoadingSpinner v-if="loading" message="Loading chapters…" />
+    <section class="dvm-container content">
+      <LoadingSpinner v-if="loading" message="Loading chapters..." />
 
-      <div v-else-if="error" class="error-box">
+      <div v-else-if="error" class="dvm-error">
         <ErrorBanner :message="error" />
-        <button class="retry-btn" @click="fetchChapters">Retry</button>
+        <button class="dvm-btn dvm-btn--navy retry-btn" @click="fetchChapters">Retry</button>
       </div>
 
-      <div v-else-if="chapters.length === 0" class="empty">
-        <p>No chapters found for this subject.</p>
-      </div>
+      <template v-else>
+        <div class="dvm-card chapter-toolbar">
+          <input v-model="chapterQuery" type="search" placeholder="Filter chapters..." aria-label="Filter chapters" />
+          <span class="dvm-badge">{{ filteredChapters.length }} chapter{{ filteredChapters.length !== 1 ? 's' : '' }}</span>
+        </div>
 
-      <div v-else class="chapter-list">
-        <div
-          v-for="chapter in chapters"
-          :key="chapter.id"
-          class="chapter-card"
-          :style="{ '--accent': subjectColor }"
-          @click="router.push(`/chapter/${chapter.id}`)"
-        >
-          <div class="accent-bar"></div>
-          <div class="card-body">
-            <h2 class="chapter-title">{{ chapter.title }}</h2>
-            <div v-if="chapter.aim" class="chapter-aim ql-content" v-html="sanitize(chapter.aim)"></div>
-            <div class="card-footer">
+        <div v-if="filteredChapters.length === 0" class="dvm-empty">
+          No chapters found for this subject.
+        </div>
+
+        <div v-else class="chapter-list">
+          <article
+            v-for="chapter in filteredChapters"
+            :key="chapter.id"
+            class="chapter-card"
+            :style="{ '--accent': subjectColor }"
+            @click="router.push(`/chapter/${chapter.id}`)"
+          >
+            <span class="accent-bar"></span>
+            <div class="chapter-main">
+              <h2>{{ chapter.title }}</h2>
+              <div v-if="chapter.aim" class="chapter-aim ql-content" v-html="sanitize(chapter.aim)"></div>
               <div class="badges">
-                <span class="badge badge-sessions">⏱ {{ chapter.sessions_total }} sessions</span>
-                <span class="badge badge-concepts">💡 {{ chapter.concept_count }} concept{{ chapter.concept_count !== 1 ? 's' : '' }}</span>
+                <span class="dvm-badge">{{ chapter.sessions_total }} sessions</span>
+                <span class="dvm-badge">{{ chapter.concept_count }} concept{{ chapter.concept_count !== 1 ? 's' : '' }}</span>
                 <a
                   v-if="chapter.pdf_url"
                   :href="`${apiBase}${chapter.pdf_url}`"
                   target="_blank"
                   rel="noopener"
-                  class="badge badge-pdf"
+                  class="dvm-badge pdf-badge"
                   @click.stop
-                >📄 PDF</a>
+                >PDF</a>
               </div>
-              <span class="view-link">View →</span>
             </div>
-          </div>
+            <span class="view-link">View</span>
+          </article>
         </div>
-      </div>
-    </div>
-  </div>
+      </template>
+    </section>
+  </main>
 </template>
 
 <script setup>
@@ -91,6 +95,15 @@ const subjectName = ref('')
 const subjectIcon = ref('')
 const subjectColor = ref('#2563eb')
 const className = ref('')
+const chapterQuery = ref('')
+
+const filteredChapters = computed(() => {
+  const q = chapterQuery.value.trim().toLowerCase()
+  if (!q) return chapters.value
+  return chapters.value.filter(chapter => {
+    return [chapter.title, chapter.aim].some(value => String(value || '').toLowerCase().includes(q))
+  })
+})
 
 async function fetchChapters() {
   loading.value = true
@@ -115,7 +128,6 @@ async function fetchSubjectInfo() {
       subjectIcon.value = subject.icon || ''
       subjectColor.value = subject.color || '#2563eb'
     }
-    // Also get class name
     const classRes = await api.get('/api/public/classes')
     const cls = classRes.data.find(c => String(c.id) === String(classId.value))
     if (cls) className.value = cls.name
@@ -128,237 +140,176 @@ onMounted(fetchChapters)
 </script>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  background: #f0f4ff;
-  font-family: system-ui, -apple-system, sans-serif;
-  padding-bottom: 4rem;
-}
-
-/* Page Header */
-.page-header {
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 1.75rem 1.5rem 1.5rem;
-}
-
-.header-inner {
-  max-width: 860px;
-  margin: 0 auto;
+.list-header {
+  background: #fff;
+  border-bottom: 1px solid var(--dvm-line);
+  padding: 1.4rem 0;
 }
 
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+  color: var(--dvm-muted);
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #6b7280;
-  margin-bottom: 0.9rem;
+  letter-spacing: 0.05em;
 }
 
-.crumb-link {
-  cursor: pointer;
-  color: #2563eb;
-}
-
-.crumb-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.crumb-sep {
-  color: #d1d5db;
+.breadcrumb button {
+  border: 0;
+  background: transparent;
+  color: var(--dvm-blue);
+  padding: 0;
+  font: inherit;
 }
 
 .header-title-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.8rem;
 }
 
-.header-icon {
-  font-size: 2.2rem;
-  line-height: 1;
+.subject-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--dvm-blue-soft);
+  font-size: 1.5rem;
 }
 
-.header-title {
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: #1e1b4b;
+.header-title-row h1 {
   margin: 0;
-  letter-spacing: -0.01em;
-  border-left: 4px solid var(--accent, #2563eb);
-  padding-left: 0.75rem;
+  color: var(--dvm-navy);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.1;
 }
 
-/* Content */
+.header-title-row p {
+  margin: 0.4rem 0 0;
+  color: var(--dvm-muted);
+}
+
 .content {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 0;
+  padding: 1.25rem 0 4rem;
 }
 
-/* Chapter List */
-.chapter-list {
+.chapter-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+}
+
+.chapter-toolbar input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+  padding: 0.65rem 0.75rem;
+  outline: none;
+}
+
+.chapter-toolbar input:focus {
+  border-color: var(--dvm-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.chapter-list {
+  display: grid;
+  gap: 0.8rem;
 }
 
 .chapter-card {
-  background: white;
-  border-radius: 16px;
+  position: relative;
   overflow: hidden;
-  display: flex;
-  flex-direction: row;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius-lg);
+  box-shadow: var(--dvm-shadow-soft);
+  padding: 1rem 1.1rem 1rem 1.35rem;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .chapter-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--dvm-shadow);
 }
 
 .accent-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
   width: 4px;
-  flex-shrink: 0;
-  background: var(--accent, #2563eb);
-  transition: background 0.2s ease;
+  background: var(--accent);
 }
 
-.chapter-card:hover .accent-bar {
-  background: color-mix(in srgb, var(--accent, #2563eb) 70%, black);
-}
-
-.card-body {
-  flex: 1;
-  padding: 1.4rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.chapter-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #1e1b4b;
+.chapter-main h2 {
   margin: 0;
+  color: var(--dvm-text);
+  font-size: 1.05rem;
   line-height: 1.3;
 }
 
 .chapter-aim {
-  font-size: 0.9rem;
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.55;
   display: -webkit-box;
+  max-width: 780px;
+  margin-top: 0.35rem;
+  color: var(--dvm-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.chapter-aim :deep(p) { margin: 0; display: inline; }
-.chapter-aim :deep(ul), .chapter-aim :deep(ol) { margin: 0; padding: 0; list-style: none; display: inline; }
-.chapter-aim :deep(li) { display: inline; }
-.chapter-aim :deep(li::before) { content: '· '; }
-.chapter-aim :deep(strong) { font-weight: 600; }
-.chapter-aim :deep(em) { font-style: italic; }
 
-.card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 0.3rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.chapter-aim :deep(p) {
+  display: inline;
+  margin: 0;
 }
 
 .badges {
   display: flex;
-  gap: 0.5rem;
   flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.22rem 0.7rem;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.badge-sessions {
-  background: #ede9fe;
-  color: #5b21b6;
-}
-
-.badge-concepts {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.badge-pdf {
+.pdf-badge {
+  text-decoration: none;
   background: #fff7ed;
   color: #9a3412;
-  text-decoration: none;
-  cursor: pointer;
-}
-.badge-pdf:hover {
-  background: #fed7aa;
 }
 
 .view-link {
+  color: var(--dvm-blue);
   font-size: 0.85rem;
-  font-weight: 700;
-  color: #2563eb;
-  transition: color 0.2s ease;
-}
-
-.chapter-card:hover .view-link {
-  color: #1d4ed8;
-}
-
-/* Error / Empty */
-.error-box {
-  text-align: center;
-  padding: 2rem;
+  font-weight: 850;
 }
 
 .retry-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1.5rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-family: inherit;
-  transition: background 0.2s ease;
+  margin-top: 0.75rem;
 }
 
-.retry-btn:hover {
-  background: #1d4ed8;
-}
+@media (max-width: 700px) {
+  .header-title-row {
+    align-items: flex-start;
+  }
 
-.empty {
-  text-align: center;
-  color: #9ca3af;
-  padding: 3rem;
-  font-size: 1.1rem;
-}
-
-@media (max-width: 640px) {
-  .page-header { padding: 1.25rem 1rem 1.25rem; }
-  .header-title { font-size: 1.4rem; }
-  .content { padding: 1.5rem 1rem 0; }
-  .card-body { padding: 1.1rem 1.1rem; }
-  .chapter-title { font-size: 1rem; }
+  .chapter-toolbar,
+  .chapter-card {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
 }
 </style>
