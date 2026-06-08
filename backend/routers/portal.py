@@ -50,14 +50,12 @@ from schemas import (
     ChapterPortalSummaryOut,
     ChapterUpdateIn,
     ChapterCreateIn,
-    UploadResultOut,
     ConceptUpdateIn,
     ConceptCreateIn,
     ExhibitUpdateIn,
     ExhibitCreateIn,
     ChangePasswordIn,
 )
-from xlsx_parser import parse_xlsx
 
 router = APIRouter()
 
@@ -374,6 +372,7 @@ def _build_chapter_detail(db: Session, chapter: Chapter) -> ChapterDetailOut:
         id=chapter.id,
         title=chapter.title,
         aim=chapter.aim,
+        order_index=chapter.order_index,
         pdf_url=f"/uploads/{chapter.pdf_filename}" if chapter.pdf_filename else None,
         subject=SubjectNestedOut(
             id=subject.id,
@@ -1051,161 +1050,6 @@ async def upload_editor_image(
 
     return {"url": f"/uploads/{unique_name}"}
 
-@router.post("/upload", response_model=UploadResultOut)
-async def upload_xlsx(
-    file: UploadFile = File(...),
-    subject_id: int = Form(...),
-    request: Request = None,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Upload an xlsx lesson plan file and upsert into DB.
-    Teacher may only upload to their assigned subjects; admin can upload to any.
-    """
-    _check_subject_access(db, current_user, subject_id)
-
-    subject = db.query(Subject).filter(Subject.id == subject_id).first()
-    if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
-
-    # ── Validate uploaded file ─────────────────────────────────────────────
-    _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    _ALLOWED_MIME = {_XLSX_MIME, "application/octet-stream", "application/zip"}
-    _MAX_BYTES = 10 * 1024 * 1024  # 10 MB
-
-    fname = (file.filename or "").lower()
-    if not fname.endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="Only .xlsx files are accepted.")
-    ct = (file.content_type or "").split(";")[0].strip()
-    if ct and ct not in _ALLOWED_MIME:
-        raise HTTPException(
-            status_code=415,
-            detail=f"Unsupported content type '{ct}'. Upload an .xlsx file.",
-        )
-
-    # Save to temp file
-    suffix = ".xlsx"
-    tmp_fd, tmp_path = tempfile.mkstemp(suffix=suffix)
-    try:
-        contents = await file.read()
-        if len(contents) > _MAX_BYTES:
-            raise HTTPException(status_code=413, detail="File exceeds the 10 MB size limit.")
-        with os.fdopen(tmp_fd, "wb") as tmp_file:
-            tmp_file.write(contents)
-
-        try:
-            data = parse_xlsx(tmp_path)
-        except Exception as exc:
-            raise HTTPException(status_code=422, detail=f"Failed to parse xlsx: {exc}")
-    finally:
-        # Clean up temp file
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
-
-    # Delete existing chapter with same title for upsert idempotency
-    existing = db.query(Chapter).filter(
-        Chapter.subject_id == subject_id,
-        Chapter.title == data["title"],
-    ).first()
-    existing_before = _chapter_snapshot(existing) if existing else None
-    if existing:
-        _delete_chapter_cascade(db, existing)
-        db.flush()
-
-    # Create new chapter
-    chapter = Chapter(
-        title=data["title"],
-        aim=data["aim"],
-        subject_id=subject_id,
-        order_index=1,
-    )
-    _mark_chapter_approval_state(chapter, current_user, "Chapter content re-uploaded from xlsx")
-    db.add(chapter)
-    db.flush()
-
-    concepts_count = 0
-    exhibits_count = 0
-    exhibits_map: dict = data.get("exhibits", {})
-
-    for concept_data in data["concepts"]:
-        if not concept_data.get("title"):
-            continue
-
-        concept = Concept(
-            chapter_id=chapter.id,
-            s_no=concept_data.get("s_no"),
-            title=concept_data["title"],
-            concept_description=concept_data.get("concept_description"),
-            sessions=concept_data.get("sessions"),
-            learning_outcomes=concept_data.get("learning_outcomes"),
-            integration_other_sub=concept_data.get("integration_other_sub"),
-            teaching_materials_methods=concept_data.get("teaching_materials_methods"),
-            library=concept_data.get("library"),
-            activity=concept_data.get("activity"),
-            life_lesson=concept_data.get("life_lesson"),
-            remarks=concept_data.get("remarks"),
-            exhibit_ref=concept_data.get("exhibit_ref"),
-        )
-        db.add(concept)
-        db.flush()
-        concepts_count += 1
-
-        exhibit_ref = concept_data.get("exhibit_ref", "")
-        if exhibit_ref and exhibit_ref in exhibits_map:
-            for idx, (field_key, field_value) in enumerate(exhibits_map[exhibit_ref].get("fields", {}).items()):
-                db.add(Exhibit(
-                    concept_id=concept.id,
-                    field_key=field_key,
-                    field_value=str(field_value) if field_value is not None else None,
-                    sort_order=idx,
-                ))
-                exhibits_count += 1
-
-    write_audit_log(
-        db,
-        actor_user_id=current_user.id,
-        entity_type="chapter",
-        entity_id=str(chapter.id),
-        action="upload_xlsx",
-        change_summary=f"Chapter uploaded from xlsx: {chapter.title}",
-        before_payload=existing_before,
-        after_payload={
-            **_chapter_snapshot(chapter),
-            "concepts_count": concepts_count,
-            "exhibits_count": exhibits_count,
-        },
-        ip_address=_client_ip(request),
-    )
-
-    _write_security_event(
-        db,
-        request=request,
-        action="file_upload",
-        entity_id=f"xlsx:{subject_id}:{chapter.id}",
-        actor_user_id=current_user.id,
-        change_summary=f"Lesson xlsx uploaded for subject {subject_id}",
-        payload={
-            "upload_type": "lesson_xlsx",
-            "subject_id": subject_id,
-            "chapter_id": chapter.id,
-            "chapter_title": chapter.title,
-            "original_filename": file.filename,
-            "content_type": file.content_type,
-            "size_bytes": len(contents),
-            "concepts_count": concepts_count,
-            "exhibits_count": exhibits_count,
-        },
-    )
-
-    db.commit()
-
-    return UploadResultOut(
-        ok=True,
-        chapter_title=data["title"],
-        concepts_count=concepts_count,
-        exhibits_count=exhibits_count,
-    )
 
 
 # ---------------------------------------------------------------------------

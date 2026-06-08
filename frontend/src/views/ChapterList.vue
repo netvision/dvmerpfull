@@ -46,12 +46,14 @@
             @click="router.push(`/chapter/${chapter.id}`)"
           >
             <span class="accent-bar"></span>
-            <div class="chapter-main">
+            <div class="chapter-card-top">
               <h2>{{ chapter.title }}</h2>
+              <span class="dvm-badge">{{ chapter.concept_count }} concept{{ chapter.concept_count !== 1 ? 's' : '' }}</span>
+            </div>
+            <div class="chapter-main">
               <div v-if="chapter.aim" class="chapter-aim ql-content" v-html="sanitize(chapter.aim)"></div>
               <div class="badges">
                 <span class="dvm-badge">{{ chapter.sessions_total }} sessions</span>
-                <span class="dvm-badge">{{ chapter.concept_count }} concept{{ chapter.concept_count !== 1 ? 's' : '' }}</span>
                 <a
                   v-if="chapter.pdf_url"
                   :href="`${apiBase}${chapter.pdf_url}`"
@@ -62,7 +64,6 @@
                 >PDF</a>
               </div>
             </div>
-            <span class="view-link">View</span>
           </article>
         </div>
       </template>
@@ -222,21 +223,20 @@ onMounted(fetchChapters)
 
 .chapter-list {
   display: grid;
-  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
 }
 
 .chapter-card {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem;
-  align-items: center;
+  gap: 0.75rem;
   background: #fff;
   border: 1px solid var(--dvm-line);
   border-radius: var(--dvm-radius-lg);
   box-shadow: var(--dvm-shadow-soft);
-  padding: 1rem 1.1rem 1rem 1.35rem;
+  padding: 1.05rem 1.15rem 1.05rem 1.35rem;
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -254,17 +254,22 @@ onMounted(fetchChapters)
   background: var(--accent);
 }
 
-.chapter-main h2 {
+.chapter-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.chapter-card-top h2 {
   margin: 0;
   color: var(--dvm-text);
-  font-size: 1.05rem;
+  font-size: 1.12rem;
   line-height: 1.3;
 }
 
 .chapter-aim {
   display: -webkit-box;
-  max-width: 780px;
-  margin-top: 0.35rem;
   color: var(--dvm-muted);
   font-size: 0.86rem;
   line-height: 1.45;
@@ -291,12 +296,6 @@ onMounted(fetchChapters)
   color: #9a3412;
 }
 
-.view-link {
-  color: var(--dvm-blue);
-  font-size: 0.85rem;
-  font-weight: 850;
-}
-
 .retry-btn {
   margin-top: 0.75rem;
 }
@@ -309,7 +308,14 @@ onMounted(fetchChapters)
   .chapter-toolbar,
   .chapter-card {
     align-items: stretch;
+  }
+
+  .chapter-list {
     grid-template-columns: 1fr;
+  }
+
+  .chapter-card-top {
+    flex-direction: column;
   }
 }
 </style>

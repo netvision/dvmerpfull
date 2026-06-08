@@ -55,7 +55,7 @@
 
     <div v-else-if="filteredChapters.length === 0" class="dvm-empty">
       <p>No chapters found.</p>
-      <p v-if="auth.isAdmin">Use Add Chapter to create one, or upload an xlsx file from the chapter editor.</p>
+      <p v-if="auth.isAdmin">Use Add Chapter to create one.</p>
       <p v-else>Use Add Chapter to create one for your assigned subjects.</p>
     </div>
 

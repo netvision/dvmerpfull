@@ -18,11 +18,6 @@ const routes = [
     meta: { requiresAuth: true, hideNav: true }
   },
   {
-    path: '/portal/upload',
-    component: () => import('../views/Upload.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }
-  },
-  {
     path: '/portal/users',
     component: () => import('../views/UserManagement.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, hideNav: true }

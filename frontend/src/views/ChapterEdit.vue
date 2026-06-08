@@ -59,22 +59,6 @@
               <div v-if="pdfMsg.text" :class="['inline-msg', pdfMsg.type]">{{ pdfMsg.text }}</div>
             </div>
 
-            <!-- xlsx Re-upload Section (admin only) -->
-            <div v-if="auth.isAdmin" class="doc-section doc-section--border">
-              <div class="doc-label">Re-upload from xlsx</div>
-              <div class="doc-note">Replaces all chapter content from an xlsx file.</div>
-              <div class="doc-upload-row">
-                <label class="file-pick-btn">
-                  <input type="file" accept=".xlsx" style="display:none" @change="onXlsxChange" />
-                  {{ xlsxFile ? xlsxFile.name : 'Choose xlsx…' }}
-                </label>
-                <button class="btn-doc-upload btn-doc-upload--warn" :disabled="!xlsxFile || xlsxUploading" @click="uploadXlsx">
-                  <span v-if="xlsxUploading" class="spinner-sm"></span>
-                  <span v-else>Upload xlsx</span>
-                </button>
-              </div>
-              <div v-if="xlsxMsg.text" :class="['inline-msg', xlsxMsg.type]">{{ xlsxMsg.text }}</div>
-            </div>
           </div>
         </div>
 
@@ -475,11 +459,6 @@ const pdfFile = ref(null)
 const pdfUploading = ref(false)
 const pdfMsg = ref({ text: '', type: '' })
 
-// ---- xlsx re-upload ----
-const xlsxFile = ref(null)
-const xlsxUploading = ref(false)
-const xlsxMsg = ref({ text: '', type: '' })
-
 // ---- Exhibit rows ----
 const exhibitRows = ref([])
 
@@ -875,34 +854,6 @@ async function uploadPdf() {
   }
 }
 
-// ---- xlsx re-upload ----
-function onXlsxChange(e) {
-  xlsxFile.value = e.target.files[0] || null
-  xlsxMsg.value = { text: '', type: '' }
-}
-
-async function uploadXlsx() {
-  if (!xlsxFile.value || !chapter.value?.subject?.id) return
-  if (!confirm('Re-uploading xlsx will replace ALL concepts and exhibits for this chapter. Continue?')) return
-  xlsxUploading.value = true
-  xlsxMsg.value = { text: '', type: '' }
-  try {
-    const fd = new FormData()
-    fd.append('file', xlsxFile.value)
-    fd.append('subject_id', chapter.value.subject.id)
-    await api.post('/api/portal/upload', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    xlsxFile.value = null
-    xlsxMsg.value = { text: 'Upload successful — reloading chapter…', type: 'success' }
-    await fetchChapter()
-    xlsxMsg.value = { text: '', type: '' }
-  } catch (e) {
-    xlsxMsg.value = { text: e.response?.data?.detail || 'Upload failed', type: 'error' }
-  } finally {
-    xlsxUploading.value = false
-  }
-}
 </script>
 
 <style scoped>
@@ -1299,7 +1250,7 @@ async function uploadXlsx() {
 }
 
 .modal-card--wide {
-  max-width: 720px;
+  max-width: none;
 }
 
 .modal-header {
@@ -2094,7 +2045,8 @@ async function uploadXlsx() {
 }
 
 .modal-card--wide {
-  width: min(1180px, calc(100vw - 42px));
+  width: 80vw;
+  max-width: calc(100vw - 42px);
   max-height: min(780px, calc(100vh - 42px));
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);

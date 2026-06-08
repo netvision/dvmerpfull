@@ -153,6 +153,7 @@ class ChapterDetailOut(BaseModel):
     id: int
     title: str
     aim: Optional[str]
+    order_index: int
     pdf_url: Optional[str] = None
     subject: SubjectNestedOut
     class_: ClassNestedOut = Field(alias="class")

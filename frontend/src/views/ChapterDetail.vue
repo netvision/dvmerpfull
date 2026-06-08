@@ -48,19 +48,15 @@
           <p class="section-eyebrow">In this chapter</p>
           <h2 class="section-heading">Concepts</h2>
 
-          <div class="concept-list">
-            <div
-              v-for="(concept, idx) in chapter.concepts"
+          <div class="concept-list concept-list--compact">
+            <article
+              v-for="concept in chapter.concepts"
               :key="concept.id"
-              class="concept-card"
+              class="concept-card concept-card--compact"
               :style="{ '--accent': accentColor }"
             >
-              <!-- Ghost watermark number -->
-              <div class="card-watermark" aria-hidden="true">{{ concept.s_no }}</div>
-
-              <!-- Card Header -->
               <div class="concept-header">
-                <div class="concept-badge">{{ concept.s_no }}</div>
+                <div v-if="concept.s_no" class="concept-badge">{{ concept.s_no }}</div>
                 <div class="concept-header-text">
                   <h3 class="concept-title">{{ concept.title }}</h3>
                 </div>
@@ -70,70 +66,30 @@
                 </div>
               </div>
 
-              <!-- Card Body -->
               <div class="concept-body">
                 <div v-if="concept.concept_description" class="extra-field concept-description-field">
-                  <p class="field-label">📖 Concept Description</p>
+                  <p class="field-label">Concept Description</p>
                   <div class="ql-content field-content" v-html="sanitize(concept.concept_description)"></div>
                 </div>
 
-                <!-- Learning Outcomes callout -->
                 <div v-if="concept.learning_outcomes" class="lo-callout">
-                  <p class="lo-label">🎯 Learning Outcomes</p>
+                  <p class="lo-label">Learning Outcomes</p>
                   <div class="ql-content lo-content" v-html="sanitize(concept.learning_outcomes)"></div>
                 </div>
 
-                <!-- Extra Fields -->
-                <div v-if="concept.integration_other_sub || concept.library || concept.activity || concept.life_lesson || concept.remarks" class="extra-fields">
-                  <div v-if="concept.integration_other_sub" class="extra-field">
-                    <p class="field-label">🔗 Integration with Other Subjects</p>
-                    <div class="ql-content field-content" v-html="sanitize(concept.integration_other_sub)"></div>
-                  </div>
-                  <div v-if="concept.library" class="extra-field">
-                    <p class="field-label">📚 Library</p>
-                    <div class="ql-content field-content" v-html="sanitize(concept.library)"></div>
-                  </div>
-                  <div v-if="concept.activity" class="extra-field">
-                    <p class="field-label">✏️ Activity</p>
-                    <div class="ql-content field-content" v-html="sanitize(concept.activity)"></div>
-                  </div>
-                  <div v-if="concept.life_lesson" class="extra-field">
-                    <p class="field-label">💡 Life Lesson</p>
-                    <div class="ql-content field-content" v-html="sanitize(concept.life_lesson)"></div>
-                  </div>
-                  <div v-if="concept.remarks" class="extra-field">
-                    <p class="field-label">📝 Remarks</p>
-                    <div class="ql-content field-content" v-html="sanitize(concept.remarks)"></div>
-                  </div>
-                </div>
-
-                <!-- Images -->
-                <div v-if="concept.images?.length" class="images-row">
-                  <a
-                    v-for="img in concept.images"
-                    :key="img.id"
-                    :href="buildAssetUrl(img.url)"
-                    target="_blank"
-                    rel="noopener"
-                    class="thumb-link"
+                <div v-if="detailOptions(concept).length" class="detail-actions">
+                  <button
+                    v-for="option in detailOptions(concept)"
+                    :key="option.type"
+                    type="button"
+                    class="detail-action"
+                    @click="openModal(concept, option.type)"
                   >
-                    <img
-                      :src="buildAssetUrl(img.url)"
-                      :alt="img.original_name"
-                      class="concept-thumbnail"
-                    />
-                  </a>
-                </div>
-
-                <!-- Exhibit Button -->
-                <div class="concept-card-footer">
-                  <button class="exhibit-btn" @click="openModal(concept)">
-                    <span>View Exhibit</span>
-                    <span class="btn-arrow">→</span>
+                    {{ option.label }}
                   </button>
                 </div>
               </div>
-            </div>
+            </article>
           </div>
         </div>
       </div>
@@ -147,7 +103,7 @@
           <div class="modal-header">
             <div class="modal-header-icon" aria-hidden="true">📋</div>
             <div class="modal-header-text">
-              <p class="modal-subtitle">Exhibit Details</p>
+              <p class="modal-subtitle">{{ modalTitle }}</p>
               <h3 class="modal-title">{{ modalConcept?.title }}</h3>
             </div>
             <button class="modal-close" @click="closeModal" aria-label="Close">✕</button>
@@ -155,7 +111,7 @@
 
           <!-- Modal Body -->
           <div class="modal-body">
-            <template v-if="modalConcept?.exhibits?.length">
+            <template v-if="modalType === 'exhibits' && modalConcept?.exhibits?.length">
               <div
                 v-for="(exhibit, idx) in modalConcept.exhibits"
                 :key="exhibit.id || exhibit.field_key"
@@ -259,6 +215,39 @@
                 <hr v-if="idx < modalConcept.exhibits.length - 1" class="exhibit-divider" />
               </div>
             </template>
+            <template v-else-if="modalType === 'integration'">
+              <div class="ql-content" v-html="sanitize(modalConcept?.integration_other_sub)"></div>
+            </template>
+            <template v-else-if="modalType === 'library'">
+              <div class="ql-content" v-html="sanitize(modalConcept?.library)"></div>
+            </template>
+            <template v-else-if="modalType === 'activity'">
+              <div class="ql-content" v-html="sanitize(modalConcept?.activity)"></div>
+            </template>
+            <template v-else-if="modalType === 'life_lesson'">
+              <div class="ql-content" v-html="sanitize(modalConcept?.life_lesson)"></div>
+            </template>
+            <template v-else-if="modalType === 'remarks'">
+              <div class="ql-content" v-html="sanitize(modalConcept?.remarks)"></div>
+            </template>
+            <template v-else-if="modalType === 'images' && modalConcept?.images?.length">
+              <div class="images-row detail-images-row">
+                <a
+                  v-for="img in modalConcept.images"
+                  :key="img.id"
+                  :href="buildAssetUrl(img.url)"
+                  target="_blank"
+                  rel="noopener"
+                  class="thumb-link"
+                >
+                  <img
+                    :src="buildAssetUrl(img.url)"
+                    :alt="img.original_name"
+                    class="concept-thumbnail"
+                  />
+                </a>
+              </div>
+            </template>
             <p v-else class="no-exhibit">No exhibit data available.</p>
           </div>
         </div>
@@ -294,6 +283,7 @@ const error = ref(null)
 // Modal state
 const showModal = ref(false)
 const modalConcept = ref(null)
+const modalType = ref('exhibits')
 
 const heroGradient = computed(() => {
   const color = chapter.value?.subject?.color
@@ -307,6 +297,30 @@ const totalSessions = computed(() => {
   if (!chapter.value?.concepts) return 0
   return chapter.value.concepts.reduce((sum, c) => sum + (parseInt(c.sessions) || 0), 0)
 })
+
+const detailLabels = {
+  exhibits: 'Exhibit Fields',
+  integration: 'Integration',
+  library: 'Library',
+  activity: 'Activity',
+  life_lesson: 'Life Lesson',
+  remarks: 'Remarks',
+  images: 'Images',
+}
+
+const modalTitle = computed(() => detailLabels[modalType.value] || 'Details')
+
+function detailOptions(concept) {
+  const options = []
+  if (concept.exhibits?.length) options.push({ type: 'exhibits', label: 'Exhibits' })
+  if (concept.integration_other_sub) options.push({ type: 'integration', label: 'Integration' })
+  if (concept.library) options.push({ type: 'library', label: 'Library' })
+  if (concept.activity) options.push({ type: 'activity', label: 'Activity' })
+  if (concept.life_lesson) options.push({ type: 'life_lesson', label: 'Life Lesson' })
+  if (concept.remarks) options.push({ type: 'remarks', label: 'Remarks' })
+  if (concept.images?.length) options.push({ type: 'images', label: 'Images' })
+  return options
+}
 
 function shiftColor(hex) {
   const num = parseInt(hex.replace('#', ''), 16)
@@ -337,8 +351,9 @@ function stripHtml(value) {
   return value.replace(/<[^>]*>/g, '').trim()
 }
 
-function openModal(concept) {
+function openModal(concept, type = 'exhibits') {
   modalConcept.value = concept
+  modalType.value = type
   showModal.value = true
   document.body.style.overflow = 'hidden'
 }
@@ -346,6 +361,7 @@ function openModal(concept) {
 function closeModal() {
   showModal.value = false
   modalConcept.value = null
+  modalType.value = 'exhibits'
   document.body.style.overflow = ''
 }
 
@@ -495,7 +511,16 @@ onMounted(fetchChapter)
 }
 
 /* Concept List */
-.concept-list { display: flex; flex-direction: column; gap: 1rem; position: relative; }
+.concept-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  position: relative;
+}
+
+.concept-list--compact {
+  gap: 0.9rem;
+}
 
 /* Vertical connector line behind cards */
 .concept-list::before { display: none; }
@@ -508,11 +533,17 @@ onMounted(fetchChapter)
   box-shadow: var(--dvm-shadow-soft);
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
   transition: transform 0.25s cubic-bezier(.22,.68,0,1.2), box-shadow 0.25s ease;
   z-index: 1;
 }
 
 .concept-card:hover { transform: translateY(-2px); box-shadow: var(--dvm-shadow); }
+
+.concept-card--compact {
+  border-radius: var(--dvm-radius-lg);
+}
 
 /* Ghost watermark number */
 .card-watermark {
@@ -535,9 +566,9 @@ onMounted(fetchChapter)
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1.2rem 1.5rem 1.1rem;
+  padding: 1rem 1.2rem 0.9rem;
   border-bottom: 1px solid #f0f0f8;
-  background: linear-gradient(to right, #fafafe 0%, #fff 55%);
+  background: #fff;
   position: relative;
   z-index: 1;
 }
@@ -596,20 +627,43 @@ onMounted(fetchChapter)
 
 /* Card Body */
 .concept-body {
-  padding: 1.4rem 1.5rem;
+  padding: 1rem 1.2rem 1.1rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.85rem;
+  flex: 1;
   position: relative;
   z-index: 1;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: auto;
+  padding-top: 0.1rem;
+}
+
+.detail-action {
+  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 24%, var(--dvm-line));
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent, #2563eb);
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 0.32rem 0.58rem;
+}
+
+.detail-action:hover {
+  background: color-mix(in srgb, var(--accent, #2563eb) 8%, white);
 }
 
 /* Learning Outcomes callout block */
 .lo-callout {
   background: color-mix(in srgb, var(--accent, #2563eb) 6%, white);
   border-left: 3px solid var(--accent, #2563eb);
-  border-radius: 0 10px 10px 0;
-  padding: 0.9rem 1.1rem;
+  border-radius: 0 8px 8px 0;
+  padding: 0.75rem 0.9rem;
 }
 
 .lo-label {
@@ -652,7 +706,7 @@ onMounted(fetchChapter)
 .field-content {
   font-size: 0.93rem;
   color: #374151;
-  line-height: 1.65;
+  line-height: 1.58;
 }
 
 /* Images Row */
@@ -663,6 +717,10 @@ onMounted(fetchChapter)
   padding-bottom: 0.3rem;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent, #2563eb) 40%, transparent) transparent;
+}
+
+.detail-images-row {
+  flex-wrap: wrap;
 }
 
 .images-row::-webkit-scrollbar {
@@ -779,7 +837,7 @@ onMounted(fetchChapter)
 .modal-card {
   background: #fff;
   border-radius: 20px;
-  width: min(96vw, 660px);
+  width: min(80vw, 1040px);
   max-width: 96vw;
   max-height: 90vh;
   min-width: 340px;
@@ -1016,6 +1074,9 @@ onMounted(fetchChapter)
   .concept-body { padding: 1.1rem; gap: 1rem; }
   .card-watermark { font-size: 5.5rem; }
   .concept-list::before { left: 29px; }
+  .concept-list {
+    grid-template-columns: 1fr;
+  }
   .modal-card {
     max-height: 92vh;
     border-radius: 16px;

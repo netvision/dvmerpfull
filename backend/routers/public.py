@@ -163,6 +163,7 @@ def get_chapter(chapter_id: int, db: Session = Depends(get_db)):
         id=chapter.id,
         title=chapter.title,
         aim=chapter.aim,
+        order_index=chapter.order_index,
         pdf_url=f"/uploads/{chapter.pdf_filename}" if chapter.pdf_filename else None,
         subject=SubjectNestedOut(
             id=subject.id,
