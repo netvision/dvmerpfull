@@ -2145,21 +2145,34 @@ async function uploadPdf() {
 @media (max-width: 900px) {
   .modal-card--wide {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
   }
 
   .modal-card--wide .tab-bar {
+    grid-row: 2;
     grid-column: 1;
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    padding: 0.75rem;
     border-right: 0;
     border-bottom: 1px solid var(--dvm-line);
+    overflow: visible;
   }
 
   .modal-card--wide .tab-bar::before {
-    display: none;
+    display: block;
+    grid-column: 1 / -1;
+    margin: 0 0 0.15rem;
   }
 
   .modal-card--wide .modal-body {
+    grid-row: 3;
     grid-column: 1;
+  }
+
+  .modal-card--wide .modal-footer {
+    grid-row: 4;
   }
 
   .modal-card--wide .fields-row {
