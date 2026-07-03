@@ -3,6 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from auth import get_current_user
 from database import get_db
 from models import Class, Subject, Chapter, Concept, Exhibit, ConceptImage
 from schemas import (
@@ -17,7 +18,7 @@ from schemas import (
     ExhibitOut,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/classes", response_model=List[ClassOut])

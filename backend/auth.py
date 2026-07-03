@@ -23,7 +23,6 @@ ADMIN_ROLES = {
     UserRole.hm,
     UserRole.principal,
     UserRole.admin,
-    UserRole.accounts,
     UserRole.super_admin,
 }
 
@@ -165,6 +164,7 @@ def hash_password(plain: str) -> str:
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
+    to_encode.setdefault("iat", datetime.now(timezone.utc).timestamp())
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode["exp"] = expire
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -208,6 +208,15 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Inactive user",
         )
+    if user.token_invalid_before is not None:
+        issued_at = payload.get("iat")
+        if issued_at is None:
+            raise credentials_exception
+        token_invalid_before = user.token_invalid_before
+        if token_invalid_before.tzinfo is None:
+            token_invalid_before = token_invalid_before.replace(tzinfo=timezone.utc)
+        if datetime.fromtimestamp(float(issued_at), timezone.utc) < token_invalid_before:
+            raise credentials_exception
     return user
 
 

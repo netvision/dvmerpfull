@@ -1,10 +1,11 @@
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from audit import write_audit_log
-from auth import hash_password, require_admin
+from auth import hash_password, require_capability
 from database import get_db
 from models import Subject, TeacherSubject, User, UserRole
 from schemas import (
@@ -27,6 +28,27 @@ SUBJECT_ASSIGNABLE_ROLES = {
 
 def _valid_role_names() -> str:
     return ", ".join([role.value for role in UserRole])
+
+
+def _parse_role(raw_role: str) -> UserRole:
+    try:
+        return UserRole(raw_role)
+    except ValueError:
+        try:
+            return UserRole[raw_role]
+        except KeyError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid role '{raw_role}'. Must be one of: {_valid_role_names()}.",
+            )
+
+
+def _require_super_admin_account_permission(actor: User, target_role: UserRole) -> None:
+    if target_role == UserRole.super_admin and actor.role != UserRole.super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin account management requires super admin access",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +81,7 @@ def _user_snapshot(user: User) -> dict:
 
 @router.get("/", response_model=List[UserFullOut])
 def list_users(
-    _admin: User = Depends(require_admin),
+    _admin: User = Depends(require_capability("user_management")),
     db: Session = Depends(get_db),
 ):
     """Return all users. Admin only."""
@@ -75,28 +97,24 @@ def list_users(
 def create_user(
     body: UserCreateIn,
     request: Request,
-    admin_user: User = Depends(require_admin),
+    admin_user: User = Depends(require_capability("user_management")),
     db: Session = Depends(get_db),
 ):
     """Create a new user. Admin only. Returns 400 if email already exists."""
-    existing = db.query(User).filter(User.email == body.email).first()
+    email = body.email.lower()
+    existing = db.query(User).filter(User.email == email).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
 
-    try:
-        role_enum = UserRole[body.role]
-    except KeyError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid role '{body.role}'. Must be one of: {_valid_role_names()}.",
-        )
+    role_enum = _parse_role(body.role)
+    _require_super_admin_account_permission(admin_user, role_enum)
 
     user = User(
         name=body.name,
-        email=body.email,
+        email=email,
         hashed_password=hash_password(body.password),
         role=role_enum,
         is_active=True,
@@ -129,7 +147,7 @@ def update_user(
     user_id: int,
     body: UserUpdateIn,
     request: Request,
-    admin_user: User = Depends(require_admin),
+    admin_user: User = Depends(require_capability("user_management")),
     db: Session = Depends(get_db),
 ):
     """Update user fields. Admin only. Returns 404 if not found, 400 on email conflict."""
@@ -138,27 +156,26 @@ def update_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     before = _user_snapshot(user)
+    _require_super_admin_account_permission(admin_user, user.role)
 
-    if body.email is not None and body.email != user.email:
-        conflict = db.query(User).filter(User.email == body.email).first()
-        if conflict:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already in use",
-            )
-        user.email = body.email
+    if body.email is not None:
+        email = body.email.lower()
+        if email != user.email:
+            conflict = db.query(User).filter(User.email == email).first()
+            if conflict:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already in use",
+                )
+            user.email = email
 
     if body.name is not None:
         user.name = body.name
 
     if body.role is not None:
-        try:
-            user.role = UserRole[body.role]
-        except KeyError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid role '{body.role}'. Must be one of: {_valid_role_names()}.",
-            )
+        role_enum = _parse_role(body.role)
+        _require_super_admin_account_permission(admin_user, role_enum)
+        user.role = role_enum
 
     if body.is_active is not None:
         user.is_active = body.is_active
@@ -190,7 +207,7 @@ def assign_subjects(
     user_id: int,
     body: SubjectAssignIn,
     request: Request,
-    admin_user: User = Depends(require_admin),
+    admin_user: User = Depends(require_capability("user_management")),
     db: Session = Depends(get_db),
 ):
     """Replace all subject assignments for a teacher. Admin only."""
@@ -253,7 +270,7 @@ def assign_subjects(
 @router.get("/{user_id}/subjects", response_model=List[SubjectNestedOut])
 def get_user_subjects(
     user_id: int,
-    _admin: User = Depends(require_admin),
+    _admin: User = Depends(require_capability("user_management")),
     db: Session = Depends(get_db),
 ):
     """Return subjects assigned to a teacher. Admin only."""
@@ -279,19 +296,21 @@ def admin_reset_password(
     user_id: int,
     body: AdminResetPasswordIn,
     request: Request,
-    admin_user: User = Depends(require_admin),
+    admin_user: User = Depends(require_capability("user_management")),
     db: Session = Depends(get_db),
 ):
     """Reset/change any user's password. Admin only."""
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    _require_super_admin_account_permission(admin_user, user.role)
     if not body.new_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password is required")
     if len(body.new_password) < 6:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 6 characters")
 
     user.hashed_password = hash_password(body.new_password)
+    user.token_invalid_before = datetime.now(timezone.utc)
 
     write_audit_log(
         db,

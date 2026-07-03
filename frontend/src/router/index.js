@@ -2,10 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
-  { path: '/', component: () => import('../views/Home.vue') },
-  { path: '/class/:classId', component: () => import('../views/SubjectDashboard.vue') },
-  { path: '/class/:classId/:subjectId', component: () => import('../views/ChapterList.vue') },
-  { path: '/chapter/:chapterId', component: () => import('../views/ChapterDetail.vue') },
+  { path: '/', component: () => import('../views/Home.vue'), meta: { requiresAuth: true } },
+  { path: '/class/:classId', component: () => import('../views/SubjectDashboard.vue'), meta: { requiresAuth: true } },
+  { path: '/class/:classId/:subjectId', component: () => import('../views/ChapterList.vue'), meta: { requiresAuth: true } },
+  { path: '/chapter/:chapterId', component: () => import('../views/ChapterDetail.vue'), meta: { requiresAuth: true } },
   { path: '/login', component: () => import('../views/Login.vue'), meta: { hideNav: true } },
   {
     path: '/portal',
@@ -61,7 +61,7 @@ router.beforeEach(async (to, from, next) => {
     try { await auth.fetchMe() } catch (_) {}
   }
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
-    return next('/login')
+    return next({ path: '/login', query: { redirect: to.fullPath } })
   }
   if (to.meta.requiresAdmin && !auth.isAdmin) {
     return next('/portal')

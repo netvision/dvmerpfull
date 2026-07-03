@@ -466,7 +466,7 @@ def login(
     db: Session = Depends(get_db),
 ):
     """Authenticate with email (username field) and password, return JWT."""
-    user: User | None = db.query(User).filter(User.email == form_data.username).first()
+    user: User | None = db.query(User).filter(User.email == form_data.username.lower()).first()
     if user is None or not verify_password(form_data.password, user.hashed_password):
         _write_security_event(
             db,
@@ -563,6 +563,7 @@ def change_password(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be different from current password")
 
     current_user.hashed_password = hash_password(body.new_password)
+    current_user.token_invalid_before = datetime.now(timezone.utc)
 
     write_audit_log(
         db,

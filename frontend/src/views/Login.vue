@@ -1,7 +1,7 @@
 <template>
   <div>
     <header class="login-header">
-      <a href="/" class="login-home-link">Go to Lesson Home</a>
+      <a v-if="auth.isLoggedIn" href="/" class="login-home-link">Go to Lesson Home</a>
     </header>
     <div class="login-wrap">
 
@@ -72,10 +72,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 
 const email = ref('')
@@ -85,16 +86,21 @@ const errorMsg = ref('')
 
 onMounted(() => {
   if (auth.isLoggedIn) {
-    router.replace('/portal')
+    router.replace(safeRedirectTarget())
   }
 })
+
+function safeRedirectTarget() {
+  const target = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+  return target.startsWith('/') && !target.startsWith('//') ? target : '/'
+}
 
 async function handleLogin() {
   errorMsg.value = ''
   loading.value = true
   try {
     await auth.login(email.value, password.value)
-    router.replace('/portal')
+    router.replace(safeRedirectTarget())
   } catch (e) {
     errorMsg.value =
       e.response?.data?.detail || 'Invalid credentials. Please try again.'

@@ -216,6 +216,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False, default=UserRole.teacher)
     is_active = Column(Boolean, default=True, nullable=False)
+    token_invalid_before = Column(DateTime(timezone=True), nullable=True)
 
     teacher_subjects = relationship("TeacherSubject", back_populates="teacher")
     profile = relationship("StaffProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
